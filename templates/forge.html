@@ -1,0 +1,146 @@
+{{define "content"}}
+<h1>{{.RepoName}}</h1>
+<p>Workspace: <a href="/workspaces/{{.WorkspaceName}}">{{.WorkspaceName}}</a></p>
+
+<h2>Build Targets</h2>
+{{if not .Spec.Build}}
+<p>None configured.</p>
+{{else}}
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Src</th>
+            <th>Dest</th>
+            <th>Engine</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Spec.Build}}
+        <tr>
+            <td>{{.Name}}</td>
+            <td><code>{{.Src}}</code></td>
+            <td><code>{{.Dest}}</code></td>
+            <td>{{.Engine}}</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+{{end}}
+
+<h2>Test Stages</h2>
+{{if not .Spec.Test}}
+<p>None configured.</p>
+{{else}}
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Testenv</th>
+            <th>Runner</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Spec.Test}}
+        <tr>
+            <td>{{.Name}}</td>
+            <td>{{.Testenv}}</td>
+            <td>{{.Runner}}</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+{{end}}
+
+<h2>Artifacts</h2>
+{{if not .Artifacts}}
+<p>No artifacts.</p>
+{{else}}
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Version</th>
+            <th>Timestamp</th>
+            <th>Location</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Artifacts}}
+        <tr>
+            <td>{{.Name}}</td>
+            <td>{{.Type}}</td>
+            <td><code>{{.Version}}</code></td>
+            <td>{{.Timestamp}}</td>
+            <td class="mono">{{.Location}}</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+{{end}}
+
+<h2>Test Reports</h2>
+{{if not .TestReports}}
+<p>No test reports.</p>
+{{else}}
+<table>
+    <thead>
+        <tr>
+            <th>Stage</th>
+            <th>Status</th>
+            <th>Duration</th>
+            <th>Total</th>
+            <th>Passed</th>
+            <th>Failed</th>
+            <th>Skipped</th>
+            <th>Coverage</th>
+            <th>Error</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .TestReports}}
+        <tr>
+            <td>{{.Stage}}</td>
+            <td class="{{if eq .Status "passed"}}status-passed{{else}}status-failed{{end}}">{{.Status}}</td>
+            <td>{{printf "%.1f" .Duration}}s</td>
+            <td>{{.Stats.Total}}</td>
+            <td>{{.Stats.Passed}}</td>
+            <td>{{.Stats.Failed}}</td>
+            <td>{{.Stats.Skipped}}</td>
+            <td>{{if .Coverage.Enabled}}{{printf "%.1f" .Coverage.Percentage}}%{{else}}-{{end}}</td>
+            <td>{{if gt (len .ErrorMessage) 100}}{{slice .ErrorMessage 0 100}}...{{else}}{{.ErrorMessage}}{{end}}</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+{{end}}
+
+<h2>Test Environments</h2>
+{{if not .TestEnvs}}
+<p>No test environments.</p>
+{{else}}
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Updated</th>
+            <th>Managed Resources</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .TestEnvs}}
+        <tr>
+            <td>{{.Name}}</td>
+            <td>{{.Status}}</td>
+            <td>{{.CreatedAt.Format "2006-01-02 15:04:05"}}</td>
+            <td>{{.UpdatedAt.Format "2006-01-02 15:04:05"}}</td>
+            <td>{{range $i, $r := .ManagedResources}}{{if $i}}, {{end}}{{$r}}{{end}}</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+{{end}}
+{{end}}

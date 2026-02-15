@@ -1,0 +1,20 @@
+name: forge-ui
+
+artifactStorePath: .forge/artifact-store.yaml
+
+build:
+  - name: forge-ui
+    src: ./cmd/forge-ui
+    dest: ./build/bin
+    engine: go://go-build
+
+  - name: forge-ui-container
+    src: ./containers/forge-ui/Containerfile
+    engine: go://container-build
+
+test:
+  - name: lint
+    runner: "go://go-lint"
+
+  - name: unit
+    runner: "go://go-test"

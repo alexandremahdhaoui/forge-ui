@@ -1,0 +1,51 @@
+{{define "content"}}
+<h1>{{.Name}}</h1>
+<p class="mono">{{.Path}}</p>
+{{if not .Repos}}
+<p>No repositories found.</p>
+{{else}}
+{{range .Repos}}
+<div class="card">
+    <h2>{{.Name}}{{if .HasForge}} <a href="{{.ForgeLink}}">[forge]</a>{{end}}</h2>
+    <p>Branch: <code>{{.Branch}}</code></p>
+    {{if .IsDirty}}
+    <details>
+        <summary>{{len .StatusFiles}} modified files</summary>
+        <ul>
+            {{range .StatusFiles}}
+            <li><code>{{.Code}}</code> {{.FilePath}}</li>
+            {{end}}
+        </ul>
+    </details>
+    {{end}}
+    {{if .DiffStat}}
+    <details>
+        <summary>Diff stat</summary>
+        <pre>{{.DiffStat}}</pre>
+    </details>
+    {{end}}
+    {{if .RecentLogs}}
+    <details>
+        <summary>Recent commits</summary>
+        <table>
+            <thead>
+                <tr>
+                    <th>Hash</th>
+                    <th>Message</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .RecentLogs}}
+                <tr>
+                    <td><code>{{.Hash}}</code></td>
+                    <td>{{.Message}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </details>
+    {{end}}
+</div>
+{{end}}
+{{end}}
+{{end}}

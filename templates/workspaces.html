@@ -1,0 +1,25 @@
+{{define "content"}}
+<h1>Workspaces</h1>
+{{if not .Workspaces}}
+<p>No workspaces found.</p>
+{{else}}
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Path</th>
+            <th>Repos</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Workspaces}}
+        <tr>
+            <td><a href="/workspaces/{{.Name}}">{{.Name}}</a></td>
+            <td class="mono">{{.Path}}</td>
+            <td>{{.RepoCount}}</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+{{end}}
+{{end}}
