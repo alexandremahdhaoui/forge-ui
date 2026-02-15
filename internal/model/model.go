@@ -5,6 +5,7 @@ import "time"
 // --- Page 1: /workspaces ---
 
 type WorkspacesPageData struct {
+	Stats      WorkspacesStats
 	Workspaces []WorkspaceSummary
 }
 
@@ -17,9 +18,12 @@ type WorkspaceSummary struct {
 // --- Page 2: /workspaces/{name} ---
 
 type WorkspacePageData struct {
-	Name  string
-	Path  string
-	Repos []RepoSummary
+	Name      string
+	Path      string
+	Repos     []RepoSummary
+	Stats     WorkspaceStats
+	AllStages []string
+	RepoForge []RepoForgeStats
 }
 
 type RepoSummary struct {
@@ -47,12 +51,14 @@ type LogEntry struct {
 // --- Page 3: /workspaces/{ws}/repos/{repo}/forge ---
 
 type ForgePageData struct {
-	WorkspaceName string
-	RepoName      string
-	Spec          ForgeSpec
-	Artifacts     []Artifact
-	TestReports   []TestReport
-	TestEnvs      []TestEnv
+	WorkspaceName  string
+	RepoName       string
+	Spec           ForgeSpec
+	Artifacts      []Artifact
+	TestReports    []TestReport
+	TestEnvs       []TestEnv
+	Stats          ForgeStats
+	StageStatusMap map[string]string
 }
 
 type ForgeSpec struct {
@@ -122,4 +128,36 @@ type TestEnv struct {
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 	ManagedResources []string
+}
+
+// --- Statistics types ---
+
+type WorkspacesStats struct {
+	TotalWorkspaces int
+	TotalRepos      int
+}
+
+type WorkspaceStats struct {
+	TotalRepos int
+	ForgeRepos int
+	TotalTests int
+	Passed     int
+	Failed     int
+	Skipped    int
+}
+
+type RepoForgeStats struct {
+	RepoName     string
+	ForgeLink    string
+	StageResults map[string]string
+}
+
+type ForgeStats struct {
+	TotalTests  int
+	Passed      int
+	Failed      int
+	Skipped     int
+	AvgCoverage float64
+	HasCoverage bool
+	StageCount  int
 }

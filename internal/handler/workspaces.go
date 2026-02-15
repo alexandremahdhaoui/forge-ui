@@ -15,7 +15,17 @@ func (h *Handler) HandleWorkspaces(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Compute summary statistics.
+	totalRepos := 0
+	for _, ws := range workspaces {
+		totalRepos += ws.RepoCount
+	}
+
 	data := model.WorkspacesPageData{
+		Stats: model.WorkspacesStats{
+			TotalWorkspaces: len(workspaces),
+			TotalRepos:      totalRepos,
+		},
 		Workspaces: workspaces,
 	}
 

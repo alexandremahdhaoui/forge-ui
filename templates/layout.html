@@ -27,6 +27,16 @@
         .dirty { color: #e36209; }
         .clean { color: #22863a; }
         .mono { font-family: monospace; font-size: 0.9em; }
+        .stats-grid { display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
+        .stat-card { border: 1px solid #ddd; border-radius: 6px; padding: 16px 24px; text-align: center; min-width: 120px; }
+        .stat-value { font-size: 2em; font-weight: bold; display: block; }
+        .stat-label { font-size: 0.85em; color: #586069; }
+        .heatmap { border-collapse: collapse; margin: 1em 0; }
+        .heatmap td, .heatmap th { text-align: center; padding: 8px 12px; border: 1px solid #ddd; }
+        .heatmap th { background-color: #f6f8fa; }
+        .cell-passed { background-color: #22863a; color: white; font-weight: bold; }
+        .cell-failed { background-color: #cb2431; color: white; font-weight: bold; }
+        .cell-nodata { background-color: #e1e4e8; color: #586069; }
     </style>
 </head>
 <body>

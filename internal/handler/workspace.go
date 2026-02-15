@@ -3,7 +3,9 @@ package handler
 import (
 	"net/http"
 
+	forgepkg "github.com/alexandremahdhaoui/forge-ui/internal/forge"
 	gitpkg "github.com/alexandremahdhaoui/forge-ui/internal/git"
+	"github.com/alexandremahdhaoui/forge-ui/internal/model"
 	"github.com/alexandremahdhaoui/forge-ui/internal/workspace"
 )
 
@@ -34,6 +36,61 @@ func (h *Handler) HandleWorkspace(w http.ResponseWriter, r *http.Request) {
 		data.Repos[i].DiffStat = gitInfo.DiffStat
 		data.Repos[i].RecentLogs = gitInfo.RecentLogs
 	}
+
+	// Load forge data for repos that have forge.yaml and build heatmap data.
+	stageSeen := make(map[string]struct{})
+	var allStages []string
+	var stats model.WorkspaceStats
+	stats.TotalRepos = len(data.Repos)
+
+	for _, repo := range data.Repos {
+		if !repo.HasForge {
+			continue
+		}
+		stats.ForgeRepos++
+
+		forgeData, err := forgepkg.Load(repo.Path)
+		if err != nil {
+			continue
+		}
+
+		// Build per-stage results map from test reports.
+		// Use the newest report per stage (first in slice, since sorted newest-first).
+		stageResults := make(map[string]string)
+		for _, rpt := range forgeData.TestReports {
+			if _, seen := stageResults[rpt.Stage]; !seen {
+				stageResults[rpt.Stage] = rpt.Status
+			}
+			stats.TotalTests += rpt.Stats.Total
+			stats.Passed += rpt.Stats.Passed
+			stats.Failed += rpt.Stats.Failed
+			stats.Skipped += rpt.Stats.Skipped
+		}
+
+		// Collect stage names in spec order (preserves forge.yaml ordering).
+		for _, ts := range forgeData.Spec.Test {
+			if _, seen := stageSeen[ts.Name]; !seen {
+				stageSeen[ts.Name] = struct{}{}
+				allStages = append(allStages, ts.Name)
+			}
+		}
+		// Also collect stage names from reports (in case report exists for a stage not in spec).
+		for _, rpt := range forgeData.TestReports {
+			if _, seen := stageSeen[rpt.Stage]; !seen {
+				stageSeen[rpt.Stage] = struct{}{}
+				allStages = append(allStages, rpt.Stage)
+			}
+		}
+
+		data.RepoForge = append(data.RepoForge, model.RepoForgeStats{
+			RepoName:     repo.Name,
+			ForgeLink:    repo.ForgeLink,
+			StageResults: stageResults,
+		})
+	}
+
+	data.AllStages = allStages
+	data.Stats = stats
 
 	h.render(w, "workspace", data)
 }

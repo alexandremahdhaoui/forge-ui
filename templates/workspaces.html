@@ -1,5 +1,15 @@
 {{define "content"}}
 <h1>Workspaces</h1>
+<div class="stats-grid">
+    <div class="stat-card">
+        <span class="stat-value">{{.Stats.TotalWorkspaces}}</span>
+        <span class="stat-label">Workspaces</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value">{{.Stats.TotalRepos}}</span>
+        <span class="stat-label">Repositories</span>
+    </div>
+</div>
 {{if not .Workspaces}}
 <p>No workspaces found.</p>
 {{else}}

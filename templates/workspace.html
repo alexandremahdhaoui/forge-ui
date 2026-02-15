@@ -1,6 +1,62 @@
 {{define "content"}}
 <h1>{{.Name}}</h1>
 <p class="mono">{{.Path}}</p>
+
+{{if .RepoForge}}
+<div class="stats-grid">
+    <div class="stat-card">
+        <span class="stat-value">{{.Stats.TotalRepos}}</span>
+        <span class="stat-label">Repositories</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value">{{.Stats.ForgeRepos}}</span>
+        <span class="stat-label">Forge Repos</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value">{{.Stats.TotalTests}}</span>
+        <span class="stat-label">Total Tests</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value {{if gt .Stats.Passed 0}}status-passed{{end}}">{{.Stats.Passed}}</span>
+        <span class="stat-label">Passed</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value {{if gt .Stats.Failed 0}}status-failed{{end}}">{{.Stats.Failed}}</span>
+        <span class="stat-label">Failed</span>
+    </div>
+</div>
+
+<h2>Test Heatmap</h2>
+<table class="heatmap">
+    <thead>
+        <tr>
+            <th>Repo</th>
+            {{range .AllStages}}
+            <th>{{.}}</th>
+            {{end}}
+        </tr>
+    </thead>
+    <tbody>
+        {{range .RepoForge}}
+        <tr>
+            <td><a href="{{.ForgeLink}}">{{.RepoName}}</a></td>
+            {{$results := .StageResults}}
+            {{range $.AllStages}}
+            {{$status := index $results .}}
+            {{if eq $status "passed"}}
+            <td class="cell-passed">passed</td>
+            {{else if eq $status "failed"}}
+            <td class="cell-failed">failed</td>
+            {{else}}
+            <td class="cell-nodata">-</td>
+            {{end}}
+            {{end}}
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+{{end}}
+
 {{if not .Repos}}
 <p>No repositories found.</p>
 {{else}}

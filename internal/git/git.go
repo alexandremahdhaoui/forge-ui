@@ -67,8 +67,9 @@ func RepoInfo(repoPath string) (model.RepoSummary, error) {
 }
 
 // runGit executes a git command with -C <repoPath> and returns stdout as a string.
+// It sets safe.directory=* so mounted volumes owned by a different UID work.
 func runGit(repoPath string, args ...string) (string, error) {
-	cmdArgs := append([]string{"-C", repoPath}, args...)
+	cmdArgs := append([]string{"-c", "safe.directory=*", "-C", repoPath}, args...)
 	cmd := exec.Command("git", cmdArgs...)
 	output, err := cmd.Output()
 	return string(output), err
