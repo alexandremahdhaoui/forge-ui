@@ -9,27 +9,93 @@
         <span class="stat-value">{{.Stats.TotalRepos}}</span>
         <span class="stat-label">Repositories</span>
     </div>
+    <div class="stat-card">
+        <span class="stat-value {{if gt .Stats.DirtyRepos 0}}dirty{{end}}">{{.Stats.DirtyRepos}}</span>
+        <span class="stat-label">Dirty Repos</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value {{if gt .Stats.Passed 0}}status-passed{{end}}">{{.Stats.Passed}}</span>
+        <span class="stat-label">Tests Passed</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value {{if gt .Stats.Failed 0}}status-failed{{end}}">{{.Stats.Failed}}</span>
+        <span class="stat-label">Tests Failed</span>
+    </div>
 </div>
+
 {{if not .Workspaces}}
 <p>No workspaces found.</p>
 {{else}}
-<table>
+{{range .Workspaces}}
+<h2><a href="/workspaces/{{.Name}}">{{.Name}}</a></h2>
+<p class="mono">{{.Path}}</p>
+
+{{if .RepoForge}}
+<table class="heatmap">
     <thead>
         <tr>
-            <th>Name</th>
-            <th>Path</th>
-            <th>Repos</th>
+            <th>Repo</th>
+            {{range .AllStages}}
+            <th>{{.}}</th>
+            {{end}}
         </tr>
     </thead>
     <tbody>
-        {{range .Workspaces}}
+        {{$ws := .}}
+        {{range .RepoForge}}
         <tr>
-            <td><a href="/workspaces/{{.Name}}">{{.Name}}</a></td>
-            <td class="mono">{{.Path}}</td>
-            <td>{{.RepoCount}}</td>
+            <td><a href="{{.ForgeLink}}">{{.RepoName}}</a></td>
+            {{$results := .StageResults}}
+            {{range $ws.AllStages}}
+            {{$status := index $results .}}
+            {{if eq $status "passed"}}
+            <td class="cell-passed">passed</td>
+            {{else if eq $status "failed"}}
+            <td class="cell-failed">failed</td>
+            {{else}}
+            <td class="cell-nodata">-</td>
+            {{end}}
+            {{end}}
         </tr>
         {{end}}
     </tbody>
 </table>
+{{end}}
+
+{{if .Repos}}
+<table>
+    <thead>
+        <tr>
+            <th>Repo</th>
+            <th>Branch</th>
+            <th>Status</th>
+            <th>Upstream</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{$wsName := .Name}}
+        {{range .Repos}}
+        <tr>
+            <td><a href="/workspaces/{{$wsName}}/repos/{{.Name}}">{{.Name}}</a>{{if .HasForge}} <a href="{{.ForgeLink}}">[forge]</a>{{end}}</td>
+            <td><code>{{.Branch}}</code></td>
+            <td>
+                {{if .IsDirty}}<span class="badge badge-dirty">dirty</span>
+                {{else}}<span class="badge badge-clean">clean</span>
+                {{end}}
+            </td>
+            <td>
+                {{if not .HasUpstream}}<span class="mono">-</span>
+                {{else if and (eq .Ahead 0) (eq .Behind 0)}}<span class="badge badge-synced">synced</span>
+                {{else}}{{if gt .Ahead 0}}<span class="badge badge-ahead">&#x2191;{{.Ahead}}</span>{{end}}{{if gt .Behind 0}}<span class="badge badge-behind">&#x2193;{{.Behind}}</span>{{end}}
+                {{end}}
+            </td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+{{else}}
+<p>No repositories found.</p>
+{{end}}
+{{end}}
 {{end}}
 {{end}}

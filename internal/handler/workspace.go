@@ -35,6 +35,9 @@ func (h *Handler) HandleWorkspace(w http.ResponseWriter, r *http.Request) {
 		data.Repos[i].StatusFiles = gitInfo.StatusFiles
 		data.Repos[i].DiffStat = gitInfo.DiffStat
 		data.Repos[i].RecentLogs = gitInfo.RecentLogs
+		data.Repos[i].Ahead = gitInfo.Ahead
+		data.Repos[i].Behind = gitInfo.Behind
+		data.Repos[i].HasUpstream = gitInfo.HasUpstream
 	}
 
 	// Load forge data for repos that have forge.yaml and build heatmap data.

@@ -2,6 +2,7 @@ package git
 
 import (
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/alexandremahdhaoui/forge-ui/internal/model"
@@ -61,6 +62,17 @@ func RepoInfo(repoPath string) (model.RepoSummary, error) {
 	diffOut, err := runGit(repoPath, "diff", "--stat")
 	if err == nil {
 		result.DiffStat = strings.TrimRight(diffOut, "\n")
+	}
+
+	// 5. Ahead/behind upstream
+	revOut, err := runGit(repoPath, "rev-list", "--left-right", "--count", "@{upstream}...HEAD")
+	if err == nil {
+		parts := strings.Fields(strings.TrimSpace(revOut))
+		if len(parts) == 2 {
+			result.HasUpstream = true
+			result.Behind, _ = strconv.Atoi(parts[0])
+			result.Ahead, _ = strconv.Atoi(parts[1])
+		}
 	}
 
 	return result, nil

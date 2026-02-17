@@ -34,12 +34,13 @@ func List(basedir string) ([]model.WorkspaceSummary, error) {
 			continue
 		}
 
-		count := countRepos(wsPath)
+		repos := scanRepos(wsPath, entry.Name())
 
 		workspaces = append(workspaces, model.WorkspaceSummary{
 			Name:      entry.Name(),
 			Path:      wsPath,
-			RepoCount: count,
+			RepoCount: len(repos),
+			Repos:     repos,
 		})
 	}
 
@@ -105,22 +106,39 @@ func Get(basedir, name string) (model.WorkspacePageData, error) {
 	}, nil
 }
 
-// countRepos counts subdirectories in wsPath that contain a .git/ directory.
-// If the directory cannot be read, it returns 0.
-func countRepos(wsPath string) int {
+// scanRepos finds subdirectories in wsPath that contain a .git/ directory and
+// returns a lightweight RepoOverview for each. Git fields (Branch, IsDirty,
+// Ahead, Behind) are left at zero values; the handler enriches them.
+func scanRepos(wsPath, wsName string) []model.RepoOverview {
 	entries, err := os.ReadDir(wsPath)
 	if err != nil {
-		return 0
+		return nil
 	}
 
-	count := 0
+	var repos []model.RepoOverview
 	for _, entry := range entries {
-		if !entry.IsDir() {
+		if !entry.IsDir() || entry.Name()[0] == '.' {
 			continue
 		}
-		if _, err := os.Stat(filepath.Join(wsPath, entry.Name(), ".git")); err == nil {
-			count++
+		dirPath := filepath.Join(wsPath, entry.Name())
+		if _, err := os.Stat(filepath.Join(dirPath, ".git")); err != nil {
+			continue
 		}
+		hasForge := false
+		if _, err := os.Stat(filepath.Join(dirPath, "forge.yaml")); err == nil {
+			hasForge = true
+		}
+		repos = append(repos, model.RepoOverview{
+			Name:          entry.Name(),
+			WorkspaceName: wsName,
+			Path:          dirPath,
+			HasForge:      hasForge,
+			ForgeLink:     fmt.Sprintf("/workspaces/%s/repos/%s/forge", wsName, entry.Name()),
+		})
 	}
-	return count
+
+	sort.Slice(repos, func(i, j int) bool {
+		return repos[i].Name < repos[j].Name
+	})
+	return repos
 }

@@ -10,9 +10,12 @@ type WorkspacesPageData struct {
 }
 
 type WorkspaceSummary struct {
-	Name      string // directory name under $WORKSPACES
-	Path      string // absolute path
-	RepoCount int    // count of subdirs with .git/
+	Name      string         // directory name under $WORKSPACES
+	Path      string         // absolute path
+	RepoCount int            // count of subdirs with .git/
+	Repos     []RepoOverview // lightweight repo summaries
+	AllStages []string       // test stage names for heatmap columns
+	RepoForge []RepoForgeStats // per-repo forge test results
 }
 
 // --- Page 2: /workspaces/{name} ---
@@ -36,6 +39,23 @@ type RepoSummary struct {
 	RecentLogs  []LogEntry    // git log --oneline -10
 	HasForge    bool          // forge.yaml exists in repo
 	ForgeLink   string        // URL path: /workspaces/{ws}/repos/{repo}/forge
+	Ahead       int           // commits ahead of upstream
+	Behind      int           // commits behind upstream
+	HasUpstream bool          // tracking branch exists
+}
+
+// RepoOverview is a lightweight repo summary for the workspaces listing page.
+type RepoOverview struct {
+	Name          string
+	WorkspaceName string
+	Path          string
+	Branch        string
+	IsDirty       bool
+	Ahead         int
+	Behind        int
+	HasUpstream   bool
+	HasForge      bool
+	ForgeLink     string
 }
 
 type StatusEntry struct {
@@ -135,6 +155,10 @@ type TestEnv struct {
 type WorkspacesStats struct {
 	TotalWorkspaces int
 	TotalRepos      int
+	DirtyRepos      int
+	TotalTests      int
+	Passed          int
+	Failed          int
 }
 
 type WorkspaceStats struct {

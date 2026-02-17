@@ -62,7 +62,13 @@
 {{else}}
 {{range .Repos}}
 <div class="card">
-    <h2>{{.Name}}{{if .HasForge}} <a href="{{.ForgeLink}}">[forge]</a>{{end}}</h2>
+    <h2>{{.Name}}{{if .HasForge}} <a href="{{.ForgeLink}}">[forge]</a>{{end}}
+        {{if .IsDirty}}<span class="badge badge-dirty">{{len .StatusFiles}} changed</span>
+        {{else}}<span class="badge badge-clean">clean</span>
+        {{end}}
+        {{if .HasUpstream}}{{if and (eq .Ahead 0) (eq .Behind 0)}}<span class="badge badge-synced">&#x2713; synced</span>
+        {{else}}{{if gt .Ahead 0}}<span class="badge badge-ahead">&#x2191;{{.Ahead}}</span>{{end}}{{if gt .Behind 0}}<span class="badge badge-behind">&#x2193;{{.Behind}}</span>{{end}}
+        {{end}}{{end}}</h2>
     <p>Branch: <code>{{.Branch}}</code></p>
     {{if .IsDirty}}
     <details>
