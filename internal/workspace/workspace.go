@@ -91,7 +91,7 @@ func Get(basedir, name string) (model.WorkspacePageData, error) {
 			Name:      entry.Name(),
 			Path:      dirPath,
 			HasForge:  hasForge,
-			ForgeLink: fmt.Sprintf("/workspaces/%s/repos/%s/forge", name, entry.Name()),
+			RepoLink: fmt.Sprintf("/workspaces/%s/repos/%s", name, entry.Name()),
 		})
 	}
 
@@ -133,7 +133,7 @@ func scanRepos(wsPath, wsName string) []model.RepoOverview {
 			WorkspaceName: wsName,
 			Path:          dirPath,
 			HasForge:      hasForge,
-			ForgeLink:     fmt.Sprintf("/workspaces/%s/repos/%s/forge", wsName, entry.Name()),
+			RepoLink:     fmt.Sprintf("/workspaces/%s/repos/%s", wsName, entry.Name()),
 		})
 	}
 

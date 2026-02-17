@@ -51,7 +51,7 @@ func main() {
 	mux.HandleFunc("GET /{$}", h.HandleRedirect)
 	mux.HandleFunc("GET /workspaces", h.HandleWorkspaces)
 	mux.HandleFunc("GET /workspaces/{name}", h.HandleWorkspace)
-	mux.HandleFunc("GET /workspaces/{ws}/repos/{repo}/forge", h.HandleForge)
+	mux.HandleFunc("GET /workspaces/{ws}/repos/{repo}", h.HandleForge)
 
 	addr := fmt.Sprintf(":%d", *port)
 	log.Printf("forge-ui listening on http://localhost%s", addr)

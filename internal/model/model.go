@@ -38,7 +38,7 @@ type RepoSummary struct {
 	DiffStat    string        // git diff --stat raw output
 	RecentLogs  []LogEntry    // git log --oneline -10
 	HasForge    bool          // forge.yaml exists in repo
-	ForgeLink   string        // URL path: /workspaces/{ws}/repos/{repo}/forge
+	RepoLink   string        // URL path: /workspaces/{ws}/repos/{repo}
 	Ahead       int           // commits ahead of upstream
 	Behind      int           // commits behind upstream
 	HasUpstream bool          // tracking branch exists
@@ -55,7 +55,7 @@ type RepoOverview struct {
 	Behind        int
 	HasUpstream   bool
 	HasForge      bool
-	ForgeLink     string
+	RepoLink     string
 }
 
 type StatusEntry struct {
@@ -68,7 +68,7 @@ type LogEntry struct {
 	Message string // commit subject line
 }
 
-// --- Page 3: /workspaces/{ws}/repos/{repo}/forge ---
+// --- Page 3: /workspaces/{ws}/repos/{repo} ---
 
 type ForgePageData struct {
 	WorkspaceName  string
@@ -172,7 +172,7 @@ type WorkspaceStats struct {
 
 type RepoForgeStats struct {
 	RepoName     string
-	ForgeLink    string
+	RepoLink    string
 	StageResults map[string]string
 }
 

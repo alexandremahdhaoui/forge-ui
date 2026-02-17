@@ -8,7 +8,7 @@ import (
 	"github.com/alexandremahdhaoui/forge-ui/internal/model"
 )
 
-// HandleForge handles GET /workspaces/{ws}/repos/{repo}/forge.
+// HandleForge handles GET /workspaces/{ws}/repos/{repo}.
 func (h *Handler) HandleForge(w http.ResponseWriter, r *http.Request) {
 	ws := r.PathValue("ws")
 	repo := r.PathValue("repo")

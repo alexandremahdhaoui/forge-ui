@@ -80,7 +80,7 @@ func (h *Handler) HandleWorkspaces(w http.ResponseWriter, r *http.Request) {
 
 			ws.RepoForge = append(ws.RepoForge, model.RepoForgeStats{
 				RepoName:     repo.Name,
-				ForgeLink:    repo.ForgeLink,
+				RepoLink:    repo.RepoLink,
 				StageResults: stageResults,
 			})
 		}

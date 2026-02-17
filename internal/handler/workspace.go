@@ -87,7 +87,7 @@ func (h *Handler) HandleWorkspace(w http.ResponseWriter, r *http.Request) {
 
 		data.RepoForge = append(data.RepoForge, model.RepoForgeStats{
 			RepoName:     repo.Name,
-			ForgeLink:    repo.ForgeLink,
+			RepoLink:    repo.RepoLink,
 			StageResults: stageResults,
 		})
 	}

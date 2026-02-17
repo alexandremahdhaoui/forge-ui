@@ -10,7 +10,7 @@ import (
 
 // RepoInfo populates the git-related fields of model.RepoSummary by running
 // git commands in the given repo directory. It does NOT set Name, Path,
-// HasForge, or ForgeLink. Individual git command failures use fallback values;
+// HasForge, or RepoLink. Individual git command failures use fallback values;
 // the function always returns (result, nil).
 func RepoInfo(repoPath string) (model.RepoSummary, error) {
 	var result model.RepoSummary
