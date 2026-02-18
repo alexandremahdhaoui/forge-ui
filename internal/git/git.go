@@ -4,6 +4,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/alexandremahdhaoui/forge-ui/internal/model"
 )
@@ -72,6 +73,14 @@ func RepoInfo(repoPath string) (model.RepoSummary, error) {
 			result.HasUpstream = true
 			result.Behind, _ = strconv.Atoi(parts[0])
 			result.Ahead, _ = strconv.Atoi(parts[1])
+		}
+	}
+
+	// 6. Last commit time
+	commitTimeOut, err := runGit(repoPath, "log", "-1", "--format=%cI")
+	if err == nil {
+		if t, err := time.Parse(time.RFC3339, strings.TrimSpace(commitTimeOut)); err == nil {
+			result.LastCommitTime = t
 		}
 	}
 

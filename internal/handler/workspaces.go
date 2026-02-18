@@ -2,6 +2,8 @@ package handler
 
 import (
 	"net/http"
+	"sort"
+	"time"
 
 	forgepkg "github.com/alexandremahdhaoui/forge-ui/internal/forge"
 	gitpkg "github.com/alexandremahdhaoui/forge-ui/internal/git"
@@ -15,6 +17,11 @@ func (h *Handler) HandleWorkspaces(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "failed to list workspaces: "+err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	sortMode := r.URL.Query().Get("sort")
+	if sortMode != "time" {
+		sortMode = "name"
 	}
 
 	// Enrich repos with git info.
@@ -33,10 +40,23 @@ func (h *Handler) HandleWorkspaces(w http.ResponseWriter, r *http.Request) {
 			repo.Ahead = gitInfo.Ahead
 			repo.Behind = gitInfo.Behind
 			repo.HasUpstream = gitInfo.HasUpstream
+			repo.LastCommitTime = gitInfo.LastCommitTime
 			if repo.IsDirty {
 				dirtyRepos++
 			}
 		}
+	}
+
+	// Sort by last commit time if requested.
+	if sortMode == "time" {
+		for i := range workspaces {
+			sort.Slice(workspaces[i].Repos, func(a, b int) bool {
+				return workspaces[i].Repos[a].LastCommitTime.After(workspaces[i].Repos[b].LastCommitTime)
+			})
+		}
+		sort.Slice(workspaces, func(i, j int) bool {
+			return maxCommitTime(workspaces[i].Repos).After(maxCommitTime(workspaces[j].Repos))
+		})
 	}
 
 	// Build per-workspace forge heatmap data.
@@ -96,7 +116,18 @@ func (h *Handler) HandleWorkspaces(w http.ResponseWriter, r *http.Request) {
 			Failed:          failed,
 		},
 		Workspaces: workspaces,
+		SortMode:   sortMode,
 	}
 
 	h.render(w, "workspaces", data)
+}
+
+func maxCommitTime(repos []model.RepoOverview) time.Time {
+	var max time.Time
+	for _, r := range repos {
+		if r.LastCommitTime.After(max) {
+			max = r.LastCommitTime
+		}
+	}
+	return max
 }

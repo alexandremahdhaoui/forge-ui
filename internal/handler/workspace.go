@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"sort"
 
 	forgepkg "github.com/alexandremahdhaoui/forge-ui/internal/forge"
 	gitpkg "github.com/alexandremahdhaoui/forge-ui/internal/git"
@@ -23,6 +24,11 @@ func (h *Handler) HandleWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sortMode := r.URL.Query().Get("sort")
+	if sortMode != "time" {
+		sortMode = "name"
+	}
+
 	// Enrich each repo with git information.
 	for i, repo := range data.Repos {
 		gitInfo, err := gitpkg.RepoInfo(repo.Path)
@@ -38,6 +44,14 @@ func (h *Handler) HandleWorkspace(w http.ResponseWriter, r *http.Request) {
 		data.Repos[i].Ahead = gitInfo.Ahead
 		data.Repos[i].Behind = gitInfo.Behind
 		data.Repos[i].HasUpstream = gitInfo.HasUpstream
+		data.Repos[i].LastCommitTime = gitInfo.LastCommitTime
+	}
+
+	// Sort by last commit time if requested.
+	if sortMode == "time" {
+		sort.Slice(data.Repos, func(a, b int) bool {
+			return data.Repos[a].LastCommitTime.After(data.Repos[b].LastCommitTime)
+		})
 	}
 
 	// Load forge data for repos that have forge.yaml and build heatmap data.
@@ -95,5 +109,6 @@ func (h *Handler) HandleWorkspace(w http.ResponseWriter, r *http.Request) {
 	data.AllStages = allStages
 	data.Stats = stats
 
+	data.SortMode = sortMode
 	h.render(w, "workspace", data)
 }

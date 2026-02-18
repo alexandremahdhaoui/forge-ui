@@ -23,6 +23,12 @@
     </div>
 </div>
 
+<div class="sort-toggle">
+    <span>Sort:</span>
+    <a href="?sort=name" class="sort-btn{{if eq .SortMode "name"}} sort-btn-active{{end}}">A-Z</a>
+    <a href="?sort=time" class="sort-btn{{if eq .SortMode "time"}} sort-btn-active{{end}}">Recent</a>
+</div>
+
 {{if not .Workspaces}}
 <p>No workspaces found.</p>
 {{else}}
@@ -44,7 +50,7 @@
         {{$ws := .}}
         {{range .RepoForge}}
         <tr>
-            <td><a href="{{.ForgeLink}}">{{.RepoName}}</a></td>
+            <td><a href="{{.RepoLink}}">{{.RepoName}}</a></td>
             {{$results := .StageResults}}
             {{range $ws.AllStages}}
             {{$status := index $results .}}
@@ -76,7 +82,7 @@
         {{$wsName := .Name}}
         {{range .Repos}}
         <tr>
-            <td><a href="/workspaces/{{$wsName}}/repos/{{.Name}}">{{.Name}}</a>{{if .HasForge}} <a href="{{.ForgeLink}}">[forge]</a>{{end}}</td>
+            <td><a href="/workspaces/{{$wsName}}/repos/{{.Name}}">{{.Name}}</a>{{if .HasForge}} <a href="{{.RepoLink}}">[forge]</a>{{end}}</td>
             <td><code>{{.Branch}}</code></td>
             <td>
                 {{if .IsDirty}}<span class="badge badge-dirty">dirty</span>

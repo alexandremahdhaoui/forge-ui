@@ -39,7 +39,7 @@
     <tbody>
         {{range .RepoForge}}
         <tr>
-            <td><a href="{{.ForgeLink}}">{{.RepoName}}</a></td>
+            <td><a href="{{.RepoLink}}">{{.RepoName}}</a></td>
             {{$results := .StageResults}}
             {{range $.AllStages}}
             {{$status := index $results .}}
@@ -57,12 +57,18 @@
 </table>
 {{end}}
 
+<div class="sort-toggle">
+    <span>Sort:</span>
+    <a href="?sort=name" class="sort-btn{{if eq .SortMode "name"}} sort-btn-active{{end}}">A-Z</a>
+    <a href="?sort=time" class="sort-btn{{if eq .SortMode "time"}} sort-btn-active{{end}}">Recent</a>
+</div>
+
 {{if not .Repos}}
 <p>No repositories found.</p>
 {{else}}
 {{range .Repos}}
 <div class="card">
-    <h2>{{.Name}}{{if .HasForge}} <a href="{{.ForgeLink}}">[forge]</a>{{end}}
+    <h2>{{.Name}}{{if .HasForge}} <a href="{{.RepoLink}}">[forge]</a>{{end}}
         {{if .IsDirty}}<span class="badge badge-dirty">{{len .StatusFiles}} changed</span>
         {{else}}<span class="badge badge-clean">clean</span>
         {{end}}

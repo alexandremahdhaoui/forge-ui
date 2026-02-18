@@ -7,6 +7,7 @@ import "time"
 type WorkspacesPageData struct {
 	Stats      WorkspacesStats
 	Workspaces []WorkspaceSummary
+	SortMode   string
 }
 
 type WorkspaceSummary struct {
@@ -27,6 +28,7 @@ type WorkspacePageData struct {
 	Stats     WorkspaceStats
 	AllStages []string
 	RepoForge []RepoForgeStats
+	SortMode  string
 }
 
 type RepoSummary struct {
@@ -41,7 +43,8 @@ type RepoSummary struct {
 	RepoLink   string        // URL path: /workspaces/{ws}/repos/{repo}
 	Ahead       int           // commits ahead of upstream
 	Behind      int           // commits behind upstream
-	HasUpstream bool          // tracking branch exists
+	HasUpstream    bool          // tracking branch exists
+	LastCommitTime time.Time
 }
 
 // RepoOverview is a lightweight repo summary for the workspaces listing page.
@@ -54,8 +57,9 @@ type RepoOverview struct {
 	Ahead         int
 	Behind        int
 	HasUpstream   bool
-	HasForge      bool
-	RepoLink     string
+	HasForge       bool
+	RepoLink       string
+	LastCommitTime time.Time
 }
 
 type StatusEntry struct {
