@@ -25,8 +25,8 @@ func (h *Handler) HandleWorkspace(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sortMode := r.URL.Query().Get("sort")
-	if sortMode != "time" {
-		sortMode = "name"
+	if sortMode != "name" {
+		sortMode = "time"
 	}
 
 	// Enrich each repo with git information.
