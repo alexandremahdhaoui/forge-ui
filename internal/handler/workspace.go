@@ -5,7 +5,6 @@ import (
 	"sort"
 
 	forgepkg "github.com/alexandremahdhaoui/forge-ui/internal/forge"
-	gitpkg "github.com/alexandremahdhaoui/forge-ui/internal/git"
 	"github.com/alexandremahdhaoui/forge-ui/internal/model"
 	"github.com/alexandremahdhaoui/forge-ui/internal/workspace"
 )
@@ -29,22 +28,19 @@ func (h *Handler) HandleWorkspace(w http.ResponseWriter, r *http.Request) {
 		sortMode = "time"
 	}
 
-	// Enrich each repo with git information.
+	// Enrich each repo with cached git information.
 	for i, repo := range data.Repos {
-		gitInfo, err := gitpkg.RepoInfo(repo.Path)
-		if err != nil {
-			// On git error, leave fields at zero values
-			continue
+		if cached, ok := h.Cache.GetRepoSummary(name, repo.Name); ok {
+			data.Repos[i].Branch = cached.Branch
+			data.Repos[i].IsDirty = cached.IsDirty
+			data.Repos[i].StatusFiles = cached.StatusFiles
+			data.Repos[i].DiffStat = cached.DiffStat
+			data.Repos[i].RecentLogs = cached.RecentLogs
+			data.Repos[i].Ahead = cached.Ahead
+			data.Repos[i].Behind = cached.Behind
+			data.Repos[i].HasUpstream = cached.HasUpstream
+			data.Repos[i].LastCommitTime = cached.LastCommitTime
 		}
-		data.Repos[i].Branch = gitInfo.Branch
-		data.Repos[i].IsDirty = gitInfo.IsDirty
-		data.Repos[i].StatusFiles = gitInfo.StatusFiles
-		data.Repos[i].DiffStat = gitInfo.DiffStat
-		data.Repos[i].RecentLogs = gitInfo.RecentLogs
-		data.Repos[i].Ahead = gitInfo.Ahead
-		data.Repos[i].Behind = gitInfo.Behind
-		data.Repos[i].HasUpstream = gitInfo.HasUpstream
-		data.Repos[i].LastCommitTime = gitInfo.LastCommitTime
 	}
 
 	// Sort by last commit time if requested.
@@ -110,6 +106,5 @@ func (h *Handler) HandleWorkspace(w http.ResponseWriter, r *http.Request) {
 	data.Stats = stats
 
 	data.SortMode = sortMode
-	data.DarkMode = isDarkMode(r)
 	h.render(w, "workspace", data)
 }

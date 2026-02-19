@@ -5,20 +5,24 @@ import (
 	"html/template"
 	"net/http"
 	"path/filepath"
+
+	"github.com/alexandremahdhaoui/forge-ui/internal/cache"
 )
 
 // Handler holds shared state for all HTTP handlers.
 type Handler struct {
 	BaseDir   string                        // $WORKSPACES path
 	Templates map[string]*template.Template // keyed by page name
+	Cache     *cache.Cache                  // background-refreshed git data
 }
 
 // New creates a Handler by parsing all templates from the given directory.
 // templateDir is the absolute path to the templates/ directory.
-func New(baseDir, templateDir string) (*Handler, error) {
+func New(baseDir, templateDir string, c *cache.Cache) (*Handler, error) {
 	h := &Handler{
 		BaseDir:   baseDir,
 		Templates: make(map[string]*template.Template),
+		Cache:     c,
 	}
 
 	layoutPath := filepath.Join(templateDir, "layout.html")

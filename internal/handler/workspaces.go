@@ -6,7 +6,6 @@ import (
 	"time"
 
 	forgepkg "github.com/alexandremahdhaoui/forge-ui/internal/forge"
-	gitpkg "github.com/alexandremahdhaoui/forge-ui/internal/git"
 	"github.com/alexandremahdhaoui/forge-ui/internal/model"
 	"github.com/alexandremahdhaoui/forge-ui/internal/workspace"
 )
@@ -24,23 +23,21 @@ func (h *Handler) HandleWorkspaces(w http.ResponseWriter, r *http.Request) {
 		sortMode = "time"
 	}
 
-	// Enrich repos with git info.
+	// Enrich repos with cached git info.
 	totalRepos := 0
 	dirtyRepos := 0
 	for i := range workspaces {
 		totalRepos += workspaces[i].RepoCount
 		for j := range workspaces[i].Repos {
 			repo := &workspaces[i].Repos[j]
-			gitInfo, err := gitpkg.RepoInfo(repo.Path)
-			if err != nil {
-				continue
+			if cached, ok := h.Cache.GetRepoOverview(workspaces[i].Name, repo.Name); ok {
+				repo.Branch = cached.Branch
+				repo.IsDirty = cached.IsDirty
+				repo.Ahead = cached.Ahead
+				repo.Behind = cached.Behind
+				repo.HasUpstream = cached.HasUpstream
+				repo.LastCommitTime = cached.LastCommitTime
 			}
-			repo.Branch = gitInfo.Branch
-			repo.IsDirty = gitInfo.IsDirty
-			repo.Ahead = gitInfo.Ahead
-			repo.Behind = gitInfo.Behind
-			repo.HasUpstream = gitInfo.HasUpstream
-			repo.LastCommitTime = gitInfo.LastCommitTime
 			if repo.IsDirty {
 				dirtyRepos++
 			}
@@ -117,7 +114,6 @@ func (h *Handler) HandleWorkspaces(w http.ResponseWriter, r *http.Request) {
 		},
 		Workspaces: workspaces,
 		SortMode:   sortMode,
-		DarkMode:   isDarkMode(r),
 	}
 
 	h.render(w, "workspaces", data)

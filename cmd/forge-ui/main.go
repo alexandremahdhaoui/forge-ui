@@ -6,15 +6,22 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
+	"time"
 
+	"github.com/alexandremahdhaoui/forge-ui/internal/cache"
 	"github.com/alexandremahdhaoui/forge-ui/internal/handler"
+	"github.com/alexandremahdhaoui/forge-ui/internal/refresher"
 )
 
 func main() {
 	// Flags
 	port := flag.Int("port", 8080, "HTTP server port")
 	workspaces := flag.String("workspaces", "", "base directory containing workspaces (default: $WORKSPACES or $HOME/workspaces)")
+	refreshInterval := flag.Duration("refresh-interval", 1*time.Minute, "background git refresh interval")
+	refreshWorkers := flag.Int("refresh-workers", 3, "number of background git refresh workers")
 	flag.Parse()
 
 	// Resolve workspaces directory
@@ -40,8 +47,17 @@ func main() {
 	// then fall back to the binary's directory.
 	templateDir := resolveTemplateDir()
 
+	// Create cache and start background refresher.
+	c := cache.New()
+	r := refresher.New(c, refresher.Config{
+		BaseDir:    baseDir,
+		Interval:   *refreshInterval,
+		NumWorkers: *refreshWorkers,
+	})
+	r.Start() // blocks until initial refresh completes
+
 	// Create handler
-	h, err := handler.New(baseDir, templateDir)
+	h, err := handler.New(baseDir, templateDir, c)
 	if err != nil {
 		log.Fatalf("failed to initialize handlers: %v", err)
 	}
@@ -55,9 +71,26 @@ func main() {
 	mux.HandleFunc("GET /theme/toggle", h.HandleToggleTheme)
 
 	addr := fmt.Sprintf(":%d", *port)
-	log.Printf("forge-ui listening on http://localhost%s", addr)
+	srv := &http.Server{Addr: addr, Handler: mux}
+
+	// Start server in a goroutine.
+	go func() {
+		log.Printf("forge-ui listening on http://localhost%s", addr)
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			log.Fatalf("server error: %v", err)
+		}
+	}()
+
 	log.Printf("workspaces directory: %s", baseDir)
-	log.Fatal(http.ListenAndServe(addr, mux))
+
+	// Wait for interrupt signal.
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	<-sigCh
+
+	log.Println("shutting down...")
+	r.Stop()
+	srv.Close()
 }
 
 // resolveTemplateDir finds the templates directory.
