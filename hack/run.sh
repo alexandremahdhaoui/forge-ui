@@ -2,14 +2,19 @@
 set -euo pipefail
 
 CONTAINER_NAME="forge-ui"
-IMAGE="forge-ui-container:latest"
+IMAGE="forge-ui-dev:latest"
 PORT="${PORT:-8080}"
 WORKSPACES="${WORKSPACES:-$HOME/workspaces}"
 
-# Build the container image.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-docker build -f "$PROJECT_DIR/containers/forge-ui/Containerfile" -t "$IMAGE" "$PROJECT_DIR"
+cd "$PROJECT_DIR"
+
+# Build the binary with forge.
+forge build forge-ui
+
+# Build the container image from the Containerfile.
+docker build -t "$IMAGE" -f containers/forge-ui/Containerfile .
 
 # Stop and remove any existing container.
 docker rm -f "$CONTAINER_NAME" 2>/dev/null || true

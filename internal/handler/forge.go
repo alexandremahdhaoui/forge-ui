@@ -58,6 +58,7 @@ func (h *Handler) HandleForge(w http.ResponseWriter, r *http.Request) {
 	stats.StageCount = len(stageSet)
 	data.Stats = stats
 	data.StageStatusMap = stageStatusMap
+	data.DarkMode = isDarkMode(r)
 
 	h.render(w, "forge", data)
 }

@@ -110,5 +110,6 @@ func (h *Handler) HandleWorkspace(w http.ResponseWriter, r *http.Request) {
 	data.Stats = stats
 
 	data.SortMode = sortMode
+	data.DarkMode = isDarkMode(r)
 	h.render(w, "workspace", data)
 }

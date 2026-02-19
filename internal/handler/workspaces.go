@@ -117,6 +117,7 @@ func (h *Handler) HandleWorkspaces(w http.ResponseWriter, r *http.Request) {
 		},
 		Workspaces: workspaces,
 		SortMode:   sortMode,
+		DarkMode:   isDarkMode(r),
 	}
 
 	h.render(w, "workspaces", data)

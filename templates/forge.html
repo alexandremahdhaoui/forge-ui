@@ -1,6 +1,11 @@
 {{define "content"}}
-<h1>{{.RepoName}}</h1>
-<p>Workspace: <a href="/workspaces/{{.WorkspaceName}}">{{.WorkspaceName}}</a></p>
+<nav class="breadcrumb body-medium">
+    <a href="/workspaces">Workspaces</a> &#x203A;
+    <a href="/workspaces/{{.WorkspaceName}}">{{.WorkspaceName}}</a> &#x203A;
+    {{.RepoName}}
+</nav>
+
+<h1 class="headline-large">{{.RepoName}}</h1>
 
 {{if .TestReports}}
 <div class="stats-grid">
@@ -9,11 +14,11 @@
         <span class="stat-label">Total Tests</span>
     </div>
     <div class="stat-card">
-        <span class="stat-value {{if gt .Stats.Passed 0}}status-passed{{end}}">{{.Stats.Passed}}</span>
+        <span class="stat-value {{if gt .Stats.Passed 0}}stat-value--pass{{end}}">{{.Stats.Passed}}</span>
         <span class="stat-label">Passed</span>
     </div>
     <div class="stat-card">
-        <span class="stat-value {{if gt .Stats.Failed 0}}status-failed{{end}}">{{.Stats.Failed}}</span>
+        <span class="stat-value {{if gt .Stats.Failed 0}}stat-value--fail{{end}}">{{.Stats.Failed}}</span>
         <span class="stat-label">Failed</span>
     </div>
     <div class="stat-card">
@@ -28,12 +33,13 @@
     {{end}}
 </div>
 
-<h2>Test Stage Results</h2>
-<table class="heatmap">
+<h2 class="title-large">Test Stage Results</h2>
+<div style="overflow-x: auto;">
+<table class="data-table heatmap-table">
     <thead>
         <tr>
             {{range .Spec.Test}}
-            <th>{{.Name}}</th>
+            <th class="label-medium">{{.Name}}</th>
             {{end}}
         </tr>
     </thead>
@@ -52,80 +58,86 @@
         </tr>
     </tbody>
 </table>
+</div>
 {{end}}
 
-<h2>Test Reports</h2>
+<h2 class="title-large">Test Reports</h2>
 {{if not .TestReports}}
-<p>No test reports.</p>
+<p class="empty-state body-medium">No test reports.</p>
 {{else}}
-<table>
+<div style="overflow-x: auto;">
+<table class="data-table">
     <thead>
         <tr>
-            <th>Stage</th>
-            <th>Status</th>
-            <th>Duration</th>
-            <th>Total</th>
-            <th>Passed</th>
-            <th>Failed</th>
-            <th>Skipped</th>
-            <th>Coverage</th>
-            <th>Error</th>
+            <th class="label-medium">Stage</th>
+            <th class="label-medium">Status</th>
+            <th class="label-medium">Duration</th>
+            <th class="label-medium">Total</th>
+            <th class="label-medium">Passed</th>
+            <th class="label-medium">Failed</th>
+            <th class="label-medium">Skipped</th>
+            <th class="label-medium">Coverage</th>
+            <th class="label-medium">Error</th>
         </tr>
     </thead>
     <tbody>
         {{range .TestReports}}
         <tr>
             <td>{{.Stage}}</td>
-            <td class="{{if eq .Status "passed"}}status-passed{{else}}status-failed{{end}}">{{.Status}}</td>
+            <td>{{if eq .Status "passed"}}<span class="chip chip--pass">passed</span>{{else}}<span class="chip chip--fail">{{.Status}}</span>{{end}}</td>
             <td>{{printf "%.1f" .Duration}}s</td>
             <td>{{.Stats.Total}}</td>
             <td>{{.Stats.Passed}}</td>
             <td>{{.Stats.Failed}}</td>
             <td>{{.Stats.Skipped}}</td>
             <td>{{if .Coverage.Enabled}}{{printf "%.1f" .Coverage.Percentage}}%{{else}}-{{end}}</td>
-            <td>{{if gt (len .ErrorMessage) 100}}{{slice .ErrorMessage 0 100}}...{{else}}{{.ErrorMessage}}{{end}}</td>
+            <td class="body-small">{{if gt (len .ErrorMessage) 100}}{{slice .ErrorMessage 0 100}}...{{else}}{{.ErrorMessage}}{{end}}</td>
         </tr>
         {{end}}
     </tbody>
 </table>
+</div>
 {{end}}
 
-<h2>Build Targets</h2>
+<h2 class="title-large">Build Targets</h2>
 {{if not .Spec.Build}}
-<p>None configured.</p>
+<p class="empty-state body-medium">None configured.</p>
 {{else}}
-<table>
+<div style="overflow-x: auto;">
+<table class="data-table">
     <thead>
         <tr>
-            <th>Name</th>
-            <th>Src</th>
-            <th>Dest</th>
-            <th>Engine</th>
+            <th class="label-medium">Name</th>
+            <th class="label-medium">Src</th>
+            <th class="label-medium">Dest</th>
+            <th class="label-medium">Engine</th>
         </tr>
     </thead>
     <tbody>
         {{range .Spec.Build}}
         <tr>
             <td>{{.Name}}</td>
-            <td><code>{{.Src}}</code></td>
-            <td><code>{{.Dest}}</code></td>
+            <td><span class="code-inline">{{.Src}}</span></td>
+            <td><span class="code-inline">{{.Dest}}</span></td>
             <td>{{.Engine}}</td>
         </tr>
         {{end}}
     </tbody>
 </table>
+</div>
 {{end}}
 
-<h2>Test Stages</h2>
+<h2 class="title-large">Test Stages</h2>
 {{if not .Spec.Test}}
-<p>None configured.</p>
+<p class="empty-state body-medium">None configured.</p>
 {{else}}
-<table>
+<div style="overflow-x: auto;">
+<table class="data-table">
     <thead>
         <tr>
-            <th>Name</th>
-            <th>Testenv</th>
-            <th>Runner</th>
+            <th class="label-medium">Name</th>
+            <th class="label-medium">Testenv</th>
+            <th class="label-medium">Runner</th>
         </tr>
     </thead>
     <tbody>
@@ -138,20 +150,22 @@
         {{end}}
     </tbody>
 </table>
+</div>
 {{end}}
 
-<h2>Artifacts</h2>
+<h2 class="title-large">Artifacts</h2>
 {{if not .Artifacts}}
-<p>No artifacts.</p>
+<p class="empty-state body-medium">No artifacts.</p>
 {{else}}
-<table>
+<div style="overflow-x: auto;">
+<table class="data-table">
     <thead>
         <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Version</th>
-            <th>Timestamp</th>
-            <th>Location</th>
+            <th class="label-medium">Name</th>
+            <th class="label-medium">Type</th>
+            <th class="label-medium">Version</th>
+            <th class="label-medium">Timestamp</th>
+            <th class="label-medium">Location</th>
         </tr>
     </thead>
     <tbody>
@@ -159,40 +173,49 @@
         <tr>
             <td>{{.Name}}</td>
             <td>{{.Type}}</td>
-            <td><code>{{.Version}}</code></td>
+            <td><span class="code-inline">{{.Version}}</span></td>
             <td>{{.Timestamp}}</td>
-            <td class="mono">{{.Location}}</td>
+            <td><span class="code-inline">{{.Location}}</span></td>
         </tr>
         {{end}}
     </tbody>
 </table>
+</div>
 {{end}}
 
-<h2>Test Environments</h2>
+<h2 class="title-large">Test Environments</h2>
 {{if not .TestEnvs}}
-<p>No test environments.</p>
+<p class="empty-state body-medium">No test environments.</p>
 {{else}}
-<table>
+<div style="overflow-x: auto;">
+<table class="data-table">
     <thead>
         <tr>
-            <th>Name</th>
-            <th>Status</th>
-            <th>Created</th>
-            <th>Updated</th>
-            <th>Managed Resources</th>
+            <th class="label-medium">Name</th>
+            <th class="label-medium">Status</th>
+            <th class="label-medium">Created</th>
+            <th class="label-medium">Updated</th>
+            <th class="label-medium">Managed Resources</th>
         </tr>
     </thead>
     <tbody>
         {{range .TestEnvs}}
         <tr>
             <td>{{.Name}}</td>
-            <td>{{.Status}}</td>
+            <td>
+                {{if eq .Status "passed"}}<span class="chip chip--pass">{{.Status}}</span>
+                {{else if eq .Status "failed"}}<span class="chip chip--fail">{{.Status}}</span>
+                {{else if eq .Status "running"}}<span class="chip chip--info">{{.Status}}</span>
+                {{else}}<span class="chip chip--neutral">{{.Status}}</span>
+                {{end}}
+            </td>
             <td>{{.CreatedAt.Format "2006-01-02 15:04:05"}}</td>
             <td>{{.UpdatedAt.Format "2006-01-02 15:04:05"}}</td>
-            <td>{{range $i, $r := .ManagedResources}}{{if $i}}, {{end}}{{$r}}{{end}}</td>
+            <td class="body-small">{{range $i, $r := .ManagedResources}}{{if $i}}, {{end}}{{$r}}{{end}}</td>
         </tr>
         {{end}}
     </tbody>
 </table>
+</div>
 {{end}}
 {{end}}

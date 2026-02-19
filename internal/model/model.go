@@ -8,6 +8,7 @@ type WorkspacesPageData struct {
 	Stats      WorkspacesStats
 	Workspaces []WorkspaceSummary
 	SortMode   string
+	DarkMode   bool
 }
 
 type WorkspaceSummary struct {
@@ -29,6 +30,7 @@ type WorkspacePageData struct {
 	AllStages []string
 	RepoForge []RepoForgeStats
 	SortMode  string
+	DarkMode  bool
 }
 
 type RepoSummary struct {
@@ -83,6 +85,7 @@ type ForgePageData struct {
 	TestEnvs       []TestEnv
 	Stats          ForgeStats
 	StageStatusMap map[string]string
+	DarkMode       bool
 }
 
 type ForgeSpec struct {
