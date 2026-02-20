@@ -8,6 +8,21 @@
 
 <h1 class="headline-large">{{.RepoName}}</h1>
 
+{{if .RepoPlans}}
+<h2 class="title-large">Plan Progress</h2>
+<div class="plan-progress-card">
+    {{range .RepoPlans}}
+    <div class="plan-progress-item">
+        <span class="plan-progress-item__name">{{.Name}}</span>
+        <div class="plan-progress-item__bar">
+            <div class="progress-bar"><div class="progress-bar__fill" style="width: {{percent .TasksDone .TasksTotal}}%"></div></div>
+        </div>
+        <span class="plan-progress-item__count">{{.TasksDone}}/{{.TasksTotal}}</span>
+    </div>
+    {{end}}
+</div>
+{{end}}
+
 {{if .TestReports}}
 <div class="stats-grid">
     <div class="stat-card">

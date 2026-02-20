@@ -610,6 +610,34 @@
             .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); }
             .top-app-bar { padding: 0 16px; }
         }
+
+        /* Progress bars */
+        .progress-bar { height: 8px; width: 100%; background: var(--md-sys-color-surface-container-highest); border-radius: var(--md-sys-shape-corner-full); overflow: hidden; }
+        .progress-bar__fill { height: 100%; background: var(--md-sys-color-primary); border-radius: var(--md-sys-shape-corner-full); transition: width 0.3s ease; }
+        .progress-bar--complete .progress-bar__fill { background: var(--status-pass); }
+
+        /* Meta-plan cards */
+        .meta-plan-card { border: 1px solid var(--md-sys-color-outline-variant); border-radius: var(--md-sys-shape-corner-medium); padding: 16px; margin: 12px 0; }
+        .meta-plan-stage { display: flex; align-items: center; gap: 12px; padding: 6px 0; }
+        .meta-plan-stage__name { font: var(--md-sys-typescale-label-large); min-width: 120px; }
+        .meta-plan-stage__bar { flex: 1; }
+        .meta-plan-stage__pct { font: var(--md-sys-typescale-label-medium); min-width: 48px; text-align: right; }
+        .meta-plan-stage__status { font: var(--md-sys-typescale-label-medium); min-width: 80px; }
+
+        /* Checkpoints */
+        .checkpoint-list { margin: 8px 0; padding: 0; list-style: none; }
+        .checkpoint-item { display: flex; gap: 8px; font: var(--md-sys-typescale-body-medium); padding: 2px 0; }
+        .checkpoint-item--met { color: var(--status-pass); }
+
+        /* Plan progress */
+        .plan-progress-card { background: var(--md-sys-color-surface-container); border-radius: var(--md-sys-shape-corner-medium); padding: 16px; margin: 12px 0; }
+        .plan-progress-item { display: flex; align-items: center; gap: 12px; font: var(--md-sys-typescale-body-medium); padding: 4px 0; }
+        .plan-progress-item__name { min-width: 160px; }
+        .plan-progress-item__bar { flex: 1; }
+        .plan-progress-item__count { font: var(--md-sys-typescale-label-medium); min-width: 80px; text-align: right; }
+
+        /* Goal text */
+        .goal-text { font: var(--md-sys-typescale-body-large); color: var(--md-sys-color-on-surface-variant); margin: 4px 0 16px 0; }
     </style>
 </head>
 <body>

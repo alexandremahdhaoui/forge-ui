@@ -1,13 +1,17 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"path/filepath"
 	"sort"
 
 	forgepkg "github.com/alexandremahdhaoui/forge-ui/internal/forge"
+	"github.com/alexandremahdhaoui/forge-ui/internal/metaplan"
 	"github.com/alexandremahdhaoui/forge-ui/internal/model"
+	"github.com/alexandremahdhaoui/forge-ui/internal/repoplan"
 	"github.com/alexandremahdhaoui/forge-ui/internal/workspace"
+	"github.com/alexandremahdhaoui/forge-ui/internal/wsconfig"
 )
 
 // HandleWorkspace handles GET /portfolios/{p}/workspaces/{w}.
@@ -29,6 +33,24 @@ func (h *Handler) HandleWorkspace(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "workspace not found: "+err.Error(), http.StatusNotFound)
 		return
 	}
+
+	// Load workspace config.
+	cfg, err := wsconfig.Load(data.Path)
+	if err != nil {
+		log.Printf("wsconfig.Load(%s): %v", data.Path, err)
+	}
+	data.Description = cfg.Description
+	data.RepoRoles = make(map[string]string)
+	for _, re := range cfg.Repos {
+		data.RepoRoles[re.Name] = re.Description
+	}
+
+	// Load meta-plans.
+	mps, err := metaplan.LoadAll(data.Path)
+	if err != nil {
+		log.Printf("metaplan.LoadAll(%s): %v", data.Path, err)
+	}
+	data.MetaPlans = mps
 
 	sortMode := r.URL.Query().Get("sort")
 	if sortMode != "name" {
@@ -115,6 +137,20 @@ func (h *Handler) HandleWorkspace(w http.ResponseWriter, r *http.Request) {
 			StageResults: stageResults,
 		})
 	}
+
+	// Load per-repo plan summaries.
+	var summaries []model.RepoPlanSummary
+	for _, repo := range data.Repos {
+		s, err := repoplan.LoadSummary(repo.Path, repo.Name)
+		if err != nil {
+			log.Printf("repoplan.LoadSummary(%s): %v", repo.Path, err)
+			continue
+		}
+		if s.TasksTotal > 0 {
+			summaries = append(summaries, s)
+		}
+	}
+	data.RepoPlanSummaries = summaries
 
 	data.AllStages = allStages
 	data.Stats = stats

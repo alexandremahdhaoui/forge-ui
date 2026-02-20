@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"path/filepath"
 
 	forgepkg "github.com/alexandremahdhaoui/forge-ui/internal/forge"
 	"github.com/alexandremahdhaoui/forge-ui/internal/model"
+	"github.com/alexandremahdhaoui/forge-ui/internal/repoplan"
 )
 
 // HandleForge handles GET /portfolios/{p}/workspaces/{w}/repos/{r}.
@@ -30,6 +32,12 @@ func (h *Handler) HandleForge(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to load forge data: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	repoPlans, err := repoplan.LoadAll(repoPath)
+	if err != nil {
+		log.Printf("repoplan.LoadAll(%s): %v", repoPath, err)
+	}
+	data.RepoPlans = repoPlans
 
 	data.WorkspaceName = wsName
 	data.RepoName = repoName

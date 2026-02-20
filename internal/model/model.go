@@ -3,27 +3,34 @@ package model
 import "time"
 
 type WorkspaceSummary struct {
-	Name      string         // directory name under $WORKSPACES
-	Path      string         // absolute path
-	RepoCount int            // count of subdirs with .git/
-	Repos     []RepoOverview // lightweight repo summaries
-	AllStages []string       // test stage names for heatmap columns
-	RepoForge []RepoForgeStats // per-repo forge test results
+	Name        string             // directory name under $WORKSPACES
+	Path        string             // absolute path
+	RepoCount   int                // count of subdirs with .git/
+	Repos       []RepoOverview     // lightweight repo summaries
+	AllStages   []string           // test stage names for heatmap columns
+	RepoForge   []RepoForgeStats   // per-repo forge test results
+	Description string
+	MetaPlans   []MetaPlan
+	Progress    WorkspaceProgress
 }
 
 // --- Page 2: /workspaces/{name} ---
 
 type WorkspacePageData struct {
-	Name          string
-	PortfolioName string
-	Path          string
-	Repos         []RepoSummary
-	Stats         WorkspaceStats
-	AllStages     []string
-	RepoForge     []RepoForgeStats
-	SortMode      string
-	DarkMode      bool
-	HomeURL       string
+	Name              string
+	PortfolioName     string
+	Path              string
+	Repos             []RepoSummary
+	Stats             WorkspaceStats
+	AllStages         []string
+	RepoForge         []RepoForgeStats
+	SortMode          string
+	DarkMode          bool
+	HomeURL           string
+	Description       string
+	RepoRoles         map[string]string
+	MetaPlans         []MetaPlan
+	RepoPlanSummaries []RepoPlanSummary
 }
 
 type RepoSummary struct {
@@ -81,6 +88,7 @@ type ForgePageData struct {
 	StageStatusMap map[string]string
 	DarkMode       bool
 	HomeURL        string
+	RepoPlans      []RepoPlan
 }
 
 type ForgeSpec struct {
@@ -161,6 +169,7 @@ type WorkspacesStats struct {
 	TotalTests      int
 	Passed          int
 	Failed          int
+	Portfolio       PortfolioProgress
 }
 
 // --- Portfolio types ---
@@ -189,6 +198,7 @@ type PortfoliosStats struct {
 	TotalTests      int
 	Passed          int
 	Failed          int
+	Portfolio       PortfolioProgress
 }
 
 type PortfolioPageData struct {
@@ -225,4 +235,72 @@ type ForgeStats struct {
 	AvgCoverage float64
 	HasCoverage bool
 	StageCount  int
+}
+
+// --- Workspace orchestration types ---
+
+type WsConfig struct {
+	Name        string
+	Description string
+	Repos       []WsRepoEntry
+	MetaPlans   []string
+}
+
+type WsRepoEntry struct {
+	Name        string
+	Description string
+}
+
+type MetaPlan struct {
+	Name        string
+	Description string
+	Status      string // "pending", "in_progress", "completed"
+	Stages      []MetaPlanStage
+	Checkpoints []MetaCheckpoint
+}
+
+type MetaPlanStage struct {
+	Name   string
+	Status string // "pending", "in_progress", "completed"
+	Repos  []StageRepo
+}
+
+type StageRepo struct {
+	Name       string
+	Plan       string
+	TasksTotal int
+	TasksDone  int
+}
+
+type MetaCheckpoint struct {
+	Name      string
+	Stage     string
+	Condition string
+	Met       bool
+}
+
+type RepoPlan struct {
+	Name       string
+	TasksTotal int
+	TasksDone  int
+}
+
+type RepoPlanSummary struct {
+	RepoName   string
+	Plans      []RepoPlan
+	TasksTotal int
+	TasksDone  int
+}
+
+type PortfolioProgress struct {
+	TotalMetaPlans     int
+	ActiveMetaPlans    int
+	CompletedMetaPlans int
+}
+
+type WorkspaceProgress struct {
+	MetaPlanCount int
+	TasksTotal    int
+	TasksDone     int
+	PercentDone   int
 }

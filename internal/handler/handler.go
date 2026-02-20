@@ -29,12 +29,21 @@ func New(baseDir, templateDir string, c *cache.Cache) (*Handler, error) {
 
 	layoutPath := filepath.Join(templateDir, "layout.html")
 
+	funcMap := template.FuncMap{
+		"percent": func(done, total int) int {
+			if total == 0 {
+				return 0
+			}
+			return (done * 100) / total
+		},
+	}
+
 	// Parse each page template together with the layout.
 	// The layout defines "layout" and each page defines "content".
 	pages := []string{"portfolios", "portfolio", "workspace", "forge"}
 	for _, page := range pages {
 		pagePath := filepath.Join(templateDir, page+".html")
-		tmpl, err := template.ParseFiles(layoutPath, pagePath)
+		tmpl, err := template.New(page).Funcs(funcMap).ParseFiles(layoutPath, pagePath)
 		if err != nil {
 			return nil, fmt.Errorf("parsing template %s: %w", page, err)
 		}

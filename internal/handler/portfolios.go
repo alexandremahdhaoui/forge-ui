@@ -1,11 +1,14 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"sort"
 
+	"github.com/alexandremahdhaoui/forge-ui/internal/metaplan"
 	"github.com/alexandremahdhaoui/forge-ui/internal/model"
 	"github.com/alexandremahdhaoui/forge-ui/internal/portfolio"
+	"github.com/alexandremahdhaoui/forge-ui/internal/wsconfig"
 )
 
 // HandlePortfolios handles GET /portfolios.
@@ -35,6 +38,42 @@ func (h *Handler) HandlePortfolios(w http.ResponseWriter, r *http.Request) {
 
 		totalRepos, dirtyRepos, totalTests, passed, failed := enrichWorkspaces(p.Workspaces, h.Cache, cacheKeyFn)
 
+		for j := range p.Workspaces {
+			ws := &p.Workspaces[j]
+			cfg, err := wsconfig.Load(ws.Path)
+			if err != nil {
+				log.Printf("wsconfig.Load(%s): %v", ws.Path, err)
+			}
+			ws.Description = cfg.Description
+
+			mps, err := metaplan.LoadAll(ws.Path)
+			if err != nil {
+				log.Printf("metaplan.LoadAll(%s): %v", ws.Path, err)
+			}
+			ws.MetaPlans = mps
+
+			// Compute workspace progress.
+			var wsTotalTasks, wsDoneTasks int
+			for _, mp := range mps {
+				for _, stage := range mp.Stages {
+					for _, repo := range stage.Repos {
+						wsTotalTasks += repo.TasksTotal
+						wsDoneTasks += repo.TasksDone
+					}
+				}
+			}
+			pct := 0
+			if wsTotalTasks > 0 {
+				pct = (wsDoneTasks * 100) / wsTotalTasks
+			}
+			ws.Progress = model.WorkspaceProgress{
+				MetaPlanCount: len(mps),
+				TasksTotal:    wsTotalTasks,
+				TasksDone:     wsDoneTasks,
+				PercentDone:   pct,
+			}
+		}
+
 		p.Stats = model.WorkspacesStats{
 			TotalWorkspaces: len(p.Workspaces),
 			TotalRepos:      totalRepos,
@@ -62,6 +101,22 @@ func (h *Handler) HandlePortfolios(w http.ResponseWriter, r *http.Request) {
 		globalStats.Passed += p.Stats.Passed
 		globalStats.Failed += p.Stats.Failed
 	}
+
+	var portfolioProgress model.PortfolioProgress
+	for _, p := range portfolios {
+		for _, ws := range p.Workspaces {
+			for _, mp := range ws.MetaPlans {
+				portfolioProgress.TotalMetaPlans++
+				switch mp.Status {
+				case "in_progress":
+					portfolioProgress.ActiveMetaPlans++
+				case "completed":
+					portfolioProgress.CompletedMetaPlans++
+				}
+			}
+		}
+	}
+	globalStats.Portfolio = portfolioProgress
 
 	data := model.PortfoliosPageData{
 		Portfolios: portfolios,
@@ -100,6 +155,42 @@ func (h *Handler) HandlePortfolio(w http.ResponseWriter, r *http.Request) {
 	}
 
 	totalRepos, dirtyRepos, totalTests, passed, failed := enrichWorkspaces(data.Workspaces, h.Cache, cacheKeyFn)
+
+	for j := range data.Workspaces {
+		ws := &data.Workspaces[j]
+		cfg, err := wsconfig.Load(ws.Path)
+		if err != nil {
+			log.Printf("wsconfig.Load(%s): %v", ws.Path, err)
+		}
+		ws.Description = cfg.Description
+
+		mps, err := metaplan.LoadAll(ws.Path)
+		if err != nil {
+			log.Printf("metaplan.LoadAll(%s): %v", ws.Path, err)
+		}
+		ws.MetaPlans = mps
+
+		// Compute workspace progress.
+		var wsTotalTasks, wsDoneTasks int
+		for _, mp := range mps {
+			for _, stage := range mp.Stages {
+				for _, repo := range stage.Repos {
+					wsTotalTasks += repo.TasksTotal
+					wsDoneTasks += repo.TasksDone
+				}
+			}
+		}
+		pct := 0
+		if wsTotalTasks > 0 {
+			pct = (wsDoneTasks * 100) / wsTotalTasks
+		}
+		ws.Progress = model.WorkspaceProgress{
+			MetaPlanCount: len(mps),
+			TasksTotal:    wsTotalTasks,
+			TasksDone:     wsDoneTasks,
+			PercentDone:   pct,
+		}
+	}
 
 	data.Stats = model.WorkspacesStats{
 		TotalWorkspaces: len(data.Workspaces),
