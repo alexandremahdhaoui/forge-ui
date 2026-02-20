@@ -76,8 +76,7 @@
 {{range .Repos}}
 <div class="card-elevated" style="margin: 12px 0;">
     <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
-        <h2 class="title-medium" style="margin: 0;">{{.Name}}</h2>
-        {{if .HasForge}}<a href="{{.RepoLink}}">[forge]</a>{{end}}
+        <h2 class="title-medium" style="margin: 0;">{{if .HasForge}}<a href="{{.RepoLink}}" style="color: inherit; text-decoration: none;">{{.Name}}</a>{{else}}{{.Name}}{{end}}</h2>
         {{if .IsDirty}}<span class="chip chip--warn">{{len .StatusFiles}} changed</span>
         {{else}}<span class="chip chip--pass">clean</span>
         {{end}}
