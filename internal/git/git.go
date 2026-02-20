@@ -19,7 +19,7 @@ func RepoInfo(repoPath string) (model.RepoSummary, error) {
 	// 0. Fetch from origin to ensure remote refs are fresh.
 	// Errors are ignored: if the network is down or there is no remote,
 	// we fall back to stale local data.
-	runGit(repoPath, "fetch", "origin")
+	_, _ = runGit(repoPath, "fetch", "origin")
 
 	// 1. Branch
 	branchOut, err := runGit(repoPath, "branch", "--show-current")

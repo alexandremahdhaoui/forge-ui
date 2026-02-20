@@ -8,16 +8,22 @@ import (
 	"github.com/alexandremahdhaoui/forge-ui/internal/model"
 )
 
-// HandleForge handles GET /workspaces/{ws}/repos/{repo}.
+// HandleForge handles GET /portfolios/{p}/workspaces/{w}/repos/{r}.
 func (h *Handler) HandleForge(w http.ResponseWriter, r *http.Request) {
-	ws := r.PathValue("ws")
-	repo := r.PathValue("repo")
-	if ws == "" || repo == "" {
-		http.Error(w, "workspace and repo name required", http.StatusBadRequest)
+	pName := r.PathValue("p")
+	wsName := r.PathValue("w")
+	repoName := r.PathValue("r")
+	if pName == "" || wsName == "" || repoName == "" {
+		http.Error(w, "portfolio, workspace and repo name required", http.StatusBadRequest)
 		return
 	}
 
-	repoPath := filepath.Join(h.BaseDir, ws, repo)
+	var repoPath string
+	if pName == "default" {
+		repoPath = filepath.Join(h.BaseDir, wsName, repoName)
+	} else {
+		repoPath = filepath.Join(h.BaseDir, pName, wsName, repoName)
+	}
 
 	data, err := forgepkg.Load(repoPath)
 	if err != nil {
@@ -25,8 +31,10 @@ func (h *Handler) HandleForge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data.WorkspaceName = ws
-	data.RepoName = repo
+	data.WorkspaceName = wsName
+	data.RepoName = repoName
+	data.PortfolioName = pName
+	data.HomeURL = h.HomeURL
 
 	// Compute test statistics from reports.
 	var stats model.ForgeStats

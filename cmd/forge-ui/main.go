@@ -65,9 +65,10 @@ func main() {
 	// Register routes
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", h.HandleRedirect)
-	mux.HandleFunc("GET /workspaces", h.HandleWorkspaces)
-	mux.HandleFunc("GET /workspaces/{name}", h.HandleWorkspace)
-	mux.HandleFunc("GET /workspaces/{ws}/repos/{repo}", h.HandleForge)
+	mux.HandleFunc("GET /portfolios", h.HandlePortfolios)
+	mux.HandleFunc("GET /portfolios/{name}", h.HandlePortfolio)
+	mux.HandleFunc("GET /portfolios/{p}/workspaces/{w}", h.HandleWorkspace)
+	mux.HandleFunc("GET /portfolios/{p}/workspaces/{w}/repos/{r}", h.HandleForge)
 	mux.HandleFunc("GET /theme/toggle", h.HandleToggleTheme)
 
 	addr := fmt.Sprintf(":%d", *port)
@@ -90,7 +91,7 @@ func main() {
 
 	log.Println("shutting down...")
 	r.Stop()
-	srv.Close()
+	_ = srv.Close()
 }
 
 // resolveTemplateDir finds the templates directory.

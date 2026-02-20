@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"path/filepath"
 	"sort"
 
 	forgepkg "github.com/alexandremahdhaoui/forge-ui/internal/forge"
@@ -9,15 +10,21 @@ import (
 	"github.com/alexandremahdhaoui/forge-ui/internal/workspace"
 )
 
-// HandleWorkspace handles GET /workspaces/{name}.
+// HandleWorkspace handles GET /portfolios/{p}/workspaces/{w}.
 func (h *Handler) HandleWorkspace(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
-	if name == "" {
-		http.Error(w, "workspace name required", http.StatusBadRequest)
+	pName := r.PathValue("p")
+	wsName := r.PathValue("w")
+	if pName == "" || wsName == "" {
+		http.Error(w, "portfolio and workspace name required", http.StatusBadRequest)
 		return
 	}
 
-	data, err := workspace.Get(h.BaseDir, name)
+	wsBaseDir := h.BaseDir
+	if pName != "default" {
+		wsBaseDir = filepath.Join(h.BaseDir, pName)
+	}
+
+	data, err := workspace.Get(wsBaseDir, wsName)
 	if err != nil {
 		http.Error(w, "workspace not found: "+err.Error(), http.StatusNotFound)
 		return
@@ -28,9 +35,11 @@ func (h *Handler) HandleWorkspace(w http.ResponseWriter, r *http.Request) {
 		sortMode = "time"
 	}
 
+	cacheKey := pName + "/" + wsName
+
 	// Enrich each repo with cached git information.
 	for i, repo := range data.Repos {
-		if cached, ok := h.Cache.GetRepoSummary(name, repo.Name); ok {
+		if cached, ok := h.Cache.GetRepoSummary(cacheKey, repo.Name); ok {
 			data.Repos[i].Branch = cached.Branch
 			data.Repos[i].IsDirty = cached.IsDirty
 			data.Repos[i].StatusFiles = cached.StatusFiles
@@ -48,6 +57,11 @@ func (h *Handler) HandleWorkspace(w http.ResponseWriter, r *http.Request) {
 		sort.Slice(data.Repos, func(a, b int) bool {
 			return data.Repos[a].LastCommitTime.After(data.Repos[b].LastCommitTime)
 		})
+	}
+
+	// Rewrite repo links for portfolio-scoped URLs.
+	for i := range data.Repos {
+		data.Repos[i].RepoLink = "/portfolios/" + pName + "/workspaces/" + wsName + "/repos/" + data.Repos[i].Name
 	}
 
 	// Load forge data for repos that have forge.yaml and build heatmap data.
@@ -97,13 +111,16 @@ func (h *Handler) HandleWorkspace(w http.ResponseWriter, r *http.Request) {
 
 		data.RepoForge = append(data.RepoForge, model.RepoForgeStats{
 			RepoName:     repo.Name,
-			RepoLink:    repo.RepoLink,
+			RepoLink:     "/portfolios/" + pName + "/workspaces/" + wsName + "/repos/" + repo.Name,
 			StageResults: stageResults,
 		})
 	}
 
 	data.AllStages = allStages
 	data.Stats = stats
+	data.PortfolioName = pName
+	data.HomeURL = h.HomeURL
+	data.DarkMode = isDarkMode(r)
 
 	data.SortMode = sortMode
 	h.render(w, "workspace", data)

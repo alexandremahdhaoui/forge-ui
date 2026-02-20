@@ -1,7 +1,8 @@
 {{define "content"}}
 <nav class="breadcrumb body-medium">
-    <a href="/workspaces">Workspaces</a> &#x203A;
-    <a href="/workspaces/{{.WorkspaceName}}">{{.WorkspaceName}}</a> &#x203A;
+    <a href="/portfolios">Portfolios</a> &#x203A;
+    <a href="/portfolios/{{.PortfolioName}}">{{.PortfolioName}}</a> &#x203A;
+    <a href="/portfolios/{{.PortfolioName}}/workspaces/{{.WorkspaceName}}">{{.WorkspaceName}}</a> &#x203A;
     {{.RepoName}}
 </nav>
 

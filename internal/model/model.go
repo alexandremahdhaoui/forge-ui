@@ -2,15 +2,6 @@ package model
 
 import "time"
 
-// --- Page 1: /workspaces ---
-
-type WorkspacesPageData struct {
-	Stats      WorkspacesStats
-	Workspaces []WorkspaceSummary
-	SortMode   string
-	DarkMode   bool
-}
-
 type WorkspaceSummary struct {
 	Name      string         // directory name under $WORKSPACES
 	Path      string         // absolute path
@@ -23,14 +14,16 @@ type WorkspaceSummary struct {
 // --- Page 2: /workspaces/{name} ---
 
 type WorkspacePageData struct {
-	Name      string
-	Path      string
-	Repos     []RepoSummary
-	Stats     WorkspaceStats
-	AllStages []string
-	RepoForge []RepoForgeStats
-	SortMode  string
-	DarkMode  bool
+	Name          string
+	PortfolioName string
+	Path          string
+	Repos         []RepoSummary
+	Stats         WorkspaceStats
+	AllStages     []string
+	RepoForge     []RepoForgeStats
+	SortMode      string
+	DarkMode      bool
+	HomeURL       string
 }
 
 type RepoSummary struct {
@@ -79,6 +72,7 @@ type LogEntry struct {
 type ForgePageData struct {
 	WorkspaceName  string
 	RepoName       string
+	PortfolioName  string
 	Spec           ForgeSpec
 	Artifacts      []Artifact
 	TestReports    []TestReport
@@ -86,6 +80,7 @@ type ForgePageData struct {
 	Stats          ForgeStats
 	StageStatusMap map[string]string
 	DarkMode       bool
+	HomeURL        string
 }
 
 type ForgeSpec struct {
@@ -166,6 +161,45 @@ type WorkspacesStats struct {
 	TotalTests      int
 	Passed          int
 	Failed          int
+}
+
+// --- Portfolio types ---
+
+type PortfolioSummary struct {
+	Name       string             // directory name under baseDir (or "default")
+	Path       string             // absolute path (baseDir for "default" portfolio)
+	IsDefault  bool               // true for the catch-all portfolio
+	Workspaces []WorkspaceSummary // workspaces within this portfolio
+	Stats      WorkspacesStats    // reuse existing type for aggregate stats
+}
+
+type PortfoliosPageData struct {
+	Portfolios []PortfolioSummary
+	Stats      PortfoliosStats
+	SortMode   string
+	DarkMode   bool
+	HomeURL    string // always "/portfolios"
+}
+
+type PortfoliosStats struct {
+	TotalPortfolios int
+	TotalWorkspaces int
+	TotalRepos      int
+	DirtyRepos      int
+	TotalTests      int
+	Passed          int
+	Failed          int
+}
+
+type PortfolioPageData struct {
+	Name       string
+	Path       string
+	IsDefault  bool
+	Workspaces []WorkspaceSummary
+	Stats      WorkspacesStats // reuse existing type
+	SortMode   string
+	DarkMode   bool
+	HomeURL    string // always "/portfolios"
 }
 
 type WorkspaceStats struct {

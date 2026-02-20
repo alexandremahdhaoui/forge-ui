@@ -65,14 +65,6 @@ func (tr *testRepo) makeCommit(t *testing.T, filename, content, message string) 
 	runGitCmd(t, tr.dir, "commit", "-m", message)
 }
 
-// pushCommit makes a commit and pushes it to origin.
-func (tr *testRepo) pushCommit(t *testing.T, filename, content, message string) {
-	t.Helper()
-
-	tr.makeCommit(t, filename, content, message)
-	runGitCmd(t, tr.dir, "push")
-}
-
 // makeRemoteCommit simulates another developer pushing a commit to the remote.
 // It clones the bare remote into a temporary directory, commits there, and pushes.
 func (tr *testRepo) makeRemoteCommit(t *testing.T, filename, content, message string) {

@@ -1,7 +1,11 @@
 {{define "content"}}
-<h1 class="headline-large">Workspaces</h1>
+<h1 class="headline-large">Portfolios</h1>
 
 <div class="stats-grid">
+    <div class="stat-card">
+        <span class="stat-value">{{.Stats.TotalPortfolios}}</span>
+        <span class="stat-label">Portfolios</span>
+    </div>
     <div class="stat-card">
         <span class="stat-value">{{.Stats.TotalWorkspaces}}</span>
         <span class="stat-label">Workspaces</span>
@@ -29,11 +33,16 @@
     <a href="?sort=time" class="segmented-btn{{if eq .SortMode "time"}} segmented-btn--active{{end}}">Recent</a>
 </div>
 
-{{if not .Workspaces}}
-<p class="empty-state body-large">No workspaces found.</p>
+{{if not .Portfolios}}
+<p class="empty-state body-large">No portfolios found.</p>
 {{else}}
+{{range .Portfolios}}
+{{$pName := .Name}}
+<h2 class="headline-medium"><a href="/portfolios/{{.Name}}">{{.Name}}</a>{{if .IsDefault}} <span class="chip chip--neutral">catch-all</span>{{end}}</h2>
+<p class="body-small" style="color: var(--md-sys-color-on-surface-variant);">{{.Stats.TotalWorkspaces}} workspaces, {{.Stats.TotalRepos}} repos</p>
+
 {{range .Workspaces}}
-<h2 class="headline-medium"><a href="/workspaces/{{.Name}}">{{.Name}}</a></h2>
+<h3 class="title-large" style="margin: 16px 0 4px 0;"><a href="/portfolios/{{$pName}}/workspaces/{{.Name}}">{{.Name}}</a></h3>
 <p class="body-small" style="font-family: 'Roboto Mono', monospace; color: var(--md-sys-color-on-surface-variant);">{{.Path}}</p>
 
 {{if .RepoForge}}
@@ -82,10 +91,9 @@
         </tr>
     </thead>
     <tbody>
-        {{$wsName := .Name}}
         {{range .Repos}}
         <tr>
-            <td><a href="/workspaces/{{$wsName}}/repos/{{.Name}}">{{.Name}}</a>{{if .HasForge}} <a href="{{.RepoLink}}">[forge]</a>{{end}}</td>
+            <td><a href="{{.RepoLink}}">{{.Name}}</a>{{if .HasForge}} <a href="{{.RepoLink}}">[forge]</a>{{end}}</td>
             <td><span class="code-inline">{{.Branch}}</span></td>
             <td>
                 {{if .IsDirty}}<span class="chip chip--warn">dirty</span>
@@ -105,6 +113,7 @@
 </div>
 {{else}}
 <p class="empty-state body-large">No repositories found.</p>
+{{end}}
 {{end}}
 {{end}}
 {{end}}

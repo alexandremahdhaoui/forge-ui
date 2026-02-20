@@ -1,0 +1,129 @@
+package handler
+
+import (
+	"net/http"
+	"sort"
+
+	"github.com/alexandremahdhaoui/forge-ui/internal/model"
+	"github.com/alexandremahdhaoui/forge-ui/internal/portfolio"
+)
+
+// HandlePortfolios handles GET /portfolios.
+func (h *Handler) HandlePortfolios(w http.ResponseWriter, r *http.Request) {
+	portfolios, err := portfolio.List(h.BaseDir)
+	if err != nil {
+		http.Error(w, "failed to list portfolios: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	sortMode := r.URL.Query().Get("sort")
+	if sortMode != "name" {
+		sortMode = "time"
+	}
+
+	var globalStats model.PortfoliosStats
+	globalStats.TotalPortfolios = len(portfolios)
+
+	for i := range portfolios {
+		p := &portfolios[i]
+
+		rewriteRepoLinks(p.Workspaces, p.Name)
+
+		cacheKeyFn := func(wsName string) string {
+			return p.Name + "/" + wsName
+		}
+
+		totalRepos, dirtyRepos, totalTests, passed, failed := enrichWorkspaces(p.Workspaces, h.Cache, cacheKeyFn)
+
+		p.Stats = model.WorkspacesStats{
+			TotalWorkspaces: len(p.Workspaces),
+			TotalRepos:      totalRepos,
+			DirtyRepos:      dirtyRepos,
+			TotalTests:      totalTests,
+			Passed:          passed,
+			Failed:          failed,
+		}
+
+		if sortMode == "time" {
+			for j := range p.Workspaces {
+				sort.Slice(p.Workspaces[j].Repos, func(a, b int) bool {
+					return p.Workspaces[j].Repos[a].LastCommitTime.After(p.Workspaces[j].Repos[b].LastCommitTime)
+				})
+			}
+			sort.Slice(p.Workspaces, func(a, b int) bool {
+				return maxCommitTime(p.Workspaces[a].Repos).After(maxCommitTime(p.Workspaces[b].Repos))
+			})
+		}
+
+		globalStats.TotalWorkspaces += p.Stats.TotalWorkspaces
+		globalStats.TotalRepos += p.Stats.TotalRepos
+		globalStats.DirtyRepos += p.Stats.DirtyRepos
+		globalStats.TotalTests += p.Stats.TotalTests
+		globalStats.Passed += p.Stats.Passed
+		globalStats.Failed += p.Stats.Failed
+	}
+
+	data := model.PortfoliosPageData{
+		Portfolios: portfolios,
+		Stats:      globalStats,
+		SortMode:   sortMode,
+		DarkMode:   isDarkMode(r),
+		HomeURL:    h.HomeURL,
+	}
+
+	h.render(w, "portfolios", data)
+}
+
+// HandlePortfolio handles GET /portfolios/{name}.
+func (h *Handler) HandlePortfolio(w http.ResponseWriter, r *http.Request) {
+	pName := r.PathValue("name")
+	if pName == "" {
+		http.Error(w, "missing portfolio name", http.StatusBadRequest)
+		return
+	}
+
+	data, err := portfolio.Get(h.BaseDir, pName)
+	if err != nil {
+		http.Error(w, "failed to get portfolio: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	sortMode := r.URL.Query().Get("sort")
+	if sortMode != "name" {
+		sortMode = "time"
+	}
+
+	rewriteRepoLinks(data.Workspaces, pName)
+
+	cacheKeyFn := func(wsName string) string {
+		return pName + "/" + wsName
+	}
+
+	totalRepos, dirtyRepos, totalTests, passed, failed := enrichWorkspaces(data.Workspaces, h.Cache, cacheKeyFn)
+
+	data.Stats = model.WorkspacesStats{
+		TotalWorkspaces: len(data.Workspaces),
+		TotalRepos:      totalRepos,
+		DirtyRepos:      dirtyRepos,
+		TotalTests:      totalTests,
+		Passed:          passed,
+		Failed:          failed,
+	}
+
+	if sortMode == "time" {
+		for i := range data.Workspaces {
+			sort.Slice(data.Workspaces[i].Repos, func(a, b int) bool {
+				return data.Workspaces[i].Repos[a].LastCommitTime.After(data.Workspaces[i].Repos[b].LastCommitTime)
+			})
+		}
+		sort.Slice(data.Workspaces, func(i, j int) bool {
+			return maxCommitTime(data.Workspaces[i].Repos).After(maxCommitTime(data.Workspaces[j].Repos))
+		})
+	}
+
+	data.SortMode = sortMode
+	data.DarkMode = isDarkMode(r)
+	data.HomeURL = h.HomeURL
+
+	h.render(w, "portfolio", data)
+}

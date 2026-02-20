@@ -2,14 +2,24 @@ package refresher
 
 import (
 	"log"
+	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/alexandremahdhaoui/forge-ui/internal/cache"
 	gitpkg "github.com/alexandremahdhaoui/forge-ui/internal/git"
 	"github.com/alexandremahdhaoui/forge-ui/internal/model"
+	"github.com/alexandremahdhaoui/forge-ui/internal/portfolio"
 	"github.com/alexandremahdhaoui/forge-ui/internal/workspace"
 )
+
+// RefreshItem identifies a single workspace to refresh, including the portfolio
+// it belongs to and the base directory where the workspace lives.
+type RefreshItem struct {
+	PortfolioName string // always set, "default" for loose workspaces
+	WorkspaceName string
+	WorkspaceBase string // absolute path to parent of workspace dir
+}
 
 // Config controls the refresher behavior.
 type Config struct {
@@ -23,7 +33,7 @@ type Config struct {
 type Refresher struct {
 	cache *cache.Cache
 	cfg   Config
-	queue chan string
+	queue chan RefreshItem
 	done  chan struct{}
 	wg    sync.WaitGroup
 }
@@ -39,7 +49,7 @@ func New(c *cache.Cache, cfg Config) *Refresher {
 	return &Refresher{
 		cache: c,
 		cfg:   cfg,
-		queue: make(chan string, 100),
+		queue: make(chan RefreshItem, 100),
 		done:  make(chan struct{}),
 	}
 }
@@ -65,26 +75,38 @@ func (r *Refresher) Stop() {
 	r.wg.Wait()
 }
 
-// refreshAll refreshes every workspace sequentially.
+// refreshAll refreshes every workspace sequentially across all portfolios.
 func (r *Refresher) refreshAll() {
-	wsList, err := workspace.List(r.cfg.BaseDir)
+	portfolios, err := portfolio.List(r.cfg.BaseDir)
 	if err != nil {
-		log.Printf("refresher: list workspaces: %v", err)
+		log.Printf("refresher: list portfolios: %v", err)
 		return
 	}
-	for _, ws := range wsList {
-		r.refreshWorkspace(ws.Name)
+	for _, p := range portfolios {
+		wsBase := filepath.Join(r.cfg.BaseDir, p.Name)
+		if p.IsDefault {
+			wsBase = r.cfg.BaseDir
+		}
+		for _, ws := range p.Workspaces {
+			r.refreshWorkspace(RefreshItem{
+				PortfolioName: p.Name,
+				WorkspaceName: ws.Name,
+				WorkspaceBase: wsBase,
+			})
+		}
 	}
 }
 
 // refreshWorkspace discovers repos in a workspace, calls RepoInfo for each,
 // merges repo metadata from workspace.Get, and writes results to the cache.
-func (r *Refresher) refreshWorkspace(wsName string) {
-	data, err := workspace.Get(r.cfg.BaseDir, wsName)
+func (r *Refresher) refreshWorkspace(item RefreshItem) {
+	data, err := workspace.Get(item.WorkspaceBase, item.WorkspaceName)
 	if err != nil {
-		log.Printf("refresher: get workspace %q: %v", wsName, err)
+		log.Printf("refresher: get workspace %q: %v", item.WorkspaceName, err)
 		return
 	}
+
+	cacheKey := item.PortfolioName + "/" + item.WorkspaceName
 
 	summaries := make(map[string]model.RepoSummary)
 	overviews := make(map[string]model.RepoOverview)
@@ -106,7 +128,7 @@ func (r *Refresher) refreshWorkspace(wsName string) {
 
 		overviews[repo.Name] = model.RepoOverview{
 			Name:           repo.Name,
-			WorkspaceName:  wsName,
+			WorkspaceName:  item.WorkspaceName,
 			Path:           repo.Path,
 			Branch:         gitInfo.Branch,
 			IsDirty:        gitInfo.IsDirty,
@@ -119,14 +141,14 @@ func (r *Refresher) refreshWorkspace(wsName string) {
 		}
 	}
 
-	r.cache.SetWorkspace(wsName, cache.WorkspaceData{
+	r.cache.SetWorkspace(cacheKey, cache.WorkspaceData{
 		Summaries: summaries,
 		Overviews: overviews,
 		UpdatedAt: time.Now(),
 	})
 }
 
-// scheduler sends workspace names to the work queue on each tick.
+// scheduler sends refresh items to the work queue on each tick.
 func (r *Refresher) scheduler() {
 	defer r.wg.Done()
 	ticker := time.NewTicker(r.cfg.Interval)
@@ -137,31 +159,42 @@ func (r *Refresher) scheduler() {
 		case <-r.done:
 			return
 		case <-ticker.C:
-			wsList, err := workspace.List(r.cfg.BaseDir)
+			portfolios, err := portfolio.List(r.cfg.BaseDir)
 			if err != nil {
-				log.Printf("refresher: list workspaces: %v", err)
+				log.Printf("refresher: list portfolios: %v", err)
 				continue
 			}
-			for _, ws := range wsList {
-				select {
-				case r.queue <- ws.Name:
-				case <-r.done:
-					return
+			for _, p := range portfolios {
+				wsBase := filepath.Join(r.cfg.BaseDir, p.Name)
+				if p.IsDefault {
+					wsBase = r.cfg.BaseDir
+				}
+				for _, ws := range p.Workspaces {
+					item := RefreshItem{
+						PortfolioName: p.Name,
+						WorkspaceName: ws.Name,
+						WorkspaceBase: wsBase,
+					}
+					select {
+					case r.queue <- item:
+					case <-r.done:
+						return
+					}
 				}
 			}
 		}
 	}
 }
 
-// worker reads workspace names from the queue and refreshes each one.
+// worker reads refresh items from the queue and refreshes each one.
 func (r *Refresher) worker() {
 	defer r.wg.Done()
 	for {
 		select {
 		case <-r.done:
 			return
-		case wsName := <-r.queue:
-			r.refreshWorkspace(wsName)
+		case item := <-r.queue:
+			r.refreshWorkspace(item)
 		}
 	}
 }

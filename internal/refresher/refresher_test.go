@@ -112,7 +112,7 @@ func TestRefresher_PopulatesCache(t *testing.T) {
 	r.Start()
 	defer r.Stop()
 
-	summary, found := c.GetRepoSummary("ws1", "repo-a")
+	summary, found := c.GetRepoSummary("default/ws1", "repo-a")
 	if !found {
 		t.Fatal("expected repo-a to be found in cache after initial refresh")
 	}

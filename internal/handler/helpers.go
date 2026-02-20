@@ -1,36 +1,30 @@
 package handler
 
 import (
-	"net/http"
-	"sort"
 	"time"
 
+	"github.com/alexandremahdhaoui/forge-ui/internal/cache"
 	forgepkg "github.com/alexandremahdhaoui/forge-ui/internal/forge"
 	"github.com/alexandremahdhaoui/forge-ui/internal/model"
-	"github.com/alexandremahdhaoui/forge-ui/internal/workspace"
 )
 
-// HandleWorkspaces handles GET /workspaces.
-func (h *Handler) HandleWorkspaces(w http.ResponseWriter, r *http.Request) {
-	workspaces, err := workspace.List(h.BaseDir)
-	if err != nil {
-		http.Error(w, "failed to list workspaces: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	sortMode := r.URL.Query().Get("sort")
-	if sortMode != "name" {
-		sortMode = "time"
-	}
-
-	// Enrich repos with cached git info.
-	totalRepos := 0
-	dirtyRepos := 0
+// enrichWorkspaces enriches a slice of WorkspaceSummary in-place with cached
+// git info and forge heatmap data. It returns aggregate stats across all
+// workspaces. The cacheKey function maps a workspace name to a cache lookup
+// key (e.g. "portfolioName/wsName").
+func enrichWorkspaces(
+	workspaces []model.WorkspaceSummary,
+	c *cache.Cache,
+	cacheKey func(wsName string) string,
+) (totalRepos, dirtyRepos, totalTests, passed, failed int) {
 	for i := range workspaces {
-		totalRepos += workspaces[i].RepoCount
-		for j := range workspaces[i].Repos {
-			repo := &workspaces[i].Repos[j]
-			if cached, ok := h.Cache.GetRepoOverview(workspaces[i].Name, repo.Name); ok {
+		ws := &workspaces[i]
+		totalRepos += ws.RepoCount
+
+		// Enrich repos with cached git info.
+		for j := range ws.Repos {
+			repo := &ws.Repos[j]
+			if cached, ok := c.GetRepoOverview(cacheKey(ws.Name), repo.Name); ok {
 				repo.Branch = cached.Branch
 				repo.IsDirty = cached.IsDirty
 				repo.Ahead = cached.Ahead
@@ -42,25 +36,8 @@ func (h *Handler) HandleWorkspaces(w http.ResponseWriter, r *http.Request) {
 				dirtyRepos++
 			}
 		}
-	}
 
-	// Sort by last commit time if requested.
-	if sortMode == "time" {
-		for i := range workspaces {
-			sort.Slice(workspaces[i].Repos, func(a, b int) bool {
-				return workspaces[i].Repos[a].LastCommitTime.After(workspaces[i].Repos[b].LastCommitTime)
-			})
-		}
-		sort.Slice(workspaces, func(i, j int) bool {
-			return maxCommitTime(workspaces[i].Repos).After(maxCommitTime(workspaces[j].Repos))
-		})
-	}
-
-	// Build per-workspace forge heatmap data.
-	var totalTests, passed, failed int
-
-	for i := range workspaces {
-		ws := &workspaces[i]
+		// Build forge heatmap data.
 		stageSeen := make(map[string]struct{})
 
 		for _, repo := range ws.Repos {
@@ -97,28 +74,28 @@ func (h *Handler) HandleWorkspaces(w http.ResponseWriter, r *http.Request) {
 
 			ws.RepoForge = append(ws.RepoForge, model.RepoForgeStats{
 				RepoName:     repo.Name,
-				RepoLink:    repo.RepoLink,
+				RepoLink:     repo.RepoLink,
 				StageResults: stageResults,
 			})
 		}
 	}
 
-	data := model.WorkspacesPageData{
-		Stats: model.WorkspacesStats{
-			TotalWorkspaces: len(workspaces),
-			TotalRepos:      totalRepos,
-			DirtyRepos:      dirtyRepos,
-			TotalTests:      totalTests,
-			Passed:          passed,
-			Failed:          failed,
-		},
-		Workspaces: workspaces,
-		SortMode:   sortMode,
-	}
-
-	h.render(w, "workspaces", data)
+	return totalRepos, dirtyRepos, totalTests, passed, failed
 }
 
+// rewriteRepoLinks rewrites all RepoLink fields in the workspaces slice to
+// use portfolio-scoped URL paths: /portfolios/{p}/workspaces/{ws}/repos/{repo}.
+func rewriteRepoLinks(workspaces []model.WorkspaceSummary, portfolioName string) {
+	for i := range workspaces {
+		for j := range workspaces[i].Repos {
+			repo := &workspaces[i].Repos[j]
+			repo.RepoLink = "/portfolios/" + portfolioName + "/workspaces/" + workspaces[i].Name + "/repos/" + repo.Name
+		}
+	}
+}
+
+// maxCommitTime returns the most recent LastCommitTime across all repos.
+// Returns the zero time if the slice is empty.
 func maxCommitTime(repos []model.RepoOverview) time.Time {
 	var max time.Time
 	for _, r := range repos {

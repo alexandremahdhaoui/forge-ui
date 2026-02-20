@@ -14,6 +14,7 @@ type Handler struct {
 	BaseDir   string                        // $WORKSPACES path
 	Templates map[string]*template.Template // keyed by page name
 	Cache     *cache.Cache                  // background-refreshed git data
+	HomeURL   string                        // always "/portfolios"
 }
 
 // New creates a Handler by parsing all templates from the given directory.
@@ -23,13 +24,14 @@ func New(baseDir, templateDir string, c *cache.Cache) (*Handler, error) {
 		BaseDir:   baseDir,
 		Templates: make(map[string]*template.Template),
 		Cache:     c,
+		HomeURL:   "/portfolios",
 	}
 
 	layoutPath := filepath.Join(templateDir, "layout.html")
 
 	// Parse each page template together with the layout.
 	// The layout defines "layout" and each page defines "content".
-	pages := []string{"workspaces", "workspace", "forge"}
+	pages := []string{"portfolios", "portfolio", "workspace", "forge"}
 	for _, page := range pages {
 		pagePath := filepath.Join(templateDir, page+".html")
 		tmpl, err := template.ParseFiles(layoutPath, pagePath)
@@ -74,7 +76,7 @@ func (h *Handler) HandleToggleTheme(w http.ResponseWriter, r *http.Request) {
 	})
 	ref := r.Referer()
 	if ref == "" {
-		ref = "/workspaces"
+		ref = h.HomeURL
 	}
 	http.Redirect(w, r, ref, http.StatusSeeOther)
 }

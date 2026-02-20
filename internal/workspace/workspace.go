@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/alexandremahdhaoui/forge-ui/internal/ignore"
 	"github.com/alexandremahdhaoui/forge-ui/internal/model"
 )
 
@@ -16,6 +17,7 @@ func List(basedir string) ([]model.WorkspaceSummary, error) {
 	if err != nil {
 		return nil, err
 	}
+	patterns := ignore.Load(basedir)
 
 	var workspaces []model.WorkspaceSummary
 
@@ -24,6 +26,9 @@ func List(basedir string) ([]model.WorkspaceSummary, error) {
 			continue
 		}
 		if entry.Name()[0] == '.' {
+			continue
+		}
+		if ignore.IsIgnored(entry.Name(), patterns) {
 			continue
 		}
 
@@ -64,6 +69,7 @@ func Get(basedir, name string) (model.WorkspacePageData, error) {
 	if err != nil {
 		return model.WorkspacePageData{}, fmt.Errorf("reading workspace %q: %w", name, err)
 	}
+	patterns := ignore.Load(wsPath)
 
 	var repos []model.RepoSummary
 
@@ -72,6 +78,9 @@ func Get(basedir, name string) (model.WorkspacePageData, error) {
 			continue
 		}
 		if entry.Name()[0] == '.' {
+			continue
+		}
+		if ignore.IsIgnored(entry.Name(), patterns) {
 			continue
 		}
 
@@ -114,10 +123,14 @@ func scanRepos(wsPath, wsName string) []model.RepoOverview {
 	if err != nil {
 		return nil
 	}
+	patterns := ignore.Load(wsPath)
 
 	var repos []model.RepoOverview
 	for _, entry := range entries {
 		if !entry.IsDir() || entry.Name()[0] == '.' {
+			continue
+		}
+		if ignore.IsIgnored(entry.Name(), patterns) {
 			continue
 		}
 		dirPath := filepath.Join(wsPath, entry.Name())

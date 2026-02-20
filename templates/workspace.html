@@ -1,4 +1,10 @@
 {{define "content"}}
+<nav class="breadcrumb body-medium">
+    <a href="/portfolios">Portfolios</a> &#x203A;
+    <a href="/portfolios/{{.PortfolioName}}">{{.PortfolioName}}</a> &#x203A;
+    {{.Name}}
+</nav>
+
 <h1 class="headline-large">{{.Name}}</h1>
 <p class="body-small" style="font-family: 'Roboto Mono', monospace; color: var(--md-sys-color-on-surface-variant);">{{.Path}}</p>
 
