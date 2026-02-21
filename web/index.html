@@ -445,7 +445,6 @@
         h1 { margin-bottom: 8px; }
         h2 { margin: 32px 0 12px 0; }
 
-        /* Loading indicator */
         .loading {
             display: flex;
             align-items: center;
@@ -475,10 +474,10 @@
 </head>
 <body>
     <header class="top-app-bar">
-        <a class="top-app-bar__title title-large" onclick="forgeUI.navigate('portfolios');return false">forge-ui</a>
+        <a class="top-app-bar__title title-large" href="#/portfolios">forge-ui</a>
         <span class="top-app-bar__badge">wasm</span>
         <span class="top-app-bar__spacer"></span>
-        <button class="theme-toggle" onclick="forgeUI.toggleTheme()" title="Toggle theme">
+        <button class="theme-toggle" id="theme-btn" title="Toggle theme">
             <svg class="theme-icon--light" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M480-360q50 0 85-35t35-85q0-50-35-85t-85-35q-50 0-85 35t-35 85q0 50 35 85t85 35Zm0 80q-83 0-141.5-58.5T280-480q0-83 58.5-141.5T480-680q83 0 141.5 58.5T680-480q0 83-58.5 141.5T480-280ZM200-440H40v-80h160v80Zm720 0H760v-80h160v80ZM440-760v-160h80v160h-80Zm0 720v-160h80v160h-80ZM256-650l-101-97 57-59 96 100-52 56Zm492 496-97-101 53-55 101 97-57 59Zm-98-550 97-101 59 57-100 96-56-52ZM154-212l101-97 55 53-97 101-59-57Zm326-268Z"/></svg>
             <svg class="theme-icon--dark" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M480-120q-150 0-255-105T120-480q0-150 105-255t255-105q14 0 27.5 1t26.5 3q-41 29-65.5 75.5T444-660q0 90 63 153t153 63q55 0 101-24.5t75-65.5q2 13 3 26.5t1 27.5q0 150-105 255T480-120Zm0-80q88 0 158-48.5T740-375q-20 5-40 8t-40 3q-123 0-209.5-86.5T364-660q0-20 3-40t8-40q-78 32-126.5 102T200-480q0 116 82 198t198 82Zm-10-270Z"/></svg>
         </button>
@@ -489,7 +488,201 @@
             <span class="body-large">Loading WASM module...</span>
         </div>
     </main>
-    <script src="wasi_shim.js"></script>
-    <script src="app.js"></script>
+    <script>
+    // Minimal inline JS: WASI Preview 1 shim + WASM loader + hash-based router.
+    // All application logic lives in the Go WASM binary.
+    (function () {
+        'use strict';
+
+        var wasmModule = null;
+        var theme = localStorage.getItem('forge-ui-theme') || 'light';
+        if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+
+        // --- WASI Preview 1 shim ---------------------------------------------------
+
+        function WASIExit(code) { this.code = code; }
+        WASIExit.prototype = Object.create(Error.prototype);
+
+        function createWASI(stdinBytes) {
+            var stdin = stdinBytes, stdinOff = 0;
+            var stdoutBuf = [], stderrBuf = [];
+            var exitCode = null, inst = null;
+            var args = ['forge-ui-wasm'];
+            var env = [];
+
+            function mem() { return inst.exports.memory; }
+
+            function concatBuf(chunks) {
+                var n = 0; for (var i = 0; i < chunks.length; i++) n += chunks[i].length;
+                var r = new Uint8Array(n); var off = 0;
+                for (var i = 0; i < chunks.length; i++) { r.set(chunks[i], off); off += chunks[i].length; }
+                return new TextDecoder().decode(r);
+            }
+
+            var imports = {
+                wasi_snapshot_preview1: {
+                    fd_write: function (fd, iovs, iovsLen, nwritten) {
+                        var v = new DataView(mem().buffer); var total = 0;
+                        for (var i = 0; i < iovsLen; i++) {
+                            var ptr = v.getUint32(iovs + i * 8, true);
+                            var len = v.getUint32(iovs + i * 8 + 4, true);
+                            var d = new Uint8Array(mem().buffer, ptr, len);
+                            if (fd === 1) stdoutBuf.push(new Uint8Array(d));
+                            else if (fd === 2) stderrBuf.push(new Uint8Array(d));
+                            total += len;
+                        }
+                        v.setUint32(nwritten, total, true); return 0;
+                    },
+                    fd_read: function (fd, iovs, iovsLen, nread) {
+                        if (fd !== 0) return 8;
+                        var v = new DataView(mem().buffer); var total = 0;
+                        for (var i = 0; i < iovsLen; i++) {
+                            var ptr = v.getUint32(iovs + i * 8, true);
+                            var len = v.getUint32(iovs + i * 8 + 4, true);
+                            var rem = stdin.length - stdinOff;
+                            var toRead = Math.min(len, rem);
+                            if (toRead > 0) {
+                                new Uint8Array(mem().buffer, ptr, toRead).set(stdin.subarray(stdinOff, stdinOff + toRead));
+                                stdinOff += toRead; total += toRead;
+                            }
+                            if (toRead < len) break;
+                        }
+                        v.setUint32(nread, total, true); return 0;
+                    },
+                    fd_close: function () { return 0; },
+                    fd_seek: function () { return 70; },
+                    fd_fdstat_get: function (fd, buf) {
+                        if (fd > 2) return 8;
+                        var v = new DataView(mem().buffer);
+                        v.setUint8(buf, 2); v.setUint16(buf + 2, 0, true);
+                        v.setBigUint64(buf + 8, 0n, true); v.setBigUint64(buf + 16, 0n, true);
+                        return 0;
+                    },
+                    fd_prestat_get: function () { return 8; },
+                    fd_prestat_dir_name: function () { return 8; },
+                    path_open: function () { return 44; },
+                    args_get: function (argv, argvBuf) {
+                        var v = new DataView(mem().buffer); var enc = new TextEncoder(); var off = argvBuf;
+                        for (var i = 0; i < args.length; i++) {
+                            v.setUint32(argv + i * 4, off, true);
+                            var e = enc.encode(args[i] + '\0');
+                            new Uint8Array(mem().buffer, off, e.length).set(e); off += e.length;
+                        }
+                        return 0;
+                    },
+                    args_sizes_get: function (argc, argvBufSize) {
+                        var v = new DataView(mem().buffer); var enc = new TextEncoder(); var sz = 0;
+                        for (var i = 0; i < args.length; i++) sz += enc.encode(args[i] + '\0').length;
+                        v.setUint32(argc, args.length, true); v.setUint32(argvBufSize, sz, true);
+                        return 0;
+                    },
+                    environ_get: function (ep, eb) {
+                        var v = new DataView(mem().buffer); var enc = new TextEncoder(); var off = eb;
+                        for (var i = 0; i < env.length; i++) {
+                            v.setUint32(ep + i * 4, off, true);
+                            var e = enc.encode(env[i] + '\0');
+                            new Uint8Array(mem().buffer, off, e.length).set(e); off += e.length;
+                        }
+                        return 0;
+                    },
+                    environ_sizes_get: function (ec, ebs) {
+                        var v = new DataView(mem().buffer); var enc = new TextEncoder(); var sz = 0;
+                        for (var i = 0; i < env.length; i++) sz += enc.encode(env[i] + '\0').length;
+                        v.setUint32(ec, env.length, true); v.setUint32(ebs, sz, true);
+                        return 0;
+                    },
+                    clock_time_get: function (cid, pLo, pHi, tp) {
+                        new DataView(mem().buffer).setBigUint64(tp, BigInt(Date.now()) * 1000000n, true);
+                        return 0;
+                    },
+                    proc_exit: function (code) { exitCode = code; throw new WASIExit(code); },
+                    random_get: function (buf, len) { crypto.getRandomValues(new Uint8Array(mem().buffer, buf, len)); return 0; },
+                    sched_yield: function () { return 0; },
+                    poll_oneoff: function (inPtr, outPtr, nsubs, nev) {
+                        var v = new DataView(mem().buffer);
+                        v.setUint32(nev, nsubs, true);
+                        for (var i = 0; i < nsubs; i++) {
+                            var oo = outPtr + i * 32; var io = inPtr + i * 48;
+                            v.setBigUint64(oo, v.getBigUint64(io, true), true);
+                            v.setUint16(oo + 8, 0, true); v.setUint8(oo + 10, 0);
+                        }
+                        return 0;
+                    }
+                }
+            };
+
+            return {
+                imports: imports,
+                start: function (instance) {
+                    inst = instance;
+                    try { instance.exports._start(); } catch (e) {
+                        if (e instanceof WASIExit) return e.code;
+                        throw e;
+                    }
+                    return 0;
+                },
+                stdout: function () { return concatBuf(stdoutBuf); },
+                stderr: function () { return concatBuf(stderrBuf); }
+            };
+        }
+
+        // --- WASM runner ------------------------------------------------------------
+
+        function runWasm(route) {
+            var enc = new TextEncoder();
+            var themeParam = '&theme=' + theme;
+            var input = route + (route.indexOf('?') >= 0 ? themeParam : '?' + themeParam.slice(1));
+            var wasi = createWASI(enc.encode(input));
+            return WebAssembly.instantiate(wasmModule, wasi.imports).then(function (instance) {
+                var code = wasi.start(instance);
+                if (code !== 0) {
+                    console.error('WASM stderr:', wasi.stderr());
+                    throw new Error('WASM exit ' + code + ': ' + wasi.stderr());
+                }
+                return wasi.stdout();
+            });
+        }
+
+        // --- Router -----------------------------------------------------------------
+
+        function navigate() {
+            var hash = location.hash || '#/portfolios';
+            var route = hash.slice(1); // strip leading #
+            runWasm(route).then(function (html) {
+                document.getElementById('content').innerHTML = html;
+            }).catch(function (e) {
+                console.error('Render error:', e);
+                document.getElementById('content').innerHTML =
+                    '<div class="empty-state body-large">Error: ' + e.message + '</div>';
+            });
+        }
+
+        window.addEventListener('hashchange', navigate);
+
+        // --- Theme toggle -----------------------------------------------------------
+
+        document.getElementById('theme-btn').addEventListener('click', function () {
+            theme = theme === 'light' ? 'dark' : 'light';
+            localStorage.setItem('forge-ui-theme', theme);
+            if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            else document.documentElement.removeAttribute('data-theme');
+            navigate(); // re-render with new theme
+        });
+
+        // --- Init -------------------------------------------------------------------
+
+        fetch('forge-ui.wasm').then(function (r) {
+            return WebAssembly.compileStreaming ? WebAssembly.compileStreaming(r) : r.arrayBuffer().then(WebAssembly.compile);
+        }).then(function (mod) {
+            wasmModule = mod;
+            if (!location.hash) location.hash = '#/portfolios';
+            navigate();
+        }).catch(function (e) {
+            console.error('WASM load failed:', e);
+            document.getElementById('content').innerHTML =
+                '<div class="empty-state body-large">Failed to load WASM module. Make sure forge-ui.wasm is built. Error: ' + e.message + '</div>';
+        });
+    })();
+    </script>
 </body>
 </html>

@@ -29,8 +29,8 @@
 </div>
 
 <div class="segmented-btn-group">
-    <a href="#" onclick="forgeUI.navigate('portfolios',{sort:'name'});return false" class="segmented-btn{{if eq .SortMode "name"}} segmented-btn--active{{end}}">A-Z</a>
-    <a href="#" onclick="forgeUI.navigate('portfolios',{sort:'time'});return false" class="segmented-btn{{if eq .SortMode "time"}} segmented-btn--active{{end}}">Recent</a>
+    <a href="#/portfolios?sort=name" class="segmented-btn{{if eq .SortMode "name"}} segmented-btn--active{{end}}">A-Z</a>
+    <a href="#/portfolios?sort=time" class="segmented-btn{{if eq .SortMode "time"}} segmented-btn--active{{end}}">Recent</a>
 </div>
 
 {{if not .Portfolios}}
@@ -38,12 +38,12 @@
 {{else}}
 {{range .Portfolios}}
 {{$pName := .Name}}
-<h2 class="headline-medium"><a href="#" onclick="forgeUI.navigate('portfolio',{name:'{{.Name}}'});return false">{{.Name}}</a>{{if .IsDefault}} <span class="chip chip--neutral">catch-all</span>{{end}}</h2>
+<h2 class="headline-medium"><a href="#/portfolios/{{.Name}}">{{.Name}}</a>{{if .IsDefault}} <span class="chip chip--neutral">catch-all</span>{{end}}</h2>
 <p class="body-small" style="color: var(--md-sys-color-on-surface-variant);">{{.Stats.TotalWorkspaces}} workspaces, {{.Stats.TotalRepos}} repos</p>
 
 {{range .Workspaces}}
 {{$ws := .}}
-<h3 class="title-large" style="margin: 16px 0 4px 0;"><a href="#" onclick="forgeUI.navigate('workspace',{portfolio:'{{$pName}}',workspace:'{{.Name}}'});return false">{{.Name}}</a></h3>
+<h3 class="title-large" style="margin: 16px 0 4px 0;"><a href="#/portfolios/{{$pName}}/workspaces/{{.Name}}">{{.Name}}</a></h3>
 <p class="body-small" style="font-family: 'Roboto Mono', monospace; color: var(--md-sys-color-on-surface-variant);">{{.Path}}</p>
 
 {{if .RepoForge}}
@@ -60,7 +60,7 @@
     <tbody>
         {{range .RepoForge}}
         <tr>
-            <td><a href="#" onclick="forgeUI.navigate('forge',{portfolio:'{{$pName}}',workspace:'{{$ws.Name}}',repo:'{{.RepoName}}'});return false">{{.RepoName}}</a></td>
+            <td><a href="{{.RepoLink}}">{{.RepoName}}</a></td>
             {{$results := .StageResults}}
             {{range $ws.AllStages}}
             {{$status := index $results .}}
@@ -93,7 +93,7 @@
     <tbody>
         {{range .Repos}}
         <tr>
-            <td>{{.Name}}{{if .HasForge}} <a href="#" onclick="forgeUI.navigate('forge',{portfolio:'{{$pName}}',workspace:'{{$ws.Name}}',repo:'{{.Name}}'});return false">[forge]</a>{{end}}</td>
+            <td>{{.Name}}{{if .HasForge}} <a href="{{.RepoLink}}">[forge]</a>{{end}}</td>
             <td><span class="code-inline">{{.Branch}}</span></td>
             <td>
                 {{if .IsDirty}}<span class="chip chip--warn">dirty</span>

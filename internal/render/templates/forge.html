@@ -1,8 +1,8 @@
 {{define "forge"}}
 <nav class="breadcrumb body-medium">
-    <a href="#" onclick="forgeUI.navigate('portfolios');return false">Portfolios</a> &#x203A;
-    <a href="#" onclick="forgeUI.navigate('portfolio',{name:'{{.PortfolioName}}'});return false">{{.PortfolioName}}</a> &#x203A;
-    <a href="#" onclick="forgeUI.navigate('workspace',{portfolio:'{{.PortfolioName}}',workspace:'{{.WorkspaceName}}'});return false">{{.WorkspaceName}}</a> &#x203A;
+    <a href="#/portfolios">Portfolios</a> &#x203A;
+    <a href="#/portfolios/{{.PortfolioName}}">{{.PortfolioName}}</a> &#x203A;
+    <a href="#/portfolios/{{.PortfolioName}}/workspaces/{{.WorkspaceName}}">{{.WorkspaceName}}</a> &#x203A;
     {{.RepoName}}
 </nav>
 

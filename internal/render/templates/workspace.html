@@ -1,7 +1,7 @@
 {{define "workspace"}}
 <nav class="breadcrumb body-medium">
-    <a href="#" onclick="forgeUI.navigate('portfolios');return false">Portfolios</a> &#x203A;
-    <a href="#" onclick="forgeUI.navigate('portfolio',{name:'{{.PortfolioName}}'});return false">{{.PortfolioName}}</a> &#x203A;
+    <a href="#/portfolios">Portfolios</a> &#x203A;
+    <a href="#/portfolios/{{.PortfolioName}}">{{.PortfolioName}}</a> &#x203A;
     {{.Name}}
 </nav>
 
@@ -46,7 +46,7 @@
     <tbody>
         {{range .RepoForge}}
         <tr>
-            <td><a href="#" onclick="forgeUI.navigate('forge',{portfolio:'{{$.PortfolioName}}',workspace:'{{$.Name}}',repo:'{{.RepoName}}'});return false">{{.RepoName}}</a></td>
+            <td><a href="{{.RepoLink}}">{{.RepoName}}</a></td>
             {{$results := .StageResults}}
             {{range $.AllStages}}
             {{$status := index $results .}}
@@ -66,8 +66,8 @@
 {{end}}
 
 <div class="segmented-btn-group">
-    <a href="#" onclick="forgeUI.navigate('workspace',{portfolio:'{{.PortfolioName}}',workspace:'{{.Name}}',sort:'name'});return false" class="segmented-btn{{if eq .SortMode "name"}} segmented-btn--active{{end}}">A-Z</a>
-    <a href="#" onclick="forgeUI.navigate('workspace',{portfolio:'{{.PortfolioName}}',workspace:'{{.Name}}',sort:'time'});return false" class="segmented-btn{{if eq .SortMode "time"}} segmented-btn--active{{end}}">Recent</a>
+    <a href="#/portfolios/{{.PortfolioName}}/workspaces/{{.Name}}?sort=name" class="segmented-btn{{if eq .SortMode "name"}} segmented-btn--active{{end}}">A-Z</a>
+    <a href="#/portfolios/{{.PortfolioName}}/workspaces/{{.Name}}?sort=time" class="segmented-btn{{if eq .SortMode "time"}} segmented-btn--active{{end}}">Recent</a>
 </div>
 
 {{if not .Repos}}
@@ -76,7 +76,7 @@
 {{range .Repos}}
 <div class="card-elevated" style="margin: 12px 0;">
     <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
-        <h2 class="title-medium" style="margin: 0;">{{if .HasForge}}<a href="#" onclick="forgeUI.navigate('forge',{portfolio:'{{$.PortfolioName}}',workspace:'{{$.Name}}',repo:'{{.Name}}'});return false" style="color: inherit; text-decoration: none;">{{.Name}}</a>{{else}}{{.Name}}{{end}}</h2>
+        <h2 class="title-medium" style="margin: 0;">{{if .HasForge}}<a href="{{.RepoLink}}" style="color: inherit; text-decoration: none;">{{.Name}}</a>{{else}}{{.Name}}{{end}}</h2>
         {{if .IsDirty}}<span class="chip chip--warn">{{len .StatusFiles}} changed</span>
         {{else}}<span class="chip chip--pass">clean</span>
         {{end}}

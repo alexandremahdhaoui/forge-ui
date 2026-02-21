@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -16,13 +15,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	var cmd render.Command
-	if err := json.Unmarshal(data, &cmd); err != nil {
-		fmt.Fprintf(os.Stderr, "error parsing command: %v\n", err)
-		os.Exit(1)
-	}
-
-	html, err := render.Execute(cmd)
+	html, err := render.Execute(string(data))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error rendering: %v\n", err)
 		os.Exit(1)
