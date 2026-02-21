@@ -6,11 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alexandremahdhaoui/forge-ui/internal/cache"
-	gitpkg "github.com/alexandremahdhaoui/forge-ui/internal/git"
+	"github.com/alexandremahdhaoui/forge-ui/internal/adapter"
 	"github.com/alexandremahdhaoui/forge-ui/internal/types"
-	"github.com/alexandremahdhaoui/forge-ui/internal/portfolio"
-	"github.com/alexandremahdhaoui/forge-ui/internal/workspace"
 )
 
 // RefreshItem identifies a single workspace to refresh, including the portfolio
@@ -31,15 +28,18 @@ type Config struct {
 // Refresher discovers workspaces and repos on a timer, runs RepoInfo for each
 // repo, and writes results to the cache. HTTP handlers read from the cache.
 type Refresher struct {
-	cache *cache.Cache
-	cfg   Config
-	queue chan RefreshItem
-	done  chan struct{}
-	wg    sync.WaitGroup
+	cache         adapter.Cache
+	gitInfo       adapter.GitInfo
+	portfolioDisc adapter.PortfolioDiscovery
+	workspaceDisc adapter.WorkspaceDiscovery
+	cfg           Config
+	queue         chan RefreshItem
+	done          chan struct{}
+	wg            sync.WaitGroup
 }
 
 // New creates a Refresher with sensible defaults for zero-valued config fields.
-func New(c *cache.Cache, cfg Config) *Refresher {
+func New(c adapter.Cache, gi adapter.GitInfo, pd adapter.PortfolioDiscovery, ws adapter.WorkspaceDiscovery, cfg Config) *Refresher {
 	if cfg.Interval <= 0 {
 		cfg.Interval = 1 * time.Minute
 	}
@@ -47,10 +47,13 @@ func New(c *cache.Cache, cfg Config) *Refresher {
 		cfg.NumWorkers = 3
 	}
 	return &Refresher{
-		cache: c,
-		cfg:   cfg,
-		queue: make(chan RefreshItem, 100),
-		done:  make(chan struct{}),
+		cache:         c,
+		gitInfo:       gi,
+		portfolioDisc: pd,
+		workspaceDisc: ws,
+		cfg:           cfg,
+		queue:         make(chan RefreshItem, 100),
+		done:          make(chan struct{}),
 	}
 }
 
@@ -77,7 +80,7 @@ func (r *Refresher) Stop() {
 
 // refreshAll refreshes every workspace sequentially across all portfolios.
 func (r *Refresher) refreshAll() {
-	portfolios, err := portfolio.List(r.cfg.BaseDir)
+	portfolios, err := r.portfolioDisc.List(r.cfg.BaseDir)
 	if err != nil {
 		log.Printf("refresher: list portfolios: %v", err)
 		return
@@ -100,7 +103,7 @@ func (r *Refresher) refreshAll() {
 // refreshWorkspace discovers repos in a workspace, calls RepoInfo for each,
 // merges repo metadata from workspace.Get, and writes results to the cache.
 func (r *Refresher) refreshWorkspace(item RefreshItem) {
-	data, err := workspace.Get(item.WorkspaceBase, item.WorkspaceName)
+	data, err := r.workspaceDisc.Get(item.WorkspaceBase, item.WorkspaceName)
 	if err != nil {
 		log.Printf("refresher: get workspace %q: %v", item.WorkspaceName, err)
 		return
@@ -112,14 +115,12 @@ func (r *Refresher) refreshWorkspace(item RefreshItem) {
 	overviews := make(map[string]types.RepoOverview)
 
 	for _, repo := range data.Repos {
-		gitInfo, err := gitpkg.RepoInfo(repo.Path)
+		gitInfo, err := r.gitInfo.RepoInfo(repo.Path)
 		if err != nil {
 			log.Printf("refresher: repo info %q: %v", repo.Path, err)
 			continue
 		}
 
-		// RepoInfo does NOT set Name, Path, HasForge, or RepoLink.
-		// Copy these from the repo discovered by workspace.Get.
 		gitInfo.Name = repo.Name
 		gitInfo.Path = repo.Path
 		gitInfo.HasForge = repo.HasForge
@@ -141,7 +142,7 @@ func (r *Refresher) refreshWorkspace(item RefreshItem) {
 		}
 	}
 
-	r.cache.SetWorkspace(cacheKey, cache.WorkspaceData{
+	r.cache.SetWorkspace(cacheKey, types.CacheWorkspaceData{
 		Summaries: summaries,
 		Overviews: overviews,
 		UpdatedAt: time.Now(),
@@ -159,7 +160,7 @@ func (r *Refresher) scheduler() {
 		case <-r.done:
 			return
 		case <-ticker.C:
-			portfolios, err := portfolio.List(r.cfg.BaseDir)
+			portfolios, err := r.portfolioDisc.List(r.cfg.BaseDir)
 			if err != nil {
 				log.Printf("refresher: list portfolios: %v", err)
 				continue

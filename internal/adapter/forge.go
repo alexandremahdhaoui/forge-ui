@@ -1,4 +1,4 @@
-package forge
+package adapter
 
 import (
 	"errors"
@@ -12,10 +12,19 @@ import (
 	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 )
 
-// Load reads forge.yaml and .forge/artifact-store.yaml from repoPath
-// and returns a populated ForgePageData. WorkspaceName and RepoName
-// are left empty; the caller sets them.
-func Load(repoPath string) (types.ForgePageData, error) {
+// ForgeLoader loads forge configuration and artifact data from a repository.
+type ForgeLoader interface {
+	Load(repoPath string) (types.ForgePageData, error)
+}
+
+type forgeLoaderImpl struct{}
+
+// NewForgeLoader returns a ForgeLoader backed by real filesystem reads.
+func NewForgeLoader() ForgeLoader {
+	return &forgeLoaderImpl{}
+}
+
+func (f *forgeLoaderImpl) Load(repoPath string) (types.ForgePageData, error) {
 	var result types.ForgePageData
 
 	// 1. Read forge.yaml

@@ -6,31 +6,32 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"github.com/alexandremahdhaoui/forge-ui/internal/cache"
+	"github.com/alexandremahdhaoui/forge-ui/internal/controller"
 )
 
 // Handler holds shared state for all HTTP handlers.
 type Handler struct {
-	BaseDir   string                        // $WORKSPACES path
-	Templates map[string]*template.Template // keyed by page name
-	Cache     *cache.Cache                  // background-refreshed git data
-	HomeURL   string                        // always "/portfolios"
+	BaseDir          string
+	Templates        map[string]*template.Template
+	HomeURL          string
+	PortfolioService controller.PortfolioService
+	WorkspaceService controller.WorkspaceService
+	ForgeService     controller.ForgeService
 }
 
 // New creates a Handler by parsing all templates from the given directory.
-// templateDir is the absolute path to the templates/ directory.
-func New(baseDir, templateDir string, c *cache.Cache) (*Handler, error) {
+func New(baseDir, templateDir string, ps controller.PortfolioService, ws controller.WorkspaceService, fs controller.ForgeService) (*Handler, error) {
 	h := &Handler{
-		BaseDir:   baseDir,
-		Templates: make(map[string]*template.Template),
-		Cache:     c,
-		HomeURL:   "/portfolios",
+		BaseDir:          baseDir,
+		Templates:        make(map[string]*template.Template),
+		HomeURL:          "/portfolios",
+		PortfolioService: ps,
+		WorkspaceService: ws,
+		ForgeService:     fs,
 	}
 
 	layoutPath := filepath.Join(templateDir, "layout.html")
 
-	// Parse each page template together with the layout.
-	// The layout defines "layout" and each page defines "content".
 	pages := []string{"portfolios", "portfolio", "workspace", "forge"}
 	for _, page := range pages {
 		pagePath := filepath.Join(templateDir, page+".html")
@@ -82,7 +83,6 @@ func (h *Handler) HandleToggleTheme(w http.ResponseWriter, r *http.Request) {
 }
 
 // render executes the named template with data, writing to the response.
-// It executes the "layout" template which in turn calls "content".
 func (h *Handler) render(w http.ResponseWriter, templateName string, data any) {
 	tmpl, ok := h.Templates[templateName]
 	if !ok {

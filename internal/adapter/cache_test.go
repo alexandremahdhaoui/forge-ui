@@ -1,4 +1,4 @@
-package cache
+package adapter
 
 import (
 	"sync"
@@ -11,8 +11,8 @@ import (
 func TestCache_SetAndGetRepoSummary(t *testing.T) {
 	t.Parallel()
 
-	c := New()
-	data := WorkspaceData{
+	c := NewCache()
+	data := types.CacheWorkspaceData{
 		Summaries: map[string]types.RepoSummary{
 			"repo-a": {Name: "repo-a", Branch: "main", IsDirty: true},
 		},
@@ -36,8 +36,8 @@ func TestCache_SetAndGetRepoSummary(t *testing.T) {
 func TestCache_SetAndGetRepoOverview(t *testing.T) {
 	t.Parallel()
 
-	c := New()
-	data := WorkspaceData{
+	c := NewCache()
+	data := types.CacheWorkspaceData{
 		Summaries: map[string]types.RepoSummary{},
 		Overviews: map[string]types.RepoOverview{
 			"repo-b": {Name: "repo-b", Branch: "dev", Ahead: 3},
@@ -61,7 +61,7 @@ func TestCache_SetAndGetRepoOverview(t *testing.T) {
 func TestCache_MissReturnsZeroValue(t *testing.T) {
 	t.Parallel()
 
-	c := New()
+	c := NewCache()
 
 	// Miss: workspace does not exist.
 	summary, found := c.GetRepoSummary("nonexistent", "repo")
@@ -76,7 +76,7 @@ func TestCache_MissReturnsZeroValue(t *testing.T) {
 	}
 
 	// Miss: workspace exists but repo does not.
-	c.SetWorkspace("ws1", WorkspaceData{
+	c.SetWorkspace("ws1", types.CacheWorkspaceData{
 		Summaries: map[string]types.RepoSummary{
 			"other-repo": {Name: "other-repo", Branch: "main"},
 		},
@@ -95,10 +95,10 @@ func TestCache_MissReturnsZeroValue(t *testing.T) {
 func TestCache_AtomicSwap(t *testing.T) {
 	t.Parallel()
 
-	c := New()
+	c := NewCache()
 
 	// Initial data.
-	c.SetWorkspace("ws1", WorkspaceData{
+	c.SetWorkspace("ws1", types.CacheWorkspaceData{
 		Summaries: map[string]types.RepoSummary{
 			"repo-a": {Name: "repo-a", Branch: "old"},
 		},
@@ -107,7 +107,7 @@ func TestCache_AtomicSwap(t *testing.T) {
 	})
 
 	// Replace with new data containing updated repo-a and new repo-b.
-	c.SetWorkspace("ws1", WorkspaceData{
+	c.SetWorkspace("ws1", types.CacheWorkspaceData{
 		Summaries: map[string]types.RepoSummary{
 			"repo-a": {Name: "repo-a", Branch: "new"},
 			"repo-b": {Name: "repo-b", Branch: "feature"},
@@ -136,7 +136,7 @@ func TestCache_AtomicSwap(t *testing.T) {
 func TestCache_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
-	c := New()
+	c := NewCache()
 	var wg sync.WaitGroup
 
 	for g := 0; g < 10; g++ {
@@ -145,7 +145,7 @@ func TestCache_ConcurrentAccess(t *testing.T) {
 			defer wg.Done()
 			for i := 0; i < 100; i++ {
 				repoName := "repo"
-				data := WorkspaceData{
+				data := types.CacheWorkspaceData{
 					Summaries: map[string]types.RepoSummary{
 						repoName: {Name: repoName, Branch: "main", Ahead: i},
 					},
@@ -162,5 +162,4 @@ func TestCache_ConcurrentAccess(t *testing.T) {
 	}
 
 	wg.Wait()
-	// If we reach here without panic or race detector complaint, the test passes.
 }

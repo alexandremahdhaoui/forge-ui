@@ -1,10 +1,10 @@
-package httpdriver
+package controller
 
 import (
 	"testing"
 	"time"
 
-	"github.com/alexandremahdhaoui/forge-ui/internal/cache"
+	"github.com/alexandremahdhaoui/forge-ui/internal/adapter"
 	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 )
 
@@ -116,10 +116,11 @@ func TestMaxCommitTime_EmptySlice(t *testing.T) {
 func TestEnrichWorkspaces_WithCachedData(t *testing.T) {
 	t.Parallel()
 
-	c := cache.New()
+	c := adapter.NewCache()
+	fl := adapter.NewForgeLoader()
 	commitTime := time.Date(2025, 1, 15, 10, 0, 0, 0, time.UTC)
 
-	c.SetWorkspace("portfolio/ws-core", cache.WorkspaceData{
+	c.SetWorkspace("portfolio/ws-core", types.CacheWorkspaceData{
 		Summaries: map[string]types.RepoSummary{},
 		Overviews: map[string]types.RepoOverview{
 			"repo-a": {
@@ -146,7 +147,7 @@ func TestEnrichWorkspaces_WithCachedData(t *testing.T) {
 	}
 
 	cacheKey := func(wsName string) string { return "portfolio/" + wsName }
-	totalRepos, dirtyRepos, _, _, _ := enrichWorkspaces(workspaces, c, cacheKey)
+	totalRepos, dirtyRepos, _, _, _ := enrichWorkspaces(workspaces, c, fl, cacheKey)
 
 	if totalRepos != 1 {
 		t.Errorf("totalRepos = %d, want 1", totalRepos)
@@ -179,7 +180,8 @@ func TestEnrichWorkspaces_WithCachedData(t *testing.T) {
 func TestEnrichWorkspaces_NoCachedData(t *testing.T) {
 	t.Parallel()
 
-	c := cache.New() // empty cache
+	c := adapter.NewCache()
+	fl := adapter.NewForgeLoader()
 
 	workspaces := []types.WorkspaceSummary{
 		{
@@ -193,7 +195,7 @@ func TestEnrichWorkspaces_NoCachedData(t *testing.T) {
 	}
 
 	cacheKey := func(wsName string) string { return "p/" + wsName }
-	totalRepos, dirtyRepos, totalTests, passed, failed := enrichWorkspaces(workspaces, c, cacheKey)
+	totalRepos, dirtyRepos, totalTests, passed, failed := enrichWorkspaces(workspaces, c, fl, cacheKey)
 
 	if totalRepos != 2 {
 		t.Errorf("totalRepos = %d, want 2", totalRepos)
@@ -211,7 +213,6 @@ func TestEnrichWorkspaces_NoCachedData(t *testing.T) {
 		t.Errorf("failed = %d, want 0", failed)
 	}
 
-	// Repos remain at zero values.
 	for _, repo := range workspaces[0].Repos {
 		if repo.Branch != "" {
 			t.Errorf("repo %q: Branch = %q, want empty", repo.Name, repo.Branch)
@@ -225,9 +226,10 @@ func TestEnrichWorkspaces_NoCachedData(t *testing.T) {
 func TestEnrichWorkspaces_DirtyRepoCount(t *testing.T) {
 	t.Parallel()
 
-	c := cache.New()
+	c := adapter.NewCache()
+	fl := adapter.NewForgeLoader()
 
-	c.SetWorkspace("p/ws-a", cache.WorkspaceData{
+	c.SetWorkspace("p/ws-a", types.CacheWorkspaceData{
 		Summaries: map[string]types.RepoSummary{},
 		Overviews: map[string]types.RepoOverview{
 			"repo-1": {Name: "repo-1", Branch: "main", IsDirty: true},
@@ -250,7 +252,7 @@ func TestEnrichWorkspaces_DirtyRepoCount(t *testing.T) {
 	}
 
 	cacheKey := func(wsName string) string { return "p/" + wsName }
-	totalRepos, dirtyRepos, _, _, _ := enrichWorkspaces(workspaces, c, cacheKey)
+	totalRepos, dirtyRepos, _, _, _ := enrichWorkspaces(workspaces, c, fl, cacheKey)
 
 	if totalRepos != 3 {
 		t.Errorf("totalRepos = %d, want 3", totalRepos)

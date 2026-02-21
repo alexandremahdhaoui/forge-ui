@@ -7,13 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alexandremahdhaoui/forge-ui/internal/cache"
+	"github.com/alexandremahdhaoui/forge-ui/internal/adapter"
 )
 
 func TestRefresher_DefaultConfig(t *testing.T) {
 	t.Parallel()
 
-	r := New(cache.New(), Config{BaseDir: "/nonexistent"})
+	r := New(adapter.NewCache(), adapter.NewGitInfo(), adapter.NewPortfolioDiscovery(adapter.NewWorkspaceDiscovery()), adapter.NewWorkspaceDiscovery(), Config{BaseDir: "/nonexistent"})
 	if got, want := r.cfg.Interval, 1*time.Minute; got != want {
 		t.Errorf("Interval = %v, want %v", got, want)
 	}
@@ -25,7 +25,7 @@ func TestRefresher_DefaultConfig(t *testing.T) {
 func TestRefresher_CustomConfig(t *testing.T) {
 	t.Parallel()
 
-	r := New(cache.New(), Config{
+	r := New(adapter.NewCache(), adapter.NewGitInfo(), adapter.NewPortfolioDiscovery(adapter.NewWorkspaceDiscovery()), adapter.NewWorkspaceDiscovery(), Config{
 		BaseDir:    "/tmp",
 		Interval:   30 * time.Second,
 		NumWorkers: 5,
@@ -42,8 +42,11 @@ func TestRefresher_StartAndStop(t *testing.T) {
 	t.Parallel()
 
 	baseDir := t.TempDir()
-	c := cache.New()
-	r := New(c, Config{
+	c := adapter.NewCache()
+	gi := adapter.NewGitInfo()
+	ws := adapter.NewWorkspaceDiscovery()
+	pd := adapter.NewPortfolioDiscovery(ws)
+	r := New(c, gi, pd, ws, Config{
 		BaseDir:    baseDir,
 		Interval:   1 * time.Hour,
 		NumWorkers: 1,
@@ -93,17 +96,20 @@ func TestRefresher_PopulatesCache(t *testing.T) {
 	if err := os.MkdirAll(repoDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	runGitCmd(t, repoDir, "init")
-	runGitCmd(t, repoDir, "config", "user.email", "test@test.com")
-	runGitCmd(t, repoDir, "config", "user.name", "Test")
+	refresherRunGitCmd(t, repoDir, "init")
+	refresherRunGitCmd(t, repoDir, "config", "user.email", "test@test.com")
+	refresherRunGitCmd(t, repoDir, "config", "user.name", "Test")
 	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("init"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	runGitCmd(t, repoDir, "add", ".")
-	runGitCmd(t, repoDir, "commit", "-m", "init")
+	refresherRunGitCmd(t, repoDir, "add", ".")
+	refresherRunGitCmd(t, repoDir, "commit", "-m", "init")
 
-	c := cache.New()
-	r := New(c, Config{
+	c := adapter.NewCache()
+	gi := adapter.NewGitInfo()
+	ws := adapter.NewWorkspaceDiscovery()
+	pd := adapter.NewPortfolioDiscovery(ws)
+	r := New(c, gi, pd, ws, Config{
 		BaseDir:    baseDir,
 		Interval:   1 * time.Hour,
 		NumWorkers: 1,
@@ -127,9 +133,8 @@ func TestRefresher_PopulatesCache(t *testing.T) {
 	}
 }
 
-// runGitCmd runs a git command in the given directory. It isolates the test
-// from the host git config by setting GIT_CONFIG_GLOBAL and GIT_CONFIG_SYSTEM.
-func runGitCmd(t *testing.T, dir string, args ...string) string {
+// refresherRunGitCmd runs a git command in the given directory.
+func refresherRunGitCmd(t *testing.T, dir string, args ...string) string {
 	t.Helper()
 	cmdArgs := append([]string{"-C", dir}, args...)
 	cmd := exec.Command("git", cmdArgs...)

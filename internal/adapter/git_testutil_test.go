@@ -1,4 +1,4 @@
-package git
+package adapter
 
 import (
 	"os"
@@ -22,20 +22,20 @@ func newTestRepo(t *testing.T) *testRepo {
 
 	dir := t.TempDir()
 
-	runGitCmd(t, dir, "init")
+	gitRunGitCmd(t, dir, "init")
 
-	branch := strings.TrimSpace(runGitCmd(t, dir, "branch", "--show-current"))
+	branch := strings.TrimSpace(gitRunGitCmd(t, dir, "branch", "--show-current"))
 
-	runGitCmd(t, dir, "config", "user.email", "test@example.com")
-	runGitCmd(t, dir, "config", "user.name", "Test User")
+	gitRunGitCmd(t, dir, "config", "user.email", "test@example.com")
+	gitRunGitCmd(t, dir, "config", "user.name", "Test User")
 
 	// Create initial commit.
 	readme := filepath.Join(dir, "README.md")
 	if err := os.WriteFile(readme, []byte("init"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	runGitCmd(t, dir, "add", ".")
-	runGitCmd(t, dir, "commit", "-m", "init")
+	gitRunGitCmd(t, dir, "add", ".")
+	gitRunGitCmd(t, dir, "commit", "-m", "init")
 
 	return &testRepo{dir: dir, branch: branch}
 }
@@ -45,10 +45,10 @@ func (tr *testRepo) addRemote(t *testing.T) {
 	t.Helper()
 
 	remoteDir := t.TempDir()
-	runGitCmd(t, remoteDir, "init", "--bare")
+	gitRunGitCmd(t, remoteDir, "init", "--bare")
 
-	runGitCmd(t, tr.dir, "remote", "add", "origin", remoteDir)
-	runGitCmd(t, tr.dir, "push", "-u", "origin", "HEAD")
+	gitRunGitCmd(t, tr.dir, "remote", "add", "origin", remoteDir)
+	gitRunGitCmd(t, tr.dir, "push", "-u", "origin", "HEAD")
 
 	tr.remoteDir = remoteDir
 }
@@ -61,8 +61,8 @@ func (tr *testRepo) makeCommit(t *testing.T, filename, content, message string) 
 	if err := os.WriteFile(fp, []byte(content), 0644); err != nil {
 		t.Fatal(err)
 	}
-	runGitCmd(t, tr.dir, "add", filename)
-	runGitCmd(t, tr.dir, "commit", "-m", message)
+	gitRunGitCmd(t, tr.dir, "add", filename)
+	gitRunGitCmd(t, tr.dir, "commit", "-m", message)
 }
 
 // makeRemoteCommit simulates another developer pushing a commit to the remote.
@@ -71,23 +71,23 @@ func (tr *testRepo) makeRemoteCommit(t *testing.T, filename, content, message st
 	t.Helper()
 
 	cloneDir := t.TempDir()
-	runGitCmd(t, cloneDir, "clone", tr.remoteDir, ".")
-	runGitCmd(t, cloneDir, "config", "user.email", "other@example.com")
-	runGitCmd(t, cloneDir, "config", "user.name", "Other User")
+	gitRunGitCmd(t, cloneDir, "clone", tr.remoteDir, ".")
+	gitRunGitCmd(t, cloneDir, "config", "user.email", "other@example.com")
+	gitRunGitCmd(t, cloneDir, "config", "user.name", "Other User")
 
 	fp := filepath.Join(cloneDir, filename)
 	if err := os.WriteFile(fp, []byte(content), 0644); err != nil {
 		t.Fatal(err)
 	}
-	runGitCmd(t, cloneDir, "add", filename)
-	runGitCmd(t, cloneDir, "commit", "-m", message)
-	runGitCmd(t, cloneDir, "push")
+	gitRunGitCmd(t, cloneDir, "add", filename)
+	gitRunGitCmd(t, cloneDir, "commit", "-m", message)
+	gitRunGitCmd(t, cloneDir, "push")
 }
 
-// runGitCmd executes a git command in the given directory and returns stdout.
+// gitRunGitCmd executes a git command in the given directory and returns stdout.
 // It isolates from host git configuration by setting GIT_CONFIG_GLOBAL and
 // GIT_CONFIG_SYSTEM to /dev/null.
-func runGitCmd(t *testing.T, dir string, args ...string) string {
+func gitRunGitCmd(t *testing.T, dir string, args ...string) string {
 	t.Helper()
 
 	cmdArgs := append([]string{"-c", "safe.directory=*", "-C", dir}, args...)

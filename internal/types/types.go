@@ -226,3 +226,10 @@ type ForgeStats struct {
 	HasCoverage bool
 	StageCount  int
 }
+
+// CacheWorkspaceData holds cached git data for all repos in a single workspace.
+type CacheWorkspaceData struct {
+	Summaries map[string]RepoSummary  // keyed by repo name
+	Overviews map[string]RepoOverview // keyed by repo name
+	UpdatedAt time.Time
+}

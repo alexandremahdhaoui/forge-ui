@@ -11,7 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/alexandremahdhaoui/forge-ui/internal/cache"
+	"github.com/alexandremahdhaoui/forge-ui/internal/adapter"
+	"github.com/alexandremahdhaoui/forge-ui/internal/controller"
 	httpdriver "github.com/alexandremahdhaoui/forge-ui/internal/driver/http"
 	"github.com/alexandremahdhaoui/forge-ui/internal/refresher"
 )
@@ -43,21 +44,30 @@ func main() {
 	}
 
 	// Resolve templates directory.
-	// Look for templates/ relative to the current working directory first,
-	// then fall back to the binary's directory.
 	templateDir := resolveTemplateDir()
 
-	// Create cache and start background refresher.
-	c := cache.New()
-	r := refresher.New(c, refresher.Config{
+	// Create adapters.
+	c := adapter.NewCache()
+	gi := adapter.NewGitInfo()
+	ws := adapter.NewWorkspaceDiscovery()
+	pd := adapter.NewPortfolioDiscovery(ws)
+	fl := adapter.NewForgeLoader()
+
+	// Start background refresher.
+	r := refresher.New(c, gi, pd, ws, refresher.Config{
 		BaseDir:    baseDir,
 		Interval:   *refreshInterval,
 		NumWorkers: *refreshWorkers,
 	})
 	r.Start() // blocks until initial refresh completes
 
+	// Create controller services.
+	ps := controller.NewPortfolioService(pd, c, fl)
+	wsSvc := controller.NewWorkspaceService(ws, c, fl)
+	fsSvc := controller.NewForgeService(fl)
+
 	// Create handler
-	h, err := httpdriver.New(baseDir, templateDir, c)
+	h, err := httpdriver.New(baseDir, templateDir, ps, wsSvc, fsSvc)
 	if err != nil {
 		log.Fatalf("failed to initialize handlers: %v", err)
 	}

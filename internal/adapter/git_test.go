@@ -1,4 +1,4 @@
-package git
+package adapter
 
 import (
 	"os"
@@ -11,7 +11,8 @@ func TestRepoInfo_CleanRepo(t *testing.T) {
 	t.Parallel()
 
 	tr := newTestRepo(t)
-	result, err := RepoInfo(tr.dir)
+	gi := NewGitInfo()
+	result, err := gi.RepoInfo(tr.dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +44,8 @@ func TestRepoInfo_DirtyRepo_UntrackedFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result, err := RepoInfo(tr.dir)
+	gi := NewGitInfo()
+	result, err := gi.RepoInfo(tr.dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,9 +78,10 @@ func TestRepoInfo_DirtyRepo_StagedFile(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(tr.dir, "staged.txt"), []byte("staged"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	runGitCmd(t, tr.dir, "add", "staged.txt")
+	gitRunGitCmd(t, tr.dir, "add", "staged.txt")
 
-	result, err := RepoInfo(tr.dir)
+	gi := NewGitInfo()
+	result, err := gi.RepoInfo(tr.dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +113,8 @@ func TestRepoInfo_DirtyRepo_UnstagedModification(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result, err := RepoInfo(tr.dir)
+	gi := NewGitInfo()
+	result, err := gi.RepoInfo(tr.dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +125,6 @@ func TestRepoInfo_DirtyRepo_UnstagedModification(t *testing.T) {
 
 	found := false
 	for _, entry := range result.StatusFiles {
-		// " M" stays " M" after TrimRight (rightmost char is M, not space).
 		if strings.Contains(entry.Code, "M") {
 			found = true
 			break
@@ -137,9 +140,10 @@ func TestRepoInfo_DetachedHead(t *testing.T) {
 
 	tr := newTestRepo(t)
 
-	runGitCmd(t, tr.dir, "checkout", "--detach", "HEAD")
+	gitRunGitCmd(t, tr.dir, "checkout", "--detach", "HEAD")
 
-	result, err := RepoInfo(tr.dir)
+	gi := NewGitInfo()
+	result, err := gi.RepoInfo(tr.dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +166,8 @@ func TestRepoInfo_LogEntries(t *testing.T) {
 	tr.makeCommit(t, "b.txt", "b", "commit b")
 	tr.makeCommit(t, "c.txt", "c", "commit c")
 
-	result, err := RepoInfo(tr.dir)
+	gi := NewGitInfo()
+	result, err := gi.RepoInfo(tr.dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +191,8 @@ func TestRepoInfo_Synced(t *testing.T) {
 	tr := newTestRepo(t)
 	tr.addRemote(t)
 
-	result, err := RepoInfo(tr.dir)
+	gi := NewGitInfo()
+	result, err := gi.RepoInfo(tr.dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -212,7 +218,8 @@ func TestRepoInfo_AheadOfUpstream(t *testing.T) {
 	tr.makeCommit(t, "local1.txt", "local1", "local commit 1")
 	tr.makeCommit(t, "local2.txt", "local2", "local commit 2")
 
-	result, err := RepoInfo(tr.dir)
+	gi := NewGitInfo()
+	result, err := gi.RepoInfo(tr.dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -239,8 +246,8 @@ func TestRepoInfo_BehindUpstream(t *testing.T) {
 	tr.makeRemoteCommit(t, "remote2.txt", "r2", "remote commit 2")
 	tr.makeRemoteCommit(t, "remote3.txt", "r3", "remote commit 3")
 
-	// RepoInfo runs git fetch origin internally (Task 2), so behind count is fresh.
-	result, err := RepoInfo(tr.dir)
+	gi := NewGitInfo()
+	result, err := gi.RepoInfo(tr.dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,7 +276,8 @@ func TestRepoInfo_AheadAndBehind(t *testing.T) {
 	tr.makeRemoteCommit(t, "remote1.txt", "r1", "remote commit 1")
 	tr.makeRemoteCommit(t, "remote2.txt", "r2", "remote commit 2")
 
-	result, err := RepoInfo(tr.dir)
+	gi := NewGitInfo()
+	result, err := gi.RepoInfo(tr.dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -291,7 +299,8 @@ func TestRepoInfo_NoRemote_GracefulFallback(t *testing.T) {
 	tr := newTestRepo(t)
 	// Do NOT call addRemote -- no remote configured.
 
-	result, err := RepoInfo(tr.dir)
+	gi := NewGitInfo()
+	result, err := gi.RepoInfo(tr.dir)
 	if err != nil {
 		t.Fatal(err)
 	}

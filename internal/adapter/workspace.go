@@ -1,4 +1,4 @@
-package workspace
+package adapter
 
 import (
 	"fmt"
@@ -6,18 +6,29 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/alexandremahdhaoui/forge-ui/internal/ignore"
 	"github.com/alexandremahdhaoui/forge-ui/internal/types"
+	"github.com/alexandremahdhaoui/forge-ui/internal/util/ignoreutil"
 )
 
-// List scans basedir for directories containing go.work and returns a summary
-// for each workspace found. Results are sorted alphabetically by name.
-func List(basedir string) ([]types.WorkspaceSummary, error) {
+// WorkspaceDiscovery discovers workspaces on the filesystem.
+type WorkspaceDiscovery interface {
+	List(basedir string) ([]types.WorkspaceSummary, error)
+	Get(basedir, name string) (types.WorkspacePageData, error)
+}
+
+type workspaceDiscoveryImpl struct{}
+
+// NewWorkspaceDiscovery returns a WorkspaceDiscovery backed by real filesystem operations.
+func NewWorkspaceDiscovery() WorkspaceDiscovery {
+	return &workspaceDiscoveryImpl{}
+}
+
+func (w *workspaceDiscoveryImpl) List(basedir string) ([]types.WorkspaceSummary, error) {
 	entries, err := os.ReadDir(basedir)
 	if err != nil {
 		return nil, err
 	}
-	patterns := ignore.Load(basedir)
+	patterns := ignoreutil.Load(basedir)
 
 	var workspaces []types.WorkspaceSummary
 
@@ -28,7 +39,7 @@ func List(basedir string) ([]types.WorkspaceSummary, error) {
 		if entry.Name()[0] == '.' {
 			continue
 		}
-		if ignore.IsIgnored(entry.Name(), patterns) {
+		if ignoreutil.IsIgnored(entry.Name(), patterns) {
 			continue
 		}
 
@@ -56,9 +67,7 @@ func List(basedir string) ([]types.WorkspaceSummary, error) {
 	return workspaces, nil
 }
 
-// Get returns detailed workspace data including all git repos found in the
-// workspace directory. The workspace must contain a go.work file.
-func Get(basedir, name string) (types.WorkspacePageData, error) {
+func (w *workspaceDiscoveryImpl) Get(basedir, name string) (types.WorkspacePageData, error) {
 	wsPath := filepath.Join(basedir, name)
 
 	if _, err := os.Stat(filepath.Join(wsPath, "go.work")); err != nil {
@@ -69,7 +78,7 @@ func Get(basedir, name string) (types.WorkspacePageData, error) {
 	if err != nil {
 		return types.WorkspacePageData{}, fmt.Errorf("reading workspace %q: %w", name, err)
 	}
-	patterns := ignore.Load(wsPath)
+	patterns := ignoreutil.Load(wsPath)
 
 	var repos []types.RepoSummary
 
@@ -80,7 +89,7 @@ func Get(basedir, name string) (types.WorkspacePageData, error) {
 		if entry.Name()[0] == '.' {
 			continue
 		}
-		if ignore.IsIgnored(entry.Name(), patterns) {
+		if ignoreutil.IsIgnored(entry.Name(), patterns) {
 			continue
 		}
 
@@ -97,9 +106,9 @@ func Get(basedir, name string) (types.WorkspacePageData, error) {
 		}
 
 		repos = append(repos, types.RepoSummary{
-			Name:      entry.Name(),
-			Path:      dirPath,
-			HasForge:  hasForge,
+			Name:     entry.Name(),
+			Path:     dirPath,
+			HasForge: hasForge,
 			RepoLink: fmt.Sprintf("/workspaces/%s/repos/%s", name, entry.Name()),
 		})
 	}
@@ -116,21 +125,20 @@ func Get(basedir, name string) (types.WorkspacePageData, error) {
 }
 
 // scanRepos finds subdirectories in wsPath that contain a .git/ directory and
-// returns a lightweight RepoOverview for each. Git fields (Branch, IsDirty,
-// Ahead, Behind) are left at zero values; the handler enriches them.
+// returns a lightweight RepoOverview for each.
 func scanRepos(wsPath, wsName string) []types.RepoOverview {
 	entries, err := os.ReadDir(wsPath)
 	if err != nil {
 		return nil
 	}
-	patterns := ignore.Load(wsPath)
+	patterns := ignoreutil.Load(wsPath)
 
 	var repos []types.RepoOverview
 	for _, entry := range entries {
 		if !entry.IsDir() || entry.Name()[0] == '.' {
 			continue
 		}
-		if ignore.IsIgnored(entry.Name(), patterns) {
+		if ignoreutil.IsIgnored(entry.Name(), patterns) {
 			continue
 		}
 		dirPath := filepath.Join(wsPath, entry.Name())
@@ -146,7 +154,7 @@ func scanRepos(wsPath, wsName string) []types.RepoOverview {
 			WorkspaceName: wsName,
 			Path:          dirPath,
 			HasForge:      hasForge,
-			RepoLink:     fmt.Sprintf("/workspaces/%s/repos/%s", wsName, entry.Name()),
+			RepoLink:      fmt.Sprintf("/workspaces/%s/repos/%s", wsName, entry.Name()),
 		})
 	}
 

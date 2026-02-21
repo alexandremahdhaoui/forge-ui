@@ -9,6 +9,15 @@ engines:
     builder:
       - engine: go://generic-builder
 
+  - alias: generate-mocks
+    type: builder
+    builder:
+      - engine: go://generic-builder
+        spec:
+          command: "rm"
+          args: ["-rf", "./internal/util/mocks"]
+      - engine: go://go-gen-mocks
+
   - alias: web-assets
     type: builder
     builder:
@@ -38,6 +47,10 @@ build:
     spec:
       command: "cp"
       args: ["-r", "./web/.", "./build/web/"]
+
+  - name: generate-mocks
+    src: .
+    engine: alias://generate-mocks
 
 test:
   - name: lint

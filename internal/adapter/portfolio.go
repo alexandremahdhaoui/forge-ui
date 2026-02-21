@@ -1,4 +1,4 @@
-package portfolio
+package adapter
 
 import (
 	"fmt"
@@ -6,23 +6,33 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/alexandremahdhaoui/forge-ui/internal/ignore"
 	"github.com/alexandremahdhaoui/forge-ui/internal/types"
-	"github.com/alexandremahdhaoui/forge-ui/internal/workspace"
+	"github.com/alexandremahdhaoui/forge-ui/internal/util/ignoreutil"
 )
 
-// List scans baseDir and returns portfolio summaries. Directories containing
-// go.work are classified as loose workspaces (grouped into a "default"
-// portfolio). Directories whose subdirectories contain go.work are classified
-// as named portfolios. Named portfolios are sorted alphabetically; the
-// "default" portfolio is always last.
-func List(baseDir string) ([]types.PortfolioSummary, error) {
+// PortfolioDiscovery discovers portfolios on the filesystem.
+type PortfolioDiscovery interface {
+	List(baseDir string) ([]types.PortfolioSummary, error)
+	Get(baseDir, name string) (types.PortfolioPageData, error)
+}
+
+type portfolioDiscoveryImpl struct {
+	ws WorkspaceDiscovery
+}
+
+// NewPortfolioDiscovery returns a PortfolioDiscovery backed by real filesystem operations.
+// It uses the given WorkspaceDiscovery to list workspaces within each portfolio.
+func NewPortfolioDiscovery(ws WorkspaceDiscovery) PortfolioDiscovery {
+	return &portfolioDiscoveryImpl{ws: ws}
+}
+
+func (pd *portfolioDiscoveryImpl) List(baseDir string) ([]types.PortfolioSummary, error) {
 	entries, err := os.ReadDir(baseDir)
 	if err != nil {
 		return nil, err
 	}
 
-	patterns := ignore.Load(baseDir)
+	patterns := ignoreutil.Load(baseDir)
 
 	var (
 		named    []types.PortfolioSummary
@@ -36,7 +46,7 @@ func List(baseDir string) ([]types.PortfolioSummary, error) {
 		if entry.Name()[0] == '.' {
 			continue
 		}
-		if ignore.IsIgnored(entry.Name(), patterns) {
+		if ignoreutil.IsIgnored(entry.Name(), patterns) {
 			continue
 		}
 
@@ -50,7 +60,7 @@ func List(baseDir string) ([]types.PortfolioSummary, error) {
 
 		// Check if the child is a named portfolio (contains subdirs with go.work).
 		if isNamedPortfolio(childPath) {
-			workspaces, err := workspace.List(childPath)
+			workspaces, err := pd.ws.List(childPath)
 			if err != nil {
 				return nil, fmt.Errorf("listing workspaces in portfolio %q: %w", entry.Name(), err)
 			}
@@ -71,7 +81,7 @@ func List(baseDir string) ([]types.PortfolioSummary, error) {
 
 	// Build the "default" portfolio from loose workspaces.
 	if hasLoose {
-		workspaces, err := workspace.List(baseDir)
+		workspaces, err := pd.ws.List(baseDir)
 		if err != nil {
 			return nil, fmt.Errorf("listing loose workspaces: %w", err)
 		}
@@ -86,12 +96,9 @@ func List(baseDir string) ([]types.PortfolioSummary, error) {
 	return result, nil
 }
 
-// Get returns the portfolio page data for a named portfolio or the "default"
-// portfolio. For "default", it lists workspaces directly under baseDir. For
-// named portfolios, it lists workspaces under baseDir/name.
-func Get(baseDir, name string) (types.PortfolioPageData, error) {
+func (pd *portfolioDiscoveryImpl) Get(baseDir, name string) (types.PortfolioPageData, error) {
 	if name == "default" {
-		workspaces, err := workspace.List(baseDir)
+		workspaces, err := pd.ws.List(baseDir)
 		if err != nil {
 			return types.PortfolioPageData{}, fmt.Errorf("listing default portfolio: %w", err)
 		}
@@ -108,7 +115,7 @@ func Get(baseDir, name string) (types.PortfolioPageData, error) {
 		return types.PortfolioPageData{}, fmt.Errorf("portfolio %q not found: %w", name, err)
 	}
 
-	workspaces, err := workspace.List(portfolioDir)
+	workspaces, err := pd.ws.List(portfolioDir)
 	if err != nil {
 		return types.PortfolioPageData{}, fmt.Errorf("listing portfolio %q: %w", name, err)
 	}
@@ -128,7 +135,7 @@ func isNamedPortfolio(dir string) bool {
 	if err != nil {
 		return false
 	}
-	patterns := ignore.Load(dir)
+	patterns := ignoreutil.Load(dir)
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
@@ -136,7 +143,7 @@ func isNamedPortfolio(dir string) bool {
 		if entry.Name()[0] == '.' {
 			continue
 		}
-		if ignore.IsIgnored(entry.Name(), patterns) {
+		if ignoreutil.IsIgnored(entry.Name(), patterns) {
 			continue
 		}
 		if _, err := os.Stat(filepath.Join(dir, entry.Name(), "go.work")); err == nil {

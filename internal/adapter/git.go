@@ -1,4 +1,4 @@
-package git
+package adapter
 
 import (
 	"os/exec"
@@ -9,16 +9,22 @@ import (
 	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 )
 
-// RepoInfo populates the git-related fields of types.RepoSummary by running
-// git commands in the given repo directory. It does NOT set Name, Path,
-// HasForge, or RepoLink. Individual git command failures use fallback values;
-// the function always returns (result, nil).
-func RepoInfo(repoPath string) (types.RepoSummary, error) {
+// GitInfo provides git repository information.
+type GitInfo interface {
+	RepoInfo(repoPath string) (types.RepoSummary, error)
+}
+
+type gitInfoImpl struct{}
+
+// NewGitInfo returns a GitInfo backed by real git commands.
+func NewGitInfo() GitInfo {
+	return &gitInfoImpl{}
+}
+
+func (g *gitInfoImpl) RepoInfo(repoPath string) (types.RepoSummary, error) {
 	var result types.RepoSummary
 
 	// 0. Fetch from origin to ensure remote refs are fresh.
-	// Errors are ignored: if the network is down or there is no remote,
-	// we fall back to stale local data.
 	_, _ = runGit(repoPath, "fetch", "origin")
 
 	// 1. Branch
@@ -93,7 +99,6 @@ func RepoInfo(repoPath string) (types.RepoSummary, error) {
 }
 
 // runGit executes a git command with -C <repoPath> and returns stdout as a string.
-// It sets safe.directory=* so mounted volumes owned by a different UID work.
 func runGit(repoPath string, args ...string) (string, error) {
 	cmdArgs := append([]string{"-c", "safe.directory=*", "-C", repoPath}, args...)
 	cmd := exec.Command("git", cmdArgs...)
