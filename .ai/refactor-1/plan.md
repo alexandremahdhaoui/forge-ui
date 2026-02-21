@@ -4,6 +4,35 @@
 - Branch: `claude/go-wasm-forge-ui-kF4cF`
 - Validate baseline: `forge test-all` passes (78 tests, 0 lint issues)
 
+## Critical Review Findings (addressed in plan)
+
+1. **CRITICAL: Test helper collision** — `writeIgnoreFile` is defined in both `portfolio_test.go`
+   (variadic `...string`) and `workspace_test.go` (single `string`). After merging into `package adapter`,
+   the compiler rejects duplicate definitions. **Fix**: Rename to `writePortfolioIgnoreFile` and
+   `writeWorkspaceIgnoreFile` respectively during Phase 3d/3e.
+
+2. **CRITICAL: `enrichWorkspaces` must be rewritten** — Currently calls `forgepkg.Load()` (package-level
+   function) and takes concrete `*cache.Cache`. Must be rewritten to accept `adapter.Cache` and
+   `adapter.ForgeLoader` interfaces. **Fix**: Explicit rewrite in Phase 4e (not just "move").
+
+3. **HIGH: Transitional architecture violation** — Between Phase 3 (packages merged into adapter) and
+   Phase 4-5 (controller created, handlers simplified), driver/http temporarily imports adapter directly.
+   **Fix**: Phases 3-5 are treated as a single atomic refactoring block. `forge test-all` only required
+   at Phase 3f (with temporary adapter imports in driver/http accepted) and Phase 5 step 7 (clean).
+
+4. **HIGH: Dual interface architecture** — `adapter.DataSource` (WASM, no baseDir param) vs new controller
+   services (HTTP, with baseDir param). **Fix**: Intentional design. DataSource is for WASM demo path,
+   controller services are for HTTP live path. Document this clearly.
+
+5. **MEDIUM: Test files also import `ignore`** — Phase 2 must also update imports in `portfolio_test.go`
+   and `workspace_test.go`, not just the production files.
+
+6. **MEDIUM: `helpers_test.go` references `cache.WorkspaceData`** — Phase 1 step 5 is NOT optional.
+   The test file uses `cache.WorkspaceData` on 2 lines.
+
+7. **MEDIUM: `RefreshItem` and `Config` types** — Rename `Config` to `RefresherConfig` when moving to
+   controller package to avoid ambiguity.
+
 ---
 
 ## Phase 1: Move types.CacheWorkspaceData into types/
@@ -21,7 +50,8 @@
 2. Update `internal/cache/cache.go`: replace `WorkspaceData` with `types.CacheWorkspaceData`
 3. Update `internal/cache/cache_test.go`: replace `cache.WorkspaceData` with `types.CacheWorkspaceData`
 4. Update `internal/refresher/refresher.go`: replace `cache.WorkspaceData` with `types.CacheWorkspaceData`
-5. Update `internal/driver/http/helpers.go` + `helpers_test.go` if they reference `cache.WorkspaceData`
+5. Update `internal/driver/http/helpers_test.go`: replace `cache.WorkspaceData` with `types.CacheWorkspaceData`
+   (REQUIRED — lines 122, 231 reference `cache.WorkspaceData` directly)
 6. Run `forge test-all` -> must pass
 
 ---
@@ -33,11 +63,13 @@
 1. Create `internal/util/ignoreutil/`
 2. Copy `internal/ignore/ignore.go` -> `internal/util/ignoreutil/ignore.go`, change `package ignore` to `package ignoreutil`
 3. Copy `internal/ignore/ignore_test.go` -> `internal/util/ignoreutil/ignore_test.go`, change package
-4. Update all imports referencing `internal/ignore`:
+4. Update all imports referencing `internal/ignore` (BOTH production AND test files):
    - `internal/portfolio/portfolio.go`
+   - `internal/portfolio/portfolio_test.go` (references `ignore.FileName`)
    - `internal/workspace/workspace.go`
+   - `internal/workspace/workspace_test.go` (references `ignore.FileName`)
    - Change `ignore.Load` -> `ignoreutil.Load`, `ignore.IsIgnored` -> `ignoreutil.IsIgnored`
-   - Change `ignore.FileName` -> `ignoreutil.FileName` (if referenced)
+   - Change `ignore.FileName` -> `ignoreutil.FileName`
 5. Delete `internal/ignore/`
 6. Run `forge test-all` -> must pass
 
@@ -83,6 +115,8 @@
    - Move implementation from `internal/workspace/workspace.go`
    - Constructor `NewWorkspaceDiscovery() WorkspaceDiscovery`
 2. Move `internal/workspace/workspace_test.go` -> `internal/adapter/workspace_test.go`, update package + imports
+   - **CRITICAL**: Rename `writeIgnoreFile` -> `writeWorkspaceIgnoreFile` (collides with portfolio test helper)
+   - Rename `mkdirWithFile` -> `workspaceMkdirWithFile` (preventive disambiguation)
 3. Delete `internal/workspace/`
 4. Update imports in: `internal/refresher/refresher.go`, `internal/driver/http/workspace.go`, `internal/portfolio/portfolio.go`
 
@@ -96,11 +130,17 @@
      the `portfolioDiscovery` struct takes a `WorkspaceDiscovery` interface field
    - Update internal imports: `ignore` -> `ignoreutil`, `workspace.List(...)` -> `pd.ws.List(...)`
 2. Move `internal/portfolio/portfolio_test.go` -> `internal/adapter/portfolio_test.go`, update package + imports
+   - **CRITICAL**: Rename `writeIgnoreFile` -> `writePortfolioIgnoreFile` (collides with workspace test helper)
+   - Rename `createWorkspace` -> `portfolioCreateWorkspace` (preventive disambiguation)
 3. Delete `internal/portfolio/`
 4. Update imports in: `internal/refresher/refresher.go`, `internal/driver/http/portfolios.go`
 
 ### 3f: Validate
 Run `forge test-all` -> must pass. All old tests now run from adapter/ package.
+
+**NOTE**: At this point, `driver/http` temporarily imports `adapter` directly (architectural violation).
+This is an accepted transitional state. The violation is fixed in Phases 4-5 when controller services
+are created and driver/http is simplified to only import controller. Phases 3-5 form an atomic block.
 
 ---
 
@@ -161,13 +201,22 @@ stat computation, heatmap building.
      - `gitpkg.RepoInfo(...)` -> `r.gitInfo.RepoInfo(...)`
      - `r.cache.SetWorkspace(...)` -> `r.cache.SetWorkspace(...)`
    - Constructor `NewRefresher(cache adapter.Cache, git adapter.GitInfo, portfolio adapter.PortfolioDiscovery, workspace adapter.WorkspaceDiscovery, cfg RefresherConfig) Refresher`
+   - Rename `Config` -> `RefresherConfig` and `RefreshItem` -> `refreshItem` (unexport, internal detail)
 2. Move `internal/refresher/refresher_test.go` -> `internal/controller/refresher_test.go`
+   - Rename `runGitCmd` helper -> `refresherRunGitCmd` (avoid potential future collisions)
 3. Delete `internal/refresher/`
 
-### 4e: Move helper functions
-- Move `enrichWorkspaces`, `rewriteRepoLinks`, `maxCommitTime` from `driver/http/helpers.go` to appropriate controller files (portfolio.go/workspace.go)
+### 4e: Rewrite and move helper functions (NOT a simple move)
+- **REWRITE** `enrichWorkspaces`: change signature from `enrichWorkspaces(workspaces, *cache.Cache, cacheKeyFn)`
+  to `enrichWorkspaces(workspaces, adapter.Cache, adapter.ForgeLoader, cacheKeyFn)`.
+  Replace `forgepkg.Load(repo.Path)` calls with `forgeLoader.Load(repo.Path)` calls.
+  Move rewritten function into `controller/portfolio.go` (used by both ListPortfolios and GetPortfolio).
+- Move `rewriteRepoLinks` to `controller/portfolio.go` (only used for portfolio pages) or make shared.
+- Move `maxCommitTime` to `controller/portfolio.go`.
 - Delete `driver/http/helpers.go`
-- Move/update `driver/http/helpers_test.go` -> `internal/controller/` (tests for enrichment functions)
+- **REWRITE** `driver/http/helpers_test.go` tests -> `internal/controller/helpers_test.go`:
+  Replace `cache.New()` with `adapter.NewCache()`, replace `cache.WorkspaceData` with `types.CacheWorkspaceData`.
+  The enrichment tests that exercise forge heatmap logic should use `adapter.NewForgeLoader()` or mock.
 
 ### 4f: Validate
 Run `forge test-all` -> must pass.
