@@ -10,7 +10,6 @@ import (
 	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 	"github.com/alexandremahdhaoui/forge-ui/internal/util/mocks/mockcontroller"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 // newTestHandler creates a Handler with minimal templates and mock services.
@@ -365,8 +364,6 @@ func TestRender_UnknownTemplate(t *testing.T) {
 
 	h := newTestHandler(nil, nil, nil)
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	_ = req // not used by render directly
 	w := httptest.NewRecorder()
 
 	h.render(w, "nonexistent", nil)
@@ -374,6 +371,3 @@ func TestRender_UnknownTemplate(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	assert.Contains(t, w.Body.String(), "template not found")
 }
-
-// Suppress unused variable warning for mock.
-var _ = mock.Anything
