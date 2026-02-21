@@ -14,7 +14,6 @@ import (
 	"github.com/alexandremahdhaoui/forge-ui/internal/adapter"
 	"github.com/alexandremahdhaoui/forge-ui/internal/controller"
 	httpdriver "github.com/alexandremahdhaoui/forge-ui/internal/driver/http"
-	"github.com/alexandremahdhaoui/forge-ui/internal/refresher"
 )
 
 func main() {
@@ -54,7 +53,7 @@ func main() {
 	fl := adapter.NewForgeLoader()
 
 	// Start background refresher.
-	r := refresher.New(c, gi, pd, ws, refresher.Config{
+	r := controller.NewRefresher(c, gi, pd, ws, controller.RefresherConfig{
 		BaseDir:    baseDir,
 		Interval:   *refreshInterval,
 		NumWorkers: *refreshWorkers,

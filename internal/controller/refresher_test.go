@@ -1,4 +1,4 @@
-package refresher
+package controller
 
 import (
 	"testing"
@@ -17,7 +17,7 @@ func TestRefresher_DefaultConfig(t *testing.T) {
 	pd := new(mockadapter.PortfolioDiscovery)
 	ws := new(mockadapter.WorkspaceDiscovery)
 
-	r := New(c, gi, pd, ws, Config{BaseDir: "/nonexistent"})
+	r := NewRefresher(c, gi, pd, ws, RefresherConfig{BaseDir: "/nonexistent"})
 	if got, want := r.cfg.Interval, 1*time.Minute; got != want {
 		t.Errorf("Interval = %v, want %v", got, want)
 	}
@@ -34,7 +34,7 @@ func TestRefresher_CustomConfig(t *testing.T) {
 	pd := new(mockadapter.PortfolioDiscovery)
 	ws := new(mockadapter.WorkspaceDiscovery)
 
-	r := New(c, gi, pd, ws, Config{
+	r := NewRefresher(c, gi, pd, ws, RefresherConfig{
 		BaseDir:    "/tmp",
 		Interval:   30 * time.Second,
 		NumWorkers: 5,
@@ -58,7 +58,7 @@ func TestRefresher_StartAndStop(t *testing.T) {
 	// Empty portfolio list — no workspaces to refresh.
 	pd.On("List", "/base").Return([]types.PortfolioSummary{}, nil)
 
-	r := New(c, gi, pd, ws, Config{
+	r := NewRefresher(c, gi, pd, ws, RefresherConfig{
 		BaseDir:    "/base",
 		Interval:   1 * time.Hour,
 		NumWorkers: 1,
@@ -156,7 +156,7 @@ func TestRefresher_PopulatesCache(t *testing.T) {
 		return true
 	})).Return()
 
-	r := New(c, gi, pd, ws, Config{
+	r := NewRefresher(c, gi, pd, ws, RefresherConfig{
 		BaseDir:    "/base",
 		Interval:   1 * time.Hour,
 		NumWorkers: 1,
@@ -181,7 +181,7 @@ func TestRefresher_PortfolioListError(t *testing.T) {
 
 	pd.On("List", "/base").Return(nil, errRefresherTest)
 
-	r := New(c, gi, pd, ws, Config{
+	r := NewRefresher(c, gi, pd, ws, RefresherConfig{
 		BaseDir:    "/base",
 		Interval:   1 * time.Hour,
 		NumWorkers: 1,
@@ -215,7 +215,7 @@ func TestRefresher_WorkspaceGetError(t *testing.T) {
 
 	ws.On("Get", "/base", "ws-broken").Return(types.WorkspacePageData{}, errRefresherTest)
 
-	r := New(c, gi, pd, ws, Config{
+	r := NewRefresher(c, gi, pd, ws, RefresherConfig{
 		BaseDir:    "/base",
 		Interval:   1 * time.Hour,
 		NumWorkers: 1,
@@ -263,7 +263,7 @@ func TestRefresher_RepoInfoError(t *testing.T) {
 		return len(data.Summaries) == 0 && len(data.Overviews) == 0
 	})).Return()
 
-	r := New(c, gi, pd, ws, Config{
+	r := NewRefresher(c, gi, pd, ws, RefresherConfig{
 		BaseDir:    "/base",
 		Interval:   1 * time.Hour,
 		NumWorkers: 1,
@@ -307,7 +307,7 @@ func TestRefresher_NamedPortfolio(t *testing.T) {
 		return len(data.Summaries) == 0
 	})).Return()
 
-	r := New(c, gi, pd, ws, Config{
+	r := NewRefresher(c, gi, pd, ws, RefresherConfig{
 		BaseDir:    "/base",
 		Interval:   1 * time.Hour,
 		NumWorkers: 1,
