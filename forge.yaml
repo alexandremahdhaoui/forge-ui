@@ -3,15 +3,41 @@ name: forge-ui
 envFile: .envrc
 artifactStorePath: .forge/artifact-store.yaml
 
+engines:
+  - alias: wasm-build
+    type: builder
+    builder:
+      - engine: go://generic-builder
+
+  - alias: web-assets
+    type: builder
+    builder:
+      - engine: go://generic-builder
+
 build:
   - name: forge-ui
     src: ./cmd/forge-ui
     dest: ./build/bin
     engine: go://go-build
 
-  - name: forge-ui-container
-    src: ./containers/forge-ui/Containerfile
-    engine: go://container-build
+  - name: forge-ui-wasm
+    src: ./cmd/forge-ui-wasm
+    dest: ./build/web
+    engine: alias://wasm-build
+    spec:
+      command: "go"
+      args: ["build", "-o", "./build/web/forge-ui.wasm", "./cmd/forge-ui-wasm"]
+      env:
+        GOOS: "wasip1"
+        GOARCH: "wasm"
+
+  - name: forge-ui-web-assets
+    src: ./web
+    dest: ./build/web
+    engine: alias://web-assets
+    spec:
+      command: "cp"
+      args: ["-r", "./web/.", "./build/web/"]
 
 test:
   - name: lint

@@ -2,3 +2,4 @@
 /forge-ui
 /.forge
 /tmp
+*.wasm

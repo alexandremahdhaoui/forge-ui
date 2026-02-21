@@ -1,0 +1,130 @@
+{{define "workspace"}}
+<nav class="breadcrumb body-medium">
+    <a href="#" onclick="forgeUI.navigate('portfolios');return false">Portfolios</a> &#x203A;
+    <a href="#" onclick="forgeUI.navigate('portfolio',{name:'{{.PortfolioName}}'});return false">{{.PortfolioName}}</a> &#x203A;
+    {{.Name}}
+</nav>
+
+<h1 class="headline-large">{{.Name}}</h1>
+<p class="body-small" style="font-family: 'Roboto Mono', monospace; color: var(--md-sys-color-on-surface-variant);">{{.Path}}</p>
+
+{{if .RepoForge}}
+<div class="stats-grid">
+    <div class="stat-card">
+        <span class="stat-value">{{.Stats.TotalRepos}}</span>
+        <span class="stat-label">Repositories</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value">{{.Stats.ForgeRepos}}</span>
+        <span class="stat-label">Forge Repos</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value">{{.Stats.TotalTests}}</span>
+        <span class="stat-label">Total Tests</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value {{if gt .Stats.Passed 0}}stat-value--pass{{end}}">{{.Stats.Passed}}</span>
+        <span class="stat-label">Passed</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value {{if gt .Stats.Failed 0}}stat-value--fail{{end}}">{{.Stats.Failed}}</span>
+        <span class="stat-label">Failed</span>
+    </div>
+</div>
+
+<h2 class="title-large">Test Heatmap</h2>
+<div style="overflow-x: auto;">
+<table class="data-table heatmap-table">
+    <thead>
+        <tr>
+            <th class="label-medium">Repo</th>
+            {{range .AllStages}}
+            <th class="label-medium">{{.}}</th>
+            {{end}}
+        </tr>
+    </thead>
+    <tbody>
+        {{range .RepoForge}}
+        <tr>
+            <td><a href="#" onclick="forgeUI.navigate('forge',{portfolio:'{{$.PortfolioName}}',workspace:'{{$.Name}}',repo:'{{.RepoName}}'});return false">{{.RepoName}}</a></td>
+            {{$results := .StageResults}}
+            {{range $.AllStages}}
+            {{$status := index $results .}}
+            {{if eq $status "passed"}}
+            <td class="cell-passed">passed</td>
+            {{else if eq $status "failed"}}
+            <td class="cell-failed">failed</td>
+            {{else}}
+            <td class="cell-nodata">-</td>
+            {{end}}
+            {{end}}
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+</div>
+{{end}}
+
+<div class="segmented-btn-group">
+    <a href="#" onclick="forgeUI.navigate('workspace',{portfolio:'{{.PortfolioName}}',workspace:'{{.Name}}',sort:'name'});return false" class="segmented-btn{{if eq .SortMode "name"}} segmented-btn--active{{end}}">A-Z</a>
+    <a href="#" onclick="forgeUI.navigate('workspace',{portfolio:'{{.PortfolioName}}',workspace:'{{.Name}}',sort:'time'});return false" class="segmented-btn{{if eq .SortMode "time"}} segmented-btn--active{{end}}">Recent</a>
+</div>
+
+{{if not .Repos}}
+<p class="empty-state body-large">No repositories found.</p>
+{{else}}
+{{range .Repos}}
+<div class="card-elevated" style="margin: 12px 0;">
+    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <h2 class="title-medium" style="margin: 0;">{{if .HasForge}}<a href="#" onclick="forgeUI.navigate('forge',{portfolio:'{{$.PortfolioName}}',workspace:'{{$.Name}}',repo:'{{.Name}}'});return false" style="color: inherit; text-decoration: none;">{{.Name}}</a>{{else}}{{.Name}}{{end}}</h2>
+        {{if .IsDirty}}<span class="chip chip--warn">{{len .StatusFiles}} changed</span>
+        {{else}}<span class="chip chip--pass">clean</span>
+        {{end}}
+        {{if .HasUpstream}}{{if and (eq .Ahead 0) (eq .Behind 0)}}<span class="chip chip--pass">&#x2713; synced</span>
+        {{else}}{{if gt .Ahead 0}}<span class="chip chip--info">&#x2191;{{.Ahead}}</span>{{end}}{{if gt .Behind 0}}<span class="chip chip--neutral">&#x2193;{{.Behind}}</span>{{end}}
+        {{end}}{{end}}
+    </div>
+    <p class="body-medium" style="margin-top: 8px;">Branch: <span class="code-inline">{{.Branch}}</span></p>
+    {{if .IsDirty}}
+    <details>
+        <summary class="body-small">{{len .StatusFiles}} modified files</summary>
+        <ul style="margin: 8px 0 0 20px;">
+            {{range .StatusFiles}}
+            <li class="body-small"><span class="code-inline">{{.Code}}</span> {{.FilePath}}</li>
+            {{end}}
+        </ul>
+    </details>
+    {{end}}
+    {{if .DiffStat}}
+    <details>
+        <summary class="body-small">Diff stat</summary>
+        <div class="code-block body-small" style="margin-top: 8px;">{{.DiffStat}}</div>
+    </details>
+    {{end}}
+    {{if .RecentLogs}}
+    <details>
+        <summary class="body-small">Recent commits</summary>
+        <div style="overflow-x: auto; margin-top: 8px;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th class="label-medium">Hash</th>
+                    <th class="label-medium">Message</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .RecentLogs}}
+                <tr>
+                    <td><span class="code-inline">{{.Hash}}</span></td>
+                    <td class="body-small">{{.Message}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+        </div>
+    </details>
+    {{end}}
+</div>
+{{end}}
+{{end}}
+{{end}}
