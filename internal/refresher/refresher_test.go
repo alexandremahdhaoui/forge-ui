@@ -1,19 +1,23 @@
 package refresher
 
 import (
-	"os"
-	"os/exec"
-	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/alexandremahdhaoui/forge-ui/internal/adapter"
+	"github.com/alexandremahdhaoui/forge-ui/internal/types"
+	"github.com/alexandremahdhaoui/forge-ui/internal/util/mocks/mockadapter"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestRefresher_DefaultConfig(t *testing.T) {
 	t.Parallel()
 
-	r := New(adapter.NewCache(), adapter.NewGitInfo(), adapter.NewPortfolioDiscovery(adapter.NewWorkspaceDiscovery()), adapter.NewWorkspaceDiscovery(), Config{BaseDir: "/nonexistent"})
+	c := new(mockadapter.Cache)
+	gi := new(mockadapter.GitInfo)
+	pd := new(mockadapter.PortfolioDiscovery)
+	ws := new(mockadapter.WorkspaceDiscovery)
+
+	r := New(c, gi, pd, ws, Config{BaseDir: "/nonexistent"})
 	if got, want := r.cfg.Interval, 1*time.Minute; got != want {
 		t.Errorf("Interval = %v, want %v", got, want)
 	}
@@ -25,7 +29,12 @@ func TestRefresher_DefaultConfig(t *testing.T) {
 func TestRefresher_CustomConfig(t *testing.T) {
 	t.Parallel()
 
-	r := New(adapter.NewCache(), adapter.NewGitInfo(), adapter.NewPortfolioDiscovery(adapter.NewWorkspaceDiscovery()), adapter.NewWorkspaceDiscovery(), Config{
+	c := new(mockadapter.Cache)
+	gi := new(mockadapter.GitInfo)
+	pd := new(mockadapter.PortfolioDiscovery)
+	ws := new(mockadapter.WorkspaceDiscovery)
+
+	r := New(c, gi, pd, ws, Config{
 		BaseDir:    "/tmp",
 		Interval:   30 * time.Second,
 		NumWorkers: 5,
@@ -41,18 +50,20 @@ func TestRefresher_CustomConfig(t *testing.T) {
 func TestRefresher_StartAndStop(t *testing.T) {
 	t.Parallel()
 
-	baseDir := t.TempDir()
-	c := adapter.NewCache()
-	gi := adapter.NewGitInfo()
-	ws := adapter.NewWorkspaceDiscovery()
-	pd := adapter.NewPortfolioDiscovery(ws)
+	c := new(mockadapter.Cache)
+	gi := new(mockadapter.GitInfo)
+	pd := new(mockadapter.PortfolioDiscovery)
+	ws := new(mockadapter.WorkspaceDiscovery)
+
+	// Empty portfolio list — no workspaces to refresh.
+	pd.On("List", "/base").Return([]types.PortfolioSummary{}, nil)
+
 	r := New(c, gi, pd, ws, Config{
-		BaseDir:    baseDir,
+		BaseDir:    "/base",
 		Interval:   1 * time.Hour,
 		NumWorkers: 1,
 	})
 
-	// Start should complete without hanging (no workspaces to refresh).
 	done := make(chan struct{})
 	go func() {
 		r.Start()
@@ -64,7 +75,6 @@ func TestRefresher_StartAndStop(t *testing.T) {
 		t.Fatal("Start() did not return within 5 seconds")
 	}
 
-	// Stop should complete without hanging.
 	stopDone := make(chan struct{})
 	go func() {
 		r.Stop()
@@ -75,42 +85,79 @@ func TestRefresher_StartAndStop(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("Stop() did not return within 5 seconds")
 	}
+
+	pd.AssertExpectations(t)
 }
 
 func TestRefresher_PopulatesCache(t *testing.T) {
 	t.Parallel()
 
-	baseDir := t.TempDir()
+	c := new(mockadapter.Cache)
+	gi := new(mockadapter.GitInfo)
+	pd := new(mockadapter.PortfolioDiscovery)
+	ws := new(mockadapter.WorkspaceDiscovery)
 
-	// Create a workspace directory with go.work.
-	wsDir := filepath.Join(baseDir, "ws1")
-	if err := os.MkdirAll(wsDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(wsDir, "go.work"), []byte("go 1.21\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	commitTime := time.Date(2025, 6, 1, 12, 0, 0, 0, time.UTC)
 
-	// Create a git repo inside the workspace.
-	repoDir := filepath.Join(wsDir, "repo-a")
-	if err := os.MkdirAll(repoDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	refresherRunGitCmd(t, repoDir, "init")
-	refresherRunGitCmd(t, repoDir, "config", "user.email", "test@test.com")
-	refresherRunGitCmd(t, repoDir, "config", "user.name", "Test")
-	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("init"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	refresherRunGitCmd(t, repoDir, "add", ".")
-	refresherRunGitCmd(t, repoDir, "commit", "-m", "init")
+	// Portfolio discovery returns a default portfolio with one workspace.
+	pd.On("List", "/base").Return([]types.PortfolioSummary{
+		{
+			Name:      "default",
+			IsDefault: true,
+			Workspaces: []types.WorkspaceSummary{
+				{Name: "ws1"},
+			},
+		},
+	}, nil)
 
-	c := adapter.NewCache()
-	gi := adapter.NewGitInfo()
-	ws := adapter.NewWorkspaceDiscovery()
-	pd := adapter.NewPortfolioDiscovery(ws)
+	// Workspace discovery returns one repo.
+	ws.On("Get", "/base", "ws1").Return(types.WorkspacePageData{
+		Name: "ws1",
+		Repos: []types.RepoSummary{
+			{Name: "repo-a", Path: "/base/ws1/repo-a", HasForge: true},
+		},
+	}, nil)
+
+	// Git info returns branch and status for the repo.
+	gi.On("RepoInfo", "/base/ws1/repo-a").Return(types.RepoSummary{
+		Branch:         "main",
+		IsDirty:        false,
+		Ahead:          0,
+		Behind:         0,
+		HasUpstream:    true,
+		LastCommitTime: commitTime,
+	}, nil)
+
+	// Cache should be populated with the workspace data.
+	c.On("SetWorkspace", "default/ws1", mock.MatchedBy(func(data types.CacheWorkspaceData) bool {
+		summary, ok := data.Summaries["repo-a"]
+		if !ok {
+			return false
+		}
+		if summary.Branch != "main" {
+			return false
+		}
+		if summary.Name != "repo-a" {
+			return false
+		}
+		if summary.Path != "/base/ws1/repo-a" {
+			return false
+		}
+		overview, ok := data.Overviews["repo-a"]
+		if !ok {
+			return false
+		}
+		if overview.Branch != "main" {
+			return false
+		}
+		if !overview.LastCommitTime.Equal(commitTime) {
+			return false
+		}
+		return true
+	})).Return()
+
 	r := New(c, gi, pd, ws, Config{
-		BaseDir:    baseDir,
+		BaseDir:    "/base",
 		Interval:   1 * time.Hour,
 		NumWorkers: 1,
 	})
@@ -118,33 +165,164 @@ func TestRefresher_PopulatesCache(t *testing.T) {
 	r.Start()
 	defer r.Stop()
 
-	summary, found := c.GetRepoSummary("default/ws1", "repo-a")
-	if !found {
-		t.Fatal("expected repo-a to be found in cache after initial refresh")
-	}
-	if summary.Branch == "" {
-		t.Error("expected Branch to be non-empty")
-	}
-	if summary.Name != "repo-a" {
-		t.Errorf("Name = %q, want %q", summary.Name, "repo-a")
-	}
-	if summary.Path != repoDir {
-		t.Errorf("Path = %q, want %q", summary.Path, repoDir)
-	}
+	pd.AssertExpectations(t)
+	ws.AssertExpectations(t)
+	gi.AssertExpectations(t)
+	c.AssertExpectations(t)
 }
 
-// refresherRunGitCmd runs a git command in the given directory.
-func refresherRunGitCmd(t *testing.T, dir string, args ...string) string {
-	t.Helper()
-	cmdArgs := append([]string{"-C", dir}, args...)
-	cmd := exec.Command("git", cmdArgs...)
-	cmd.Env = append(os.Environ(),
-		"GIT_CONFIG_GLOBAL=/dev/null",
-		"GIT_CONFIG_SYSTEM=/dev/null",
-	)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("git %v failed: %v\n%s", args, err, out)
-	}
-	return string(out)
+func TestRefresher_PortfolioListError(t *testing.T) {
+	t.Parallel()
+
+	c := new(mockadapter.Cache)
+	gi := new(mockadapter.GitInfo)
+	pd := new(mockadapter.PortfolioDiscovery)
+	ws := new(mockadapter.WorkspaceDiscovery)
+
+	pd.On("List", "/base").Return(nil, errRefresherTest)
+
+	r := New(c, gi, pd, ws, Config{
+		BaseDir:    "/base",
+		Interval:   1 * time.Hour,
+		NumWorkers: 1,
+	})
+
+	r.Start()
+	defer r.Stop()
+
+	// No crash, no cache writes.
+	pd.AssertExpectations(t)
+	c.AssertNotCalled(t, "SetWorkspace", mock.Anything, mock.Anything)
 }
+
+func TestRefresher_WorkspaceGetError(t *testing.T) {
+	t.Parallel()
+
+	c := new(mockadapter.Cache)
+	gi := new(mockadapter.GitInfo)
+	pd := new(mockadapter.PortfolioDiscovery)
+	ws := new(mockadapter.WorkspaceDiscovery)
+
+	pd.On("List", "/base").Return([]types.PortfolioSummary{
+		{
+			Name:      "default",
+			IsDefault: true,
+			Workspaces: []types.WorkspaceSummary{
+				{Name: "ws-broken"},
+			},
+		},
+	}, nil)
+
+	ws.On("Get", "/base", "ws-broken").Return(types.WorkspacePageData{}, errRefresherTest)
+
+	r := New(c, gi, pd, ws, Config{
+		BaseDir:    "/base",
+		Interval:   1 * time.Hour,
+		NumWorkers: 1,
+	})
+
+	r.Start()
+	defer r.Stop()
+
+	pd.AssertExpectations(t)
+	ws.AssertExpectations(t)
+	// No cache writes when workspace discovery fails.
+	c.AssertNotCalled(t, "SetWorkspace", mock.Anything, mock.Anything)
+}
+
+func TestRefresher_RepoInfoError(t *testing.T) {
+	t.Parallel()
+
+	c := new(mockadapter.Cache)
+	gi := new(mockadapter.GitInfo)
+	pd := new(mockadapter.PortfolioDiscovery)
+	ws := new(mockadapter.WorkspaceDiscovery)
+
+	pd.On("List", "/base").Return([]types.PortfolioSummary{
+		{
+			Name:      "default",
+			IsDefault: true,
+			Workspaces: []types.WorkspaceSummary{
+				{Name: "ws1"},
+			},
+		},
+	}, nil)
+
+	ws.On("Get", "/base", "ws1").Return(types.WorkspacePageData{
+		Name: "ws1",
+		Repos: []types.RepoSummary{
+			{Name: "repo-bad", Path: "/base/ws1/repo-bad"},
+		},
+	}, nil)
+
+	// Git info fails for this repo.
+	gi.On("RepoInfo", "/base/ws1/repo-bad").Return(types.RepoSummary{}, errRefresherTest)
+
+	// Cache is still written, but with empty maps (no repos succeeded).
+	c.On("SetWorkspace", "default/ws1", mock.MatchedBy(func(data types.CacheWorkspaceData) bool {
+		return len(data.Summaries) == 0 && len(data.Overviews) == 0
+	})).Return()
+
+	r := New(c, gi, pd, ws, Config{
+		BaseDir:    "/base",
+		Interval:   1 * time.Hour,
+		NumWorkers: 1,
+	})
+
+	r.Start()
+	defer r.Stop()
+
+	pd.AssertExpectations(t)
+	ws.AssertExpectations(t)
+	gi.AssertExpectations(t)
+	c.AssertExpectations(t)
+}
+
+func TestRefresher_NamedPortfolio(t *testing.T) {
+	t.Parallel()
+
+	c := new(mockadapter.Cache)
+	gi := new(mockadapter.GitInfo)
+	pd := new(mockadapter.PortfolioDiscovery)
+	ws := new(mockadapter.WorkspaceDiscovery)
+
+	pd.On("List", "/base").Return([]types.PortfolioSummary{
+		{
+			Name:      "myportfolio",
+			IsDefault: false,
+			Workspaces: []types.WorkspaceSummary{
+				{Name: "ws1"},
+			},
+		},
+	}, nil)
+
+	// For named portfolios, workspace base is baseDir/portfolioName.
+	ws.On("Get", "/base/myportfolio", "ws1").Return(types.WorkspacePageData{
+		Name:  "ws1",
+		Repos: []types.RepoSummary{},
+	}, nil)
+
+	// Cache key is portfolioName/workspaceName.
+	c.On("SetWorkspace", "myportfolio/ws1", mock.MatchedBy(func(data types.CacheWorkspaceData) bool {
+		return len(data.Summaries) == 0
+	})).Return()
+
+	r := New(c, gi, pd, ws, Config{
+		BaseDir:    "/base",
+		Interval:   1 * time.Hour,
+		NumWorkers: 1,
+	})
+
+	r.Start()
+	defer r.Stop()
+
+	pd.AssertExpectations(t)
+	ws.AssertExpectations(t)
+	c.AssertExpectations(t)
+}
+
+var errRefresherTest = errMsg("refresher test error")
+
+type errMsg string
+
+func (e errMsg) Error() string { return string(e) }
