@@ -28,7 +28,7 @@ build:
       command: "go"
       args: ["build", "-o", "./build/web/forge-ui.wasm", "./cmd/forge-ui-wasm"]
       env:
-        GOOS: "wasip1"
+        GOOS: "js"
         GOARCH: "wasm"
 
   - name: forge-ui-web-assets

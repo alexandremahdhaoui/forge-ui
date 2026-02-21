@@ -1,11 +1,11 @@
-package handler
+package httpdriver
 
 import (
 	"time"
 
 	"github.com/alexandremahdhaoui/forge-ui/internal/cache"
 	forgepkg "github.com/alexandremahdhaoui/forge-ui/internal/forge"
-	"github.com/alexandremahdhaoui/forge-ui/internal/model"
+	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 )
 
 // enrichWorkspaces enriches a slice of WorkspaceSummary in-place with cached
@@ -13,7 +13,7 @@ import (
 // workspaces. The cacheKey function maps a workspace name to a cache lookup
 // key (e.g. "portfolioName/wsName").
 func enrichWorkspaces(
-	workspaces []model.WorkspaceSummary,
+	workspaces []types.WorkspaceSummary,
 	c *cache.Cache,
 	cacheKey func(wsName string) string,
 ) (totalRepos, dirtyRepos, totalTests, passed, failed int) {
@@ -72,7 +72,7 @@ func enrichWorkspaces(
 				}
 			}
 
-			ws.RepoForge = append(ws.RepoForge, model.RepoForgeStats{
+			ws.RepoForge = append(ws.RepoForge, types.RepoForgeStats{
 				RepoName:     repo.Name,
 				RepoLink:     repo.RepoLink,
 				StageResults: stageResults,
@@ -85,7 +85,7 @@ func enrichWorkspaces(
 
 // rewriteRepoLinks rewrites all RepoLink fields in the workspaces slice to
 // use portfolio-scoped URL paths: /portfolios/{p}/workspaces/{ws}/repos/{repo}.
-func rewriteRepoLinks(workspaces []model.WorkspaceSummary, portfolioName string) {
+func rewriteRepoLinks(workspaces []types.WorkspaceSummary, portfolioName string) {
 	for i := range workspaces {
 		for j := range workspaces[i].Repos {
 			repo := &workspaces[i].Repos[j]
@@ -96,7 +96,7 @@ func rewriteRepoLinks(workspaces []model.WorkspaceSummary, portfolioName string)
 
 // maxCommitTime returns the most recent LastCommitTime across all repos.
 // Returns the zero time if the slice is empty.
-func maxCommitTime(repos []model.RepoOverview) time.Time {
+func maxCommitTime(repos []types.RepoOverview) time.Time {
 	var max time.Time
 	for _, r := range repos {
 		if r.LastCommitTime.After(max) {

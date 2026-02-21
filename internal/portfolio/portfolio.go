@@ -7,7 +7,7 @@ import (
 	"sort"
 
 	"github.com/alexandremahdhaoui/forge-ui/internal/ignore"
-	"github.com/alexandremahdhaoui/forge-ui/internal/model"
+	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 	"github.com/alexandremahdhaoui/forge-ui/internal/workspace"
 )
 
@@ -16,7 +16,7 @@ import (
 // portfolio). Directories whose subdirectories contain go.work are classified
 // as named portfolios. Named portfolios are sorted alphabetically; the
 // "default" portfolio is always last.
-func List(baseDir string) ([]model.PortfolioSummary, error) {
+func List(baseDir string) ([]types.PortfolioSummary, error) {
 	entries, err := os.ReadDir(baseDir)
 	if err != nil {
 		return nil, err
@@ -25,7 +25,7 @@ func List(baseDir string) ([]model.PortfolioSummary, error) {
 	patterns := ignore.Load(baseDir)
 
 	var (
-		named    []model.PortfolioSummary
+		named    []types.PortfolioSummary
 		hasLoose bool
 	)
 
@@ -54,7 +54,7 @@ func List(baseDir string) ([]model.PortfolioSummary, error) {
 			if err != nil {
 				return nil, fmt.Errorf("listing workspaces in portfolio %q: %w", entry.Name(), err)
 			}
-			named = append(named, model.PortfolioSummary{
+			named = append(named, types.PortfolioSummary{
 				Name:       entry.Name(),
 				Path:       childPath,
 				IsDefault:  false,
@@ -75,7 +75,7 @@ func List(baseDir string) ([]model.PortfolioSummary, error) {
 		if err != nil {
 			return nil, fmt.Errorf("listing loose workspaces: %w", err)
 		}
-		result = append(result, model.PortfolioSummary{
+		result = append(result, types.PortfolioSummary{
 			Name:       "default",
 			Path:       baseDir,
 			IsDefault:  true,
@@ -89,13 +89,13 @@ func List(baseDir string) ([]model.PortfolioSummary, error) {
 // Get returns the portfolio page data for a named portfolio or the "default"
 // portfolio. For "default", it lists workspaces directly under baseDir. For
 // named portfolios, it lists workspaces under baseDir/name.
-func Get(baseDir, name string) (model.PortfolioPageData, error) {
+func Get(baseDir, name string) (types.PortfolioPageData, error) {
 	if name == "default" {
 		workspaces, err := workspace.List(baseDir)
 		if err != nil {
-			return model.PortfolioPageData{}, fmt.Errorf("listing default portfolio: %w", err)
+			return types.PortfolioPageData{}, fmt.Errorf("listing default portfolio: %w", err)
 		}
-		return model.PortfolioPageData{
+		return types.PortfolioPageData{
 			Name:       "default",
 			Path:       baseDir,
 			IsDefault:  true,
@@ -105,15 +105,15 @@ func Get(baseDir, name string) (model.PortfolioPageData, error) {
 
 	portfolioDir := filepath.Join(baseDir, name)
 	if _, err := os.Stat(portfolioDir); err != nil {
-		return model.PortfolioPageData{}, fmt.Errorf("portfolio %q not found: %w", name, err)
+		return types.PortfolioPageData{}, fmt.Errorf("portfolio %q not found: %w", name, err)
 	}
 
 	workspaces, err := workspace.List(portfolioDir)
 	if err != nil {
-		return model.PortfolioPageData{}, fmt.Errorf("listing portfolio %q: %w", name, err)
+		return types.PortfolioPageData{}, fmt.Errorf("listing portfolio %q: %w", name, err)
 	}
 
-	return model.PortfolioPageData{
+	return types.PortfolioPageData{
 		Name:       name,
 		Path:       portfolioDir,
 		IsDefault:  false,

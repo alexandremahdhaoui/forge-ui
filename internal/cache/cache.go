@@ -4,13 +4,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alexandremahdhaoui/forge-ui/internal/model"
+	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 )
 
 // WorkspaceData holds cached git data for all repos in a single workspace.
 type WorkspaceData struct {
-	Summaries map[string]model.RepoSummary  // keyed by repo name
-	Overviews map[string]model.RepoOverview // keyed by repo name
+	Summaries map[string]types.RepoSummary  // keyed by repo name
+	Overviews map[string]types.RepoOverview // keyed by repo name
 	UpdatedAt time.Time
 }
 
@@ -38,12 +38,12 @@ func (c *Cache) SetWorkspace(name string, data WorkspaceData) {
 
 // GetRepoSummary returns the cached RepoSummary for a specific repo in a workspace.
 // The second return value is false if the workspace or repo is not in the cache.
-func (c *Cache) GetRepoSummary(workspace, repo string) (model.RepoSummary, bool) {
+func (c *Cache) GetRepoSummary(workspace, repo string) (types.RepoSummary, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	ws, ok := c.workspaces[workspace]
 	if !ok {
-		return model.RepoSummary{}, false
+		return types.RepoSummary{}, false
 	}
 	s, ok := ws.Summaries[repo]
 	return s, ok
@@ -51,12 +51,12 @@ func (c *Cache) GetRepoSummary(workspace, repo string) (model.RepoSummary, bool)
 
 // GetRepoOverview returns the cached RepoOverview for a specific repo in a workspace.
 // The second return value is false if the workspace or repo is not in the cache.
-func (c *Cache) GetRepoOverview(workspace, repo string) (model.RepoOverview, bool) {
+func (c *Cache) GetRepoOverview(workspace, repo string) (types.RepoOverview, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	ws, ok := c.workspaces[workspace]
 	if !ok {
-		return model.RepoOverview{}, false
+		return types.RepoOverview{}, false
 	}
 	o, ok := ws.Overviews[repo]
 	return o, ok

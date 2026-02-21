@@ -1,0 +1,153 @@
+package controller
+
+import (
+	"bytes"
+	"embed"
+	"fmt"
+	"html/template"
+	"net/url"
+	"strings"
+
+	"github.com/alexandremahdhaoui/forge-ui/internal/adapter"
+)
+
+//go:embed templates/*.html
+var templateFS embed.FS
+
+// renderer implements PageRenderer.
+type renderer struct {
+	ds        adapter.DataSource
+	templates *template.Template
+}
+
+// NewPageRenderer creates a PageRenderer backed by the given DataSource.
+func NewPageRenderer(ds adapter.DataSource) PageRenderer {
+	tmpl, err := template.New("").ParseFS(templateFS, "templates/*.html")
+	if err != nil {
+		panic(fmt.Sprintf("controller: failed to parse templates: %v", err))
+	}
+	return &renderer{ds: ds, templates: tmpl}
+}
+
+// Render takes a raw route string (with optional query params and hash prefix)
+// and returns rendered HTML.
+func (r *renderer) Render(route string) (string, error) {
+	input := parseInput(route)
+	return r.executeRoute(input)
+}
+
+// input represents the parsed route input.
+type input struct {
+	Route string
+	Sort  string // "name" or "time"; defaults to "time"
+	Theme string // "light" or "dark"; defaults to "light"
+}
+
+// parseInput parses a raw string into an input.
+func parseInput(raw string) input {
+	raw = strings.TrimSpace(raw)
+	raw = strings.TrimPrefix(raw, "#")
+
+	if raw == "" || raw[0] != '/' {
+		raw = "/" + raw
+	}
+
+	u, err := url.Parse(raw)
+	if err != nil {
+		return input{Route: "/portfolios", Sort: "time", Theme: "light"}
+	}
+
+	sort := u.Query().Get("sort")
+	if sort == "" {
+		sort = "time"
+	}
+
+	theme := u.Query().Get("theme")
+	if theme == "" {
+		theme = "light"
+	}
+
+	return input{
+		Route: u.Path,
+		Sort:  sort,
+		Theme: theme,
+	}
+}
+
+func (r *renderer) executeRoute(in input) (string, error) {
+	parts := splitRoute(in.Route)
+
+	switch {
+	case len(parts) == 1 && parts[0] == "portfolios":
+		return r.renderPortfolios(in)
+	case len(parts) == 2 && parts[0] == "portfolios":
+		return r.renderPortfolio(parts[1], in)
+	case len(parts) == 4 && parts[0] == "portfolios" && parts[2] == "workspaces":
+		return r.renderWorkspace(parts[1], parts[3], in)
+	case len(parts) == 6 && parts[0] == "portfolios" && parts[2] == "workspaces" && parts[4] == "repos":
+		return r.renderForge(parts[1], parts[3], parts[5], in)
+	default:
+		return r.renderPortfolios(in)
+	}
+}
+
+func splitRoute(route string) []string {
+	route = strings.Trim(route, "/")
+	if route == "" {
+		return []string{"portfolios"}
+	}
+	return strings.Split(route, "/")
+}
+
+func (r *renderer) renderPortfolios(in input) (string, error) {
+	data, err := r.ds.ListPortfolios(in.Sort)
+	if err != nil {
+		return "", fmt.Errorf("list portfolios: %w", err)
+	}
+	data.DarkMode = in.Theme == "dark"
+	return r.renderTemplate("portfolios", data)
+}
+
+func (r *renderer) renderPortfolio(name string, in input) (string, error) {
+	data, err := r.ds.GetPortfolio(name, in.Sort)
+	if err != nil {
+		return "", fmt.Errorf("get portfolio: %w", err)
+	}
+	if data.Name == "" {
+		return r.renderPortfolios(in)
+	}
+	data.DarkMode = in.Theme == "dark"
+	return r.renderTemplate("portfolio", data)
+}
+
+func (r *renderer) renderWorkspace(portfolio, workspace string, in input) (string, error) {
+	data, err := r.ds.GetWorkspace(portfolio, workspace, in.Sort)
+	if err != nil {
+		return "", fmt.Errorf("get workspace: %w", err)
+	}
+	if data.Name == "" {
+		return r.renderPortfolio(portfolio, in)
+	}
+	data.DarkMode = in.Theme == "dark"
+	return r.renderTemplate("workspace", data)
+}
+
+func (r *renderer) renderForge(portfolio, workspace, repo string, in input) (string, error) {
+	data, err := r.ds.GetForge(portfolio, workspace, repo)
+	if err != nil {
+		return "", fmt.Errorf("get forge: %w", err)
+	}
+	if data.RepoName == "" {
+		return r.renderWorkspace(portfolio, workspace, in)
+	}
+	data.DarkMode = in.Theme == "dark"
+	return r.renderTemplate("forge", data)
+}
+
+func (r *renderer) renderTemplate(name string, data any) (string, error) {
+	var buf bytes.Buffer
+	if err := r.templates.ExecuteTemplate(&buf, name, data); err != nil {
+		return "", fmt.Errorf("execute template %s: %w", name, err)
+	}
+	return buf.String(), nil
+}

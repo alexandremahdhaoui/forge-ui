@@ -1,4 +1,4 @@
-package handler
+package httpdriver
 
 import (
 	"net/http"
@@ -6,7 +6,7 @@ import (
 	"sort"
 
 	forgepkg "github.com/alexandremahdhaoui/forge-ui/internal/forge"
-	"github.com/alexandremahdhaoui/forge-ui/internal/model"
+	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 	"github.com/alexandremahdhaoui/forge-ui/internal/workspace"
 )
 
@@ -67,7 +67,7 @@ func (h *Handler) HandleWorkspace(w http.ResponseWriter, r *http.Request) {
 	// Load forge data for repos that have forge.yaml and build heatmap data.
 	stageSeen := make(map[string]struct{})
 	var allStages []string
-	var stats model.WorkspaceStats
+	var stats types.WorkspaceStats
 	stats.TotalRepos = len(data.Repos)
 
 	for _, repo := range data.Repos {
@@ -109,7 +109,7 @@ func (h *Handler) HandleWorkspace(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		data.RepoForge = append(data.RepoForge, model.RepoForgeStats{
+		data.RepoForge = append(data.RepoForge, types.RepoForgeStats{
 			RepoName:     repo.Name,
 			RepoLink:     "/portfolios/" + pName + "/workspaces/" + wsName + "/repos/" + repo.Name,
 			StageResults: stageResults,

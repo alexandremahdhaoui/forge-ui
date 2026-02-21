@@ -9,14 +9,14 @@ import (
 
 	"sigs.k8s.io/yaml"
 
-	"github.com/alexandremahdhaoui/forge-ui/internal/model"
+	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 )
 
 // Load reads forge.yaml and .forge/artifact-store.yaml from repoPath
 // and returns a populated ForgePageData. WorkspaceName and RepoName
 // are left empty; the caller sets them.
-func Load(repoPath string) (model.ForgePageData, error) {
-	var result model.ForgePageData
+func Load(repoPath string) (types.ForgePageData, error) {
+	var result types.ForgePageData
 
 	// 1. Read forge.yaml
 	specData, err := os.ReadFile(filepath.Join(repoPath, "forge.yaml"))
@@ -129,14 +129,14 @@ type testEnvFile struct {
 
 // --- Conversion functions ---
 
-func convertSpec(s specFile) model.ForgeSpec {
-	spec := model.ForgeSpec{
+func convertSpec(s specFile) types.ForgeSpec {
+	spec := types.ForgeSpec{
 		Name:  s.Name,
-		Build: make([]model.BuildSpec, len(s.Build)),
-		Test:  make([]model.TestSpec, len(s.Test)),
+		Build: make([]types.BuildSpec, len(s.Build)),
+		Test:  make([]types.TestSpec, len(s.Test)),
 	}
 	for i, b := range s.Build {
-		spec.Build[i] = model.BuildSpec{
+		spec.Build[i] = types.BuildSpec{
 			Name:   b.Name,
 			Src:    b.Src,
 			Dest:   b.Dest,
@@ -144,7 +144,7 @@ func convertSpec(s specFile) model.ForgeSpec {
 		}
 	}
 	for i, t := range s.Test {
-		spec.Test[i] = model.TestSpec{
+		spec.Test[i] = types.TestSpec{
 			Name:    t.Name,
 			Testenv: t.Testenv,
 			Runner:  t.Runner,
@@ -153,12 +153,12 @@ func convertSpec(s specFile) model.ForgeSpec {
 	return spec
 }
 
-func convertArtifacts(as []artifactFile) []model.Artifact {
-	artifacts := make([]model.Artifact, len(as))
+func convertArtifacts(as []artifactFile) []types.Artifact {
+	artifacts := make([]types.Artifact, len(as))
 	for i, a := range as {
-		deps := make([]model.ArtifactDependency, len(a.Dependencies))
+		deps := make([]types.ArtifactDependency, len(a.Dependencies))
 		for j, d := range a.Dependencies {
-			deps[j] = model.ArtifactDependency{
+			deps[j] = types.ArtifactDependency{
 				Type:            d.Type,
 				FilePath:        d.FilePath,
 				Timestamp:       d.Timestamp,
@@ -166,7 +166,7 @@ func convertArtifacts(as []artifactFile) []model.Artifact {
 				Semver:          d.Semver,
 			}
 		}
-		artifacts[i] = model.Artifact{
+		artifacts[i] = types.Artifact{
 			Name:         a.Name,
 			Type:         a.Type,
 			Location:     a.Location,
@@ -178,25 +178,25 @@ func convertArtifacts(as []artifactFile) []model.Artifact {
 	return artifacts
 }
 
-func convertTestReports(m map[string]*testReportFile) []model.TestReport {
-	reports := make([]model.TestReport, 0, len(m))
+func convertTestReports(m map[string]*testReportFile) []types.TestReport {
+	reports := make([]types.TestReport, 0, len(m))
 	for _, r := range m {
 		if r == nil {
 			continue
 		}
-		reports = append(reports, model.TestReport{
+		reports = append(reports, types.TestReport{
 			ID:        r.ID,
 			Stage:     r.Stage,
 			Status:    r.Status,
 			StartTime: r.StartTime,
 			Duration:  r.Duration,
-			Stats: model.TestStats{
+			Stats: types.TestStats{
 				Total:   r.TestStats.Total,
 				Passed:  r.TestStats.Passed,
 				Failed:  r.TestStats.Failed,
 				Skipped: r.TestStats.Skipped,
 			},
-			Coverage: model.Coverage{
+			Coverage: types.Coverage{
 				Enabled:    r.Coverage.Enabled,
 				Percentage: r.Coverage.Percentage,
 				FilePath:   r.Coverage.FilePath,
@@ -210,13 +210,13 @@ func convertTestReports(m map[string]*testReportFile) []model.TestReport {
 	return reports
 }
 
-func convertTestEnvs(m map[string]*testEnvFile) []model.TestEnv {
-	envs := make([]model.TestEnv, 0, len(m))
+func convertTestEnvs(m map[string]*testEnvFile) []types.TestEnv {
+	envs := make([]types.TestEnv, 0, len(m))
 	for _, e := range m {
 		if e == nil {
 			continue
 		}
-		envs = append(envs, model.TestEnv{
+		envs = append(envs, types.TestEnv{
 			ID:               e.ID,
 			Name:             e.Name,
 			Status:           e.Status,

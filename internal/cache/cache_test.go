@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alexandremahdhaoui/forge-ui/internal/model"
+	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 )
 
 func TestCache_SetAndGetRepoSummary(t *testing.T) {
@@ -13,10 +13,10 @@ func TestCache_SetAndGetRepoSummary(t *testing.T) {
 
 	c := New()
 	data := WorkspaceData{
-		Summaries: map[string]model.RepoSummary{
+		Summaries: map[string]types.RepoSummary{
 			"repo-a": {Name: "repo-a", Branch: "main", IsDirty: true},
 		},
-		Overviews: map[string]model.RepoOverview{},
+		Overviews: map[string]types.RepoOverview{},
 		UpdatedAt: time.Now(),
 	}
 	c.SetWorkspace("ws1", data)
@@ -38,8 +38,8 @@ func TestCache_SetAndGetRepoOverview(t *testing.T) {
 
 	c := New()
 	data := WorkspaceData{
-		Summaries: map[string]model.RepoSummary{},
-		Overviews: map[string]model.RepoOverview{
+		Summaries: map[string]types.RepoSummary{},
+		Overviews: map[string]types.RepoOverview{
 			"repo-b": {Name: "repo-b", Branch: "dev", Ahead: 3},
 		},
 		UpdatedAt: time.Now(),
@@ -77,10 +77,10 @@ func TestCache_MissReturnsZeroValue(t *testing.T) {
 
 	// Miss: workspace exists but repo does not.
 	c.SetWorkspace("ws1", WorkspaceData{
-		Summaries: map[string]model.RepoSummary{
+		Summaries: map[string]types.RepoSummary{
 			"other-repo": {Name: "other-repo", Branch: "main"},
 		},
-		Overviews: map[string]model.RepoOverview{},
+		Overviews: map[string]types.RepoOverview{},
 		UpdatedAt: time.Now(),
 	})
 	summary, found = c.GetRepoSummary("ws1", "missing-repo")
@@ -99,20 +99,20 @@ func TestCache_AtomicSwap(t *testing.T) {
 
 	// Initial data.
 	c.SetWorkspace("ws1", WorkspaceData{
-		Summaries: map[string]model.RepoSummary{
+		Summaries: map[string]types.RepoSummary{
 			"repo-a": {Name: "repo-a", Branch: "old"},
 		},
-		Overviews: map[string]model.RepoOverview{},
+		Overviews: map[string]types.RepoOverview{},
 		UpdatedAt: time.Now(),
 	})
 
 	// Replace with new data containing updated repo-a and new repo-b.
 	c.SetWorkspace("ws1", WorkspaceData{
-		Summaries: map[string]model.RepoSummary{
+		Summaries: map[string]types.RepoSummary{
 			"repo-a": {Name: "repo-a", Branch: "new"},
 			"repo-b": {Name: "repo-b", Branch: "feature"},
 		},
-		Overviews: map[string]model.RepoOverview{},
+		Overviews: map[string]types.RepoOverview{},
 		UpdatedAt: time.Now(),
 	})
 
@@ -146,10 +146,10 @@ func TestCache_ConcurrentAccess(t *testing.T) {
 			for i := 0; i < 100; i++ {
 				repoName := "repo"
 				data := WorkspaceData{
-					Summaries: map[string]model.RepoSummary{
+					Summaries: map[string]types.RepoSummary{
 						repoName: {Name: repoName, Branch: "main", Ahead: i},
 					},
-					Overviews: map[string]model.RepoOverview{
+					Overviews: map[string]types.RepoOverview{
 						repoName: {Name: repoName, Branch: "main", Ahead: i},
 					},
 					UpdatedAt: time.Now(),

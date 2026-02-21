@@ -6,15 +6,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alexandremahdhaoui/forge-ui/internal/model"
+	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 )
 
-// RepoInfo populates the git-related fields of model.RepoSummary by running
+// RepoInfo populates the git-related fields of types.RepoSummary by running
 // git commands in the given repo directory. It does NOT set Name, Path,
 // HasForge, or RepoLink. Individual git command failures use fallback values;
 // the function always returns (result, nil).
-func RepoInfo(repoPath string) (model.RepoSummary, error) {
-	var result model.RepoSummary
+func RepoInfo(repoPath string) (types.RepoSummary, error) {
+	var result types.RepoSummary
 
 	// 0. Fetch from origin to ensure remote refs are fresh.
 	// Errors are ignored: if the network is down or there is no remote,
@@ -39,7 +39,7 @@ func RepoInfo(repoPath string) (model.RepoSummary, error) {
 			}
 			code := strings.TrimRight(line[:2], " ")
 			filePath := line[3:]
-			result.StatusFiles = append(result.StatusFiles, model.StatusEntry{
+			result.StatusFiles = append(result.StatusFiles, types.StatusEntry{
 				Code:     code,
 				FilePath: filePath,
 			})
@@ -56,7 +56,7 @@ func RepoInfo(repoPath string) (model.RepoSummary, error) {
 				continue
 			}
 			parts := strings.SplitN(line, " ", 2)
-			entry := model.LogEntry{Hash: parts[0]}
+			entry := types.LogEntry{Hash: parts[0]}
 			if len(parts) > 1 {
 				entry.Message = parts[1]
 			}

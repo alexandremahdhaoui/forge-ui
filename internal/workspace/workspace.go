@@ -7,19 +7,19 @@ import (
 	"sort"
 
 	"github.com/alexandremahdhaoui/forge-ui/internal/ignore"
-	"github.com/alexandremahdhaoui/forge-ui/internal/model"
+	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 )
 
 // List scans basedir for directories containing go.work and returns a summary
 // for each workspace found. Results are sorted alphabetically by name.
-func List(basedir string) ([]model.WorkspaceSummary, error) {
+func List(basedir string) ([]types.WorkspaceSummary, error) {
 	entries, err := os.ReadDir(basedir)
 	if err != nil {
 		return nil, err
 	}
 	patterns := ignore.Load(basedir)
 
-	var workspaces []model.WorkspaceSummary
+	var workspaces []types.WorkspaceSummary
 
 	for _, entry := range entries {
 		if !entry.IsDir() {
@@ -41,7 +41,7 @@ func List(basedir string) ([]model.WorkspaceSummary, error) {
 
 		repos := scanRepos(wsPath, entry.Name())
 
-		workspaces = append(workspaces, model.WorkspaceSummary{
+		workspaces = append(workspaces, types.WorkspaceSummary{
 			Name:      entry.Name(),
 			Path:      wsPath,
 			RepoCount: len(repos),
@@ -58,20 +58,20 @@ func List(basedir string) ([]model.WorkspaceSummary, error) {
 
 // Get returns detailed workspace data including all git repos found in the
 // workspace directory. The workspace must contain a go.work file.
-func Get(basedir, name string) (model.WorkspacePageData, error) {
+func Get(basedir, name string) (types.WorkspacePageData, error) {
 	wsPath := filepath.Join(basedir, name)
 
 	if _, err := os.Stat(filepath.Join(wsPath, "go.work")); err != nil {
-		return model.WorkspacePageData{}, fmt.Errorf("workspace %q not found: no go.work in %s", name, wsPath)
+		return types.WorkspacePageData{}, fmt.Errorf("workspace %q not found: no go.work in %s", name, wsPath)
 	}
 
 	entries, err := os.ReadDir(wsPath)
 	if err != nil {
-		return model.WorkspacePageData{}, fmt.Errorf("reading workspace %q: %w", name, err)
+		return types.WorkspacePageData{}, fmt.Errorf("reading workspace %q: %w", name, err)
 	}
 	patterns := ignore.Load(wsPath)
 
-	var repos []model.RepoSummary
+	var repos []types.RepoSummary
 
 	for _, entry := range entries {
 		if !entry.IsDir() {
@@ -96,7 +96,7 @@ func Get(basedir, name string) (model.WorkspacePageData, error) {
 			hasForge = true
 		}
 
-		repos = append(repos, model.RepoSummary{
+		repos = append(repos, types.RepoSummary{
 			Name:      entry.Name(),
 			Path:      dirPath,
 			HasForge:  hasForge,
@@ -108,7 +108,7 @@ func Get(basedir, name string) (model.WorkspacePageData, error) {
 		return repos[i].Name < repos[j].Name
 	})
 
-	return model.WorkspacePageData{
+	return types.WorkspacePageData{
 		Name:  name,
 		Path:  wsPath,
 		Repos: repos,
@@ -118,14 +118,14 @@ func Get(basedir, name string) (model.WorkspacePageData, error) {
 // scanRepos finds subdirectories in wsPath that contain a .git/ directory and
 // returns a lightweight RepoOverview for each. Git fields (Branch, IsDirty,
 // Ahead, Behind) are left at zero values; the handler enriches them.
-func scanRepos(wsPath, wsName string) []model.RepoOverview {
+func scanRepos(wsPath, wsName string) []types.RepoOverview {
 	entries, err := os.ReadDir(wsPath)
 	if err != nil {
 		return nil
 	}
 	patterns := ignore.Load(wsPath)
 
-	var repos []model.RepoOverview
+	var repos []types.RepoOverview
 	for _, entry := range entries {
 		if !entry.IsDir() || entry.Name()[0] == '.' {
 			continue
@@ -141,7 +141,7 @@ func scanRepos(wsPath, wsName string) []model.RepoOverview {
 		if _, err := os.Stat(filepath.Join(dirPath, "forge.yaml")); err == nil {
 			hasForge = true
 		}
-		repos = append(repos, model.RepoOverview{
+		repos = append(repos, types.RepoOverview{
 			Name:          entry.Name(),
 			WorkspaceName: wsName,
 			Path:          dirPath,

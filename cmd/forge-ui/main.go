@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/alexandremahdhaoui/forge-ui/internal/cache"
-	"github.com/alexandremahdhaoui/forge-ui/internal/handler"
+	httpdriver "github.com/alexandremahdhaoui/forge-ui/internal/driver/http"
 	"github.com/alexandremahdhaoui/forge-ui/internal/refresher"
 )
 
@@ -57,7 +57,7 @@ func main() {
 	r.Start() // blocks until initial refresh completes
 
 	// Create handler
-	h, err := handler.New(baseDir, templateDir, c)
+	h, err := httpdriver.New(baseDir, templateDir, c)
 	if err != nil {
 		log.Fatalf("failed to initialize handlers: %v", err)
 	}

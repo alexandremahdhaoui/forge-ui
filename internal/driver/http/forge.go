@@ -1,11 +1,11 @@
-package handler
+package httpdriver
 
 import (
 	"net/http"
 	"path/filepath"
 
 	forgepkg "github.com/alexandremahdhaoui/forge-ui/internal/forge"
-	"github.com/alexandremahdhaoui/forge-ui/internal/model"
+	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 )
 
 // HandleForge handles GET /portfolios/{p}/workspaces/{w}/repos/{r}.
@@ -37,7 +37,7 @@ func (h *Handler) HandleForge(w http.ResponseWriter, r *http.Request) {
 	data.HomeURL = h.HomeURL
 
 	// Compute test statistics from reports.
-	var stats model.ForgeStats
+	var stats types.ForgeStats
 	var coverageSum float64
 	var coverageCount int
 	stageSet := make(map[string]struct{})

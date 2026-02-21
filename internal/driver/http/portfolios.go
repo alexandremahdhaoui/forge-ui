@@ -1,10 +1,10 @@
-package handler
+package httpdriver
 
 import (
 	"net/http"
 	"sort"
 
-	"github.com/alexandremahdhaoui/forge-ui/internal/model"
+	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 	"github.com/alexandremahdhaoui/forge-ui/internal/portfolio"
 )
 
@@ -21,7 +21,7 @@ func (h *Handler) HandlePortfolios(w http.ResponseWriter, r *http.Request) {
 		sortMode = "time"
 	}
 
-	var globalStats model.PortfoliosStats
+	var globalStats types.PortfoliosStats
 	globalStats.TotalPortfolios = len(portfolios)
 
 	for i := range portfolios {
@@ -35,7 +35,7 @@ func (h *Handler) HandlePortfolios(w http.ResponseWriter, r *http.Request) {
 
 		totalRepos, dirtyRepos, totalTests, passed, failed := enrichWorkspaces(p.Workspaces, h.Cache, cacheKeyFn)
 
-		p.Stats = model.WorkspacesStats{
+		p.Stats = types.WorkspacesStats{
 			TotalWorkspaces: len(p.Workspaces),
 			TotalRepos:      totalRepos,
 			DirtyRepos:      dirtyRepos,
@@ -63,7 +63,7 @@ func (h *Handler) HandlePortfolios(w http.ResponseWriter, r *http.Request) {
 		globalStats.Failed += p.Stats.Failed
 	}
 
-	data := model.PortfoliosPageData{
+	data := types.PortfoliosPageData{
 		Portfolios: portfolios,
 		Stats:      globalStats,
 		SortMode:   sortMode,
@@ -101,7 +101,7 @@ func (h *Handler) HandlePortfolio(w http.ResponseWriter, r *http.Request) {
 
 	totalRepos, dirtyRepos, totalTests, passed, failed := enrichWorkspaces(data.Workspaces, h.Cache, cacheKeyFn)
 
-	data.Stats = model.WorkspacesStats{
+	data.Stats = types.WorkspacesStats{
 		TotalWorkspaces: len(data.Workspaces),
 		TotalRepos:      totalRepos,
 		DirtyRepos:      dirtyRepos,

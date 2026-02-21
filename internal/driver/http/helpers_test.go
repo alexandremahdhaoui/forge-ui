@@ -1,11 +1,11 @@
-package handler
+package httpdriver
 
 import (
 	"testing"
 	"time"
 
 	"github.com/alexandremahdhaoui/forge-ui/internal/cache"
-	"github.com/alexandremahdhaoui/forge-ui/internal/model"
+	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 )
 
 // --- rewriteRepoLinks tests ---
@@ -13,17 +13,17 @@ import (
 func TestRewriteRepoLinks_Named(t *testing.T) {
 	t.Parallel()
 
-	workspaces := []model.WorkspaceSummary{
+	workspaces := []types.WorkspaceSummary{
 		{
 			Name: "ws-core",
-			Repos: []model.RepoOverview{
+			Repos: []types.RepoOverview{
 				{Name: "repo-a", RepoLink: "/old/path/repo-a"},
 				{Name: "repo-b", RepoLink: "/old/path/repo-b"},
 			},
 		},
 		{
 			Name: "ws-ui",
-			Repos: []model.RepoOverview{
+			Repos: []types.RepoOverview{
 				{Name: "repo-c", RepoLink: "/old/path/repo-c"},
 			},
 		},
@@ -52,10 +52,10 @@ func TestRewriteRepoLinks_Named(t *testing.T) {
 func TestRewriteRepoLinks_Default(t *testing.T) {
 	t.Parallel()
 
-	workspaces := []model.WorkspaceSummary{
+	workspaces := []types.WorkspaceSummary{
 		{
 			Name: "ws-loose",
-			Repos: []model.RepoOverview{
+			Repos: []types.RepoOverview{
 				{Name: "repo-x", RepoLink: "/old/path"},
 			},
 		},
@@ -75,7 +75,7 @@ func TestRewriteRepoLinks_EmptyWorkspaces(t *testing.T) {
 
 	// Must not panic on empty slice.
 	rewriteRepoLinks(nil, "anything")
-	rewriteRepoLinks([]model.WorkspaceSummary{}, "anything")
+	rewriteRepoLinks([]types.WorkspaceSummary{}, "anything")
 }
 
 // --- maxCommitTime tests ---
@@ -84,7 +84,7 @@ func TestMaxCommitTime_MultipleRepos(t *testing.T) {
 	t.Parallel()
 
 	now := time.Now()
-	repos := []model.RepoOverview{
+	repos := []types.RepoOverview{
 		{Name: "repo-a", LastCommitTime: now.Add(-2 * time.Hour)},
 		{Name: "repo-b", LastCommitTime: now.Add(-30 * time.Minute)},
 		{Name: "repo-c", LastCommitTime: now.Add(-1 * time.Hour)},
@@ -105,7 +105,7 @@ func TestMaxCommitTime_EmptySlice(t *testing.T) {
 		t.Errorf("maxCommitTime(nil) = %v, want zero time", got)
 	}
 
-	got = maxCommitTime([]model.RepoOverview{})
+	got = maxCommitTime([]types.RepoOverview{})
 	if !got.IsZero() {
 		t.Errorf("maxCommitTime([]) = %v, want zero time", got)
 	}
@@ -120,8 +120,8 @@ func TestEnrichWorkspaces_WithCachedData(t *testing.T) {
 	commitTime := time.Date(2025, 1, 15, 10, 0, 0, 0, time.UTC)
 
 	c.SetWorkspace("portfolio/ws-core", cache.WorkspaceData{
-		Summaries: map[string]model.RepoSummary{},
-		Overviews: map[string]model.RepoOverview{
+		Summaries: map[string]types.RepoSummary{},
+		Overviews: map[string]types.RepoOverview{
 			"repo-a": {
 				Name:           "repo-a",
 				Branch:         "main",
@@ -135,11 +135,11 @@ func TestEnrichWorkspaces_WithCachedData(t *testing.T) {
 		UpdatedAt: time.Now(),
 	})
 
-	workspaces := []model.WorkspaceSummary{
+	workspaces := []types.WorkspaceSummary{
 		{
 			Name:      "ws-core",
 			RepoCount: 1,
-			Repos: []model.RepoOverview{
+			Repos: []types.RepoOverview{
 				{Name: "repo-a"},
 			},
 		},
@@ -181,11 +181,11 @@ func TestEnrichWorkspaces_NoCachedData(t *testing.T) {
 
 	c := cache.New() // empty cache
 
-	workspaces := []model.WorkspaceSummary{
+	workspaces := []types.WorkspaceSummary{
 		{
 			Name:      "ws-empty",
 			RepoCount: 2,
-			Repos: []model.RepoOverview{
+			Repos: []types.RepoOverview{
 				{Name: "repo-a"},
 				{Name: "repo-b"},
 			},
@@ -228,8 +228,8 @@ func TestEnrichWorkspaces_DirtyRepoCount(t *testing.T) {
 	c := cache.New()
 
 	c.SetWorkspace("p/ws-a", cache.WorkspaceData{
-		Summaries: map[string]model.RepoSummary{},
-		Overviews: map[string]model.RepoOverview{
+		Summaries: map[string]types.RepoSummary{},
+		Overviews: map[string]types.RepoOverview{
 			"repo-1": {Name: "repo-1", Branch: "main", IsDirty: true},
 			"repo-2": {Name: "repo-2", Branch: "main", IsDirty: false},
 			"repo-3": {Name: "repo-3", Branch: "dev", IsDirty: true},
@@ -237,11 +237,11 @@ func TestEnrichWorkspaces_DirtyRepoCount(t *testing.T) {
 		UpdatedAt: time.Now(),
 	})
 
-	workspaces := []model.WorkspaceSummary{
+	workspaces := []types.WorkspaceSummary{
 		{
 			Name:      "ws-a",
 			RepoCount: 3,
-			Repos: []model.RepoOverview{
+			Repos: []types.RepoOverview{
 				{Name: "repo-1"},
 				{Name: "repo-2"},
 				{Name: "repo-3"},

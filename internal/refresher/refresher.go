@@ -8,7 +8,7 @@ import (
 
 	"github.com/alexandremahdhaoui/forge-ui/internal/cache"
 	gitpkg "github.com/alexandremahdhaoui/forge-ui/internal/git"
-	"github.com/alexandremahdhaoui/forge-ui/internal/model"
+	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 	"github.com/alexandremahdhaoui/forge-ui/internal/portfolio"
 	"github.com/alexandremahdhaoui/forge-ui/internal/workspace"
 )
@@ -108,8 +108,8 @@ func (r *Refresher) refreshWorkspace(item RefreshItem) {
 
 	cacheKey := item.PortfolioName + "/" + item.WorkspaceName
 
-	summaries := make(map[string]model.RepoSummary)
-	overviews := make(map[string]model.RepoOverview)
+	summaries := make(map[string]types.RepoSummary)
+	overviews := make(map[string]types.RepoOverview)
 
 	for _, repo := range data.Repos {
 		gitInfo, err := gitpkg.RepoInfo(repo.Path)
@@ -126,7 +126,7 @@ func (r *Refresher) refreshWorkspace(item RefreshItem) {
 		gitInfo.RepoLink = repo.RepoLink
 		summaries[repo.Name] = gitInfo
 
-		overviews[repo.Name] = model.RepoOverview{
+		overviews[repo.Name] = types.RepoOverview{
 			Name:           repo.Name,
 			WorkspaceName:  item.WorkspaceName,
 			Path:           repo.Path,
