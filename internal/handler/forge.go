@@ -75,6 +75,7 @@ func (h *Handler) HandleForge(w http.ResponseWriter, r *http.Request) {
 	data.Stats = stats
 	data.StageStatusMap = stageStatusMap
 	data.DarkMode = isDarkMode(r)
+	data.LightPalette = lightPalette(r)
 
 	h.render(w, "forge", data)
 }

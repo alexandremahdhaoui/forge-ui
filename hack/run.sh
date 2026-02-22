@@ -11,7 +11,7 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_DIR"
 
 # Build the binary with forge.
-forge build forge-ui
+forge build forge-ui --force
 
 # Build the container image from the Containerfile.
 docker build -t "$IMAGE" -f containers/forge-ui/Containerfile .

@@ -70,6 +70,7 @@ func main() {
 	mux.HandleFunc("GET /portfolios/{p}/workspaces/{w}", h.HandleWorkspace)
 	mux.HandleFunc("GET /portfolios/{p}/workspaces/{w}/repos/{r}", h.HandleForge)
 	mux.HandleFunc("GET /theme/toggle", h.HandleToggleTheme)
+	mux.HandleFunc("GET /light-palette/{n}", h.HandleSetLightPalette)
 
 	addr := fmt.Sprintf(":%d", *port)
 	srv := &http.Server{Addr: addr, Handler: mux}

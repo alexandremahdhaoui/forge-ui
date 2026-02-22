@@ -8,6 +8,7 @@ import (
 	"github.com/alexandremahdhaoui/forge-ui/internal/metaplan"
 	"github.com/alexandremahdhaoui/forge-ui/internal/model"
 	"github.com/alexandremahdhaoui/forge-ui/internal/portfolio"
+	"github.com/alexandremahdhaoui/forge-ui/internal/portfolioconfig"
 	"github.com/alexandremahdhaoui/forge-ui/internal/wsconfig"
 )
 
@@ -83,6 +84,33 @@ func (h *Handler) HandlePortfolios(w http.ResponseWriter, r *http.Request) {
 			Failed:          failed,
 		}
 
+		// Load portfolio config.
+		pcfg, err := portfolioconfig.Load(p.Path)
+		if err != nil {
+			log.Printf("portfolioconfig.Load(%s): %v", p.Path, err)
+		}
+		p.Description = pcfg.Description
+
+		// Aggregate portfolio-level progress from workspaces.
+		var pProgress model.PortfolioProgress
+		for _, ws := range p.Workspaces {
+			pProgress.TasksTotal += ws.Progress.TasksTotal
+			pProgress.TasksDone += ws.Progress.TasksDone
+			for _, mp := range ws.MetaPlans {
+				pProgress.TotalMetaPlans++
+				switch mp.Status {
+				case "in_progress":
+					pProgress.ActiveMetaPlans++
+				case "completed":
+					pProgress.CompletedMetaPlans++
+				}
+			}
+		}
+		if pProgress.TasksTotal > 0 {
+			pProgress.PercentDone = (pProgress.TasksDone * 100) / pProgress.TasksTotal
+		}
+		p.Stats.Portfolio = pProgress
+
 		if sortMode == "time" {
 			for j := range p.Workspaces {
 				sort.Slice(p.Workspaces[j].Repos, func(a, b int) bool {
@@ -104,26 +132,24 @@ func (h *Handler) HandlePortfolios(w http.ResponseWriter, r *http.Request) {
 
 	var portfolioProgress model.PortfolioProgress
 	for _, p := range portfolios {
-		for _, ws := range p.Workspaces {
-			for _, mp := range ws.MetaPlans {
-				portfolioProgress.TotalMetaPlans++
-				switch mp.Status {
-				case "in_progress":
-					portfolioProgress.ActiveMetaPlans++
-				case "completed":
-					portfolioProgress.CompletedMetaPlans++
-				}
-			}
-		}
+		portfolioProgress.TotalMetaPlans += p.Stats.Portfolio.TotalMetaPlans
+		portfolioProgress.ActiveMetaPlans += p.Stats.Portfolio.ActiveMetaPlans
+		portfolioProgress.CompletedMetaPlans += p.Stats.Portfolio.CompletedMetaPlans
+		portfolioProgress.TasksTotal += p.Stats.Portfolio.TasksTotal
+		portfolioProgress.TasksDone += p.Stats.Portfolio.TasksDone
+	}
+	if portfolioProgress.TasksTotal > 0 {
+		portfolioProgress.PercentDone = (portfolioProgress.TasksDone * 100) / portfolioProgress.TasksTotal
 	}
 	globalStats.Portfolio = portfolioProgress
 
 	data := model.PortfoliosPageData{
-		Portfolios: portfolios,
-		Stats:      globalStats,
-		SortMode:   sortMode,
-		DarkMode:   isDarkMode(r),
-		HomeURL:    h.HomeURL,
+		Portfolios:   portfolios,
+		Stats:        globalStats,
+		SortMode:     sortMode,
+		DarkMode:     isDarkMode(r),
+		HomeURL:      h.HomeURL,
+		LightPalette: lightPalette(r),
 	}
 
 	h.render(w, "portfolios", data)
@@ -142,6 +168,13 @@ func (h *Handler) HandlePortfolio(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to get portfolio: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Load portfolio config.
+	pcfg, err := portfolioconfig.Load(data.Path)
+	if err != nil {
+		log.Printf("portfolioconfig.Load(%s): %v", data.Path, err)
+	}
+	data.Description = pcfg.Description
 
 	sortMode := r.URL.Query().Get("sort")
 	if sortMode != "name" {
@@ -201,6 +234,26 @@ func (h *Handler) HandlePortfolio(w http.ResponseWriter, r *http.Request) {
 		Failed:          failed,
 	}
 
+	// Aggregate portfolio-level progress from workspaces.
+	var pProgress model.PortfolioProgress
+	for _, ws := range data.Workspaces {
+		pProgress.TasksTotal += ws.Progress.TasksTotal
+		pProgress.TasksDone += ws.Progress.TasksDone
+		for _, mp := range ws.MetaPlans {
+			pProgress.TotalMetaPlans++
+			switch mp.Status {
+			case "in_progress":
+				pProgress.ActiveMetaPlans++
+			case "completed":
+				pProgress.CompletedMetaPlans++
+			}
+		}
+	}
+	if pProgress.TasksTotal > 0 {
+		pProgress.PercentDone = (pProgress.TasksDone * 100) / pProgress.TasksTotal
+	}
+	data.Stats.Portfolio = pProgress
+
 	if sortMode == "time" {
 		for i := range data.Workspaces {
 			sort.Slice(data.Workspaces[i].Repos, func(a, b int) bool {
@@ -215,6 +268,7 @@ func (h *Handler) HandlePortfolio(w http.ResponseWriter, r *http.Request) {
 	data.SortMode = sortMode
 	data.DarkMode = isDarkMode(r)
 	data.HomeURL = h.HomeURL
+	data.LightPalette = lightPalette(r)
 
 	h.render(w, "portfolio", data)
 }

@@ -157,6 +157,7 @@ func (h *Handler) HandleWorkspace(w http.ResponseWriter, r *http.Request) {
 	data.PortfolioName = pName
 	data.HomeURL = h.HomeURL
 	data.DarkMode = isDarkMode(r)
+	data.LightPalette = lightPalette(r)
 
 	data.SortMode = sortMode
 	h.render(w, "workspace", data)

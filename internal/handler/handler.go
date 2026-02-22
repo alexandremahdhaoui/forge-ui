@@ -54,6 +54,7 @@ func New(baseDir, templateDir string, c *cache.Cache) (*Handler, error) {
 }
 
 const themeCookieName = "theme"
+const lightPaletteCookieName = "light-palette"
 
 // isDarkMode reads the "theme" cookie and returns true when its value is "dark".
 func isDarkMode(r *http.Request) bool {
@@ -62,6 +63,49 @@ func isDarkMode(r *http.Request) bool {
 		return false
 	}
 	return c.Value == "dark"
+}
+
+// lightPalette returns the active light palette identifier ("1"-"4").
+// Returns "" when the user is in dark mode (no palette attribute needed).
+func lightPalette(r *http.Request) string {
+	if isDarkMode(r) {
+		return ""
+	}
+	c, err := r.Cookie(lightPaletteCookieName)
+	if err != nil {
+		return "1"
+	}
+	switch c.Value {
+	case "2", "3", "4":
+		return c.Value
+	default:
+		return "1"
+	}
+}
+
+// HandleSetLightPalette sets the light palette cookie to the value from the
+// URL path and redirects back to the referring page.
+func (h *Handler) HandleSetLightPalette(w http.ResponseWriter, r *http.Request) {
+	n := r.PathValue("n")
+	switch n {
+	case "1", "2", "3", "4":
+		// valid
+	default:
+		n = "1"
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     lightPaletteCookieName,
+		Value:    n,
+		Path:     "/",
+		MaxAge:   365 * 24 * 60 * 60,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+	ref := r.Referer()
+	if ref == "" {
+		ref = h.HomeURL
+	}
+	http.Redirect(w, r, ref, http.StatusSeeOther)
 }
 
 // HandleToggleTheme toggles the theme cookie between "light" and "dark"

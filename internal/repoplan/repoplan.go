@@ -91,7 +91,11 @@ func countTasks(path string) (total, done int, err error) {
 	if err != nil {
 		return 0, 0, err
 	}
-	defer f.Close()
+	defer func() {
+		if cErr := f.Close(); cErr != nil && err == nil {
+			err = cErr
+		}
+	}()
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {

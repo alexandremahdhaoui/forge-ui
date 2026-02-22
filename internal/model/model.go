@@ -27,6 +27,7 @@ type WorkspacePageData struct {
 	SortMode          string
 	DarkMode          bool
 	HomeURL           string
+	LightPalette      string
 	Description       string
 	RepoRoles         map[string]string
 	MetaPlans         []MetaPlan
@@ -88,6 +89,7 @@ type ForgePageData struct {
 	StageStatusMap map[string]string
 	DarkMode       bool
 	HomeURL        string
+	LightPalette   string
 	RepoPlans      []RepoPlan
 }
 
@@ -175,19 +177,21 @@ type WorkspacesStats struct {
 // --- Portfolio types ---
 
 type PortfolioSummary struct {
-	Name       string             // directory name under baseDir (or "default")
-	Path       string             // absolute path (baseDir for "default" portfolio)
-	IsDefault  bool               // true for the catch-all portfolio
-	Workspaces []WorkspaceSummary // workspaces within this portfolio
-	Stats      WorkspacesStats    // reuse existing type for aggregate stats
+	Name        string             // directory name under baseDir (or "default")
+	Path        string             // absolute path (baseDir for "default" portfolio)
+	IsDefault   bool               // true for the catch-all portfolio
+	Workspaces  []WorkspaceSummary // workspaces within this portfolio
+	Stats       WorkspacesStats    // reuse existing type for aggregate stats
+	Description string
 }
 
 type PortfoliosPageData struct {
-	Portfolios []PortfolioSummary
-	Stats      PortfoliosStats
-	SortMode   string
-	DarkMode   bool
-	HomeURL    string // always "/portfolios"
+	Portfolios   []PortfolioSummary
+	Stats        PortfoliosStats
+	SortMode     string
+	DarkMode     bool
+	HomeURL      string // always "/portfolios"
+	LightPalette string
 }
 
 type PortfoliosStats struct {
@@ -202,14 +206,16 @@ type PortfoliosStats struct {
 }
 
 type PortfolioPageData struct {
-	Name       string
-	Path       string
-	IsDefault  bool
-	Workspaces []WorkspaceSummary
-	Stats      WorkspacesStats // reuse existing type
-	SortMode   string
-	DarkMode   bool
-	HomeURL    string // always "/portfolios"
+	Name         string
+	Path         string
+	IsDefault    bool
+	Workspaces   []WorkspaceSummary
+	Stats        WorkspacesStats // reuse existing type
+	Description  string
+	SortMode     string
+	DarkMode     bool
+	HomeURL      string // always "/portfolios"
+	LightPalette string
 }
 
 type WorkspaceStats struct {
@@ -249,6 +255,12 @@ type WsConfig struct {
 type WsRepoEntry struct {
 	Name        string
 	Description string
+}
+
+type PortfolioConfig struct {
+	Name         string
+	Description  string
+	TrackerPaths []string
 }
 
 type MetaPlan struct {
@@ -296,6 +308,9 @@ type PortfolioProgress struct {
 	TotalMetaPlans     int
 	ActiveMetaPlans    int
 	CompletedMetaPlans int
+	TasksTotal         int
+	TasksDone          int
+	PercentDone        int
 }
 
 type WorkspaceProgress struct {
