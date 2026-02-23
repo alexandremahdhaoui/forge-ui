@@ -1,7 +1,6 @@
 # TODO
 
 - [ ] Create the DESIGN.md and README.md for this repo
-- [ ] Remove the color grey from the light UI
 
 ## Done
 
@@ -16,3 +15,4 @@
 - [x] Implement META_ORCHESTRATOR mode for working with forge workspaces: the META_ORCHESTRATOR creates an overall plan that will be used to track smaller piece of work in each repo of the workspace. The work will be tracked in .forge-ai/ directories -> the .forge-ai/ directories from the workspace contain a .forge-ai/meta-plan -> that explains features and orchestration of task across multiple repositories and multiples stages with milestones and checkpoints where overall testing must be done etc...
   - You must create a Claude Skill for META_ORCHESTRATOR mode and also a Skill for ORCHESTRATOR mode
   - Update forge-ui to ensure it's using the forge-workspace.yaml
+- [x] Remove the color grey from the light UI

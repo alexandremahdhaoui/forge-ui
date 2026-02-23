@@ -2,3 +2,5 @@
 /forge-ui
 /.forge
 /tmp
+*.wasm
+coverage.out

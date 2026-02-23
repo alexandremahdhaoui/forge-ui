@@ -1,0 +1,23 @@
+all: false
+formatter: goimports
+include-auto-generated: false
+log-level: info
+template: testify
+force-file-write: true
+require-template-schema-exists: true
+template-schema: '{{.Template}}.schema.json'
+packages:
+  github.com/alexandremahdhaoui/forge-ui/internal/adapter:
+    config:
+      all: true
+      dir: "internal/util/mocks/mockadapter"
+      pkgname: "mockadapter"
+      structname: '{{.InterfaceName}}'
+      filename: "mock_{{.InterfaceName | snakecase}}.go"
+  github.com/alexandremahdhaoui/forge-ui/internal/controller:
+    config:
+      all: true
+      dir: "internal/util/mocks/mockcontroller"
+      pkgname: "mockcontroller"
+      structname: '{{.InterfaceName}}'
+      filename: "mock_{{.InterfaceName | snakecase}}.go"
