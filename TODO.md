@@ -1,8 +1,10 @@
 # TODO
 
-- [ ] Create the DESIGN.md and README.md for this repo
+- [ ] Add auto-sync capability for the repo/ws/portfolio info and add a sync button - The auto-sync should be enabled by default with like 1 minute period -> user can have a dropdown they can choose from to change the auto-sync period from like 30 seconds to 5 minutes - this is only front-end side auto-sync --- This can obviously only work with WASM
 
 ## Done
+
+- [x] Create the CONTRIBUTING, DESIGN.md and README.md for this repo
 
 - [x] Implement /portfolio as new root route for workspaces a portfolio is a collection of workspaces -> this allow creating hierarchy of workspaces for larger projects and/or helping grouping workspaces logically
 - [x] In /workspaces display most recently modified workspaces sorted from most recent modified date to least recent modified
