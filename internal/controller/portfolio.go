@@ -1,3 +1,5 @@
+//go:build !js || !wasm
+
 package controller
 
 import (
@@ -15,17 +17,30 @@ type PortfolioService interface {
 }
 
 type portfolioService struct {
-	portfolioDisc adapter.PortfolioDiscovery
-	cache         adapter.Cache
-	forgeLoader   adapter.ForgeLoader
+	portfolioDisc   adapter.PortfolioDiscovery
+	cache           adapter.Cache
+	forgeLoader     adapter.ForgeLoader
+	wsConfigLoader  adapter.WsConfigLoader
+	metaPlanLoader  adapter.MetaPlanLoader
+	portfolioConfig adapter.PortfolioConfigLoader
 }
 
 // NewPortfolioService creates a PortfolioService.
-func NewPortfolioService(pd adapter.PortfolioDiscovery, c adapter.Cache, fl adapter.ForgeLoader) PortfolioService {
+func NewPortfolioService(
+	pd adapter.PortfolioDiscovery,
+	c adapter.Cache,
+	fl adapter.ForgeLoader,
+	wc adapter.WsConfigLoader,
+	mp adapter.MetaPlanLoader,
+	pc adapter.PortfolioConfigLoader,
+) PortfolioService {
 	return &portfolioService{
-		portfolioDisc: pd,
-		cache:         c,
-		forgeLoader:   fl,
+		portfolioDisc:   pd,
+		cache:           c,
+		forgeLoader:     fl,
+		wsConfigLoader:  wc,
+		metaPlanLoader:  mp,
+		portfolioConfig: pc,
 	}
 }
 
@@ -41,6 +56,11 @@ func (s *portfolioService) ListPortfolios(baseDir, sortMode string) (types.Portf
 	for i := range portfolios {
 		p := &portfolios[i]
 
+		// Load portfolio config for description.
+		if pc, err := s.portfolioConfig.Load(p.Path); err == nil {
+			p.Description = pc.Description
+		}
+
 		rewriteRepoLinks(p.Workspaces, p.Name)
 
 		cacheKeyFn := func(wsName string) string {
@@ -48,6 +68,7 @@ func (s *portfolioService) ListPortfolios(baseDir, sortMode string) (types.Portf
 		}
 
 		totalRepos, dirtyRepos, totalTests, passed, failed := enrichWorkspaces(p.Workspaces, s.cache, s.forgeLoader, cacheKeyFn)
+		s.enrichWorkspaceOrchestration(p.Workspaces)
 
 		p.Stats = types.WorkspacesStats{
 			TotalWorkspaces: len(p.Workspaces),
@@ -56,6 +77,7 @@ func (s *portfolioService) ListPortfolios(baseDir, sortMode string) (types.Portf
 			TotalTests:      totalTests,
 			Passed:          passed,
 			Failed:          failed,
+			Portfolio:        aggregatePortfolioProgress(p.Workspaces),
 		}
 
 		if sortMode == "time" {
@@ -75,6 +97,15 @@ func (s *portfolioService) ListPortfolios(baseDir, sortMode string) (types.Portf
 		globalStats.TotalTests += p.Stats.TotalTests
 		globalStats.Passed += p.Stats.Passed
 		globalStats.Failed += p.Stats.Failed
+		globalStats.Portfolio.TotalMetaPlans += p.Stats.Portfolio.TotalMetaPlans
+		globalStats.Portfolio.ActiveMetaPlans += p.Stats.Portfolio.ActiveMetaPlans
+		globalStats.Portfolio.CompletedMetaPlans += p.Stats.Portfolio.CompletedMetaPlans
+		globalStats.Portfolio.TasksTotal += p.Stats.Portfolio.TasksTotal
+		globalStats.Portfolio.TasksDone += p.Stats.Portfolio.TasksDone
+	}
+
+	if globalStats.Portfolio.TasksTotal > 0 {
+		globalStats.Portfolio.PercentDone = (globalStats.Portfolio.TasksDone * 100) / globalStats.Portfolio.TasksTotal
 	}
 
 	return types.PortfoliosPageData{
@@ -90,6 +121,11 @@ func (s *portfolioService) GetPortfolio(baseDir, name, sortMode string) (types.P
 		return types.PortfolioPageData{}, err
 	}
 
+	// Load portfolio config for description.
+	if pc, err := s.portfolioConfig.Load(data.Path); err == nil {
+		data.Description = pc.Description
+	}
+
 	rewriteRepoLinks(data.Workspaces, name)
 
 	cacheKeyFn := func(wsName string) string {
@@ -97,6 +133,7 @@ func (s *portfolioService) GetPortfolio(baseDir, name, sortMode string) (types.P
 	}
 
 	totalRepos, dirtyRepos, totalTests, passed, failed := enrichWorkspaces(data.Workspaces, s.cache, s.forgeLoader, cacheKeyFn)
+	s.enrichWorkspaceOrchestration(data.Workspaces)
 
 	data.Stats = types.WorkspacesStats{
 		TotalWorkspaces: len(data.Workspaces),
@@ -105,6 +142,7 @@ func (s *portfolioService) GetPortfolio(baseDir, name, sortMode string) (types.P
 		TotalTests:      totalTests,
 		Passed:          passed,
 		Failed:          failed,
+		Portfolio:        aggregatePortfolioProgress(data.Workspaces),
 	}
 
 	if sortMode == "time" {
@@ -214,4 +252,62 @@ func maxCommitTime(repos []types.RepoOverview) time.Time {
 		}
 	}
 	return max
+}
+
+// enrichWorkspaceOrchestration populates Description, MetaPlans, and Progress
+// for each workspace using WsConfigLoader and MetaPlanLoader.
+func (s *portfolioService) enrichWorkspaceOrchestration(workspaces []types.WorkspaceSummary) {
+	for i := range workspaces {
+		ws := &workspaces[i]
+		cfg, err := s.wsConfigLoader.Load(ws.Path)
+		if err == nil && cfg.Description != "" {
+			ws.Description = cfg.Description
+		}
+
+		plans, err := s.metaPlanLoader.LoadAll(ws.Path)
+		if err == nil && len(plans) > 0 {
+			ws.MetaPlans = plans
+			var tasksTotal, tasksDone int
+			for _, mp := range plans {
+				for _, st := range mp.Stages {
+					for _, r := range st.Repos {
+						tasksTotal += r.TasksTotal
+						tasksDone += r.TasksDone
+					}
+				}
+			}
+			pct := 0
+			if tasksTotal > 0 {
+				pct = (tasksDone * 100) / tasksTotal
+			}
+			ws.Progress = types.WorkspaceProgress{
+				MetaPlanCount: len(plans),
+				TasksTotal:    tasksTotal,
+				TasksDone:     tasksDone,
+				PercentDone:   pct,
+			}
+		}
+	}
+}
+
+// aggregatePortfolioProgress computes aggregate PortfolioProgress from workspaces.
+func aggregatePortfolioProgress(workspaces []types.WorkspaceSummary) types.PortfolioProgress {
+	var pp types.PortfolioProgress
+	for _, ws := range workspaces {
+		pp.TotalMetaPlans += len(ws.MetaPlans)
+		pp.TasksTotal += ws.Progress.TasksTotal
+		pp.TasksDone += ws.Progress.TasksDone
+		for _, mp := range ws.MetaPlans {
+			switch mp.Status {
+			case "in_progress":
+				pp.ActiveMetaPlans++
+			case "completed":
+				pp.CompletedMetaPlans++
+			}
+		}
+	}
+	if pp.TasksTotal > 0 {
+		pp.PercentDone = (pp.TasksDone * 100) / pp.TasksTotal
+	}
+	return pp
 }

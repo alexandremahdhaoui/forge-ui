@@ -3,326 +3,326 @@ package types
 import "time"
 
 type WorkspaceSummary struct {
-	Name        string             // directory name under $WORKSPACES
-	Path        string             // absolute path
-	RepoCount   int                // count of subdirs with .git/
-	Repos       []RepoOverview     // lightweight repo summaries
-	AllStages   []string           // test stage names for heatmap columns
-	RepoForge   []RepoForgeStats   // per-repo forge test results
-	Description string
-	MetaPlans   []MetaPlan
-	Progress    WorkspaceProgress
+	Name        string             `json:"name"`        // directory name under $WORKSPACES
+	Path        string             `json:"path"`        // absolute path
+	RepoCount   int                `json:"repoCount"`   // count of subdirs with .git/
+	Repos       []RepoOverview     `json:"repos"`       // lightweight repo summaries
+	AllStages   []string           `json:"allStages"`   // test stage names for heatmap columns
+	RepoForge   []RepoForgeStats   `json:"repoForge"`   // per-repo forge test results
+	Description string             `json:"description"`
+	MetaPlans   []MetaPlan         `json:"metaPlans"`
+	Progress    WorkspaceProgress  `json:"progress"`
 }
 
 // --- Page 2: /workspaces/{name} ---
 
 type WorkspacePageData struct {
-	Name              string
-	PortfolioName     string
-	Path              string
-	Repos             []RepoSummary
-	Stats             WorkspaceStats
-	AllStages         []string
-	RepoForge         []RepoForgeStats
-	SortMode          string
-	DarkMode          bool
-	HomeURL           string
-	LightPalette      string
-	Description       string
-	RepoRoles         map[string]string
-	MetaPlans         []MetaPlan
-	RepoPlanSummaries []RepoPlanSummary
+	Name              string            `json:"name"`
+	PortfolioName     string            `json:"portfolioName"`
+	Path              string            `json:"path"`
+	Repos             []RepoSummary     `json:"repos"`
+	Stats             WorkspaceStats    `json:"stats"`
+	AllStages         []string          `json:"allStages"`
+	RepoForge         []RepoForgeStats  `json:"repoForge"`
+	SortMode          string            `json:"sortMode"`
+	DarkMode          bool              `json:"-"`
+	HomeURL           string            `json:"-"`
+	LightPalette      string            `json:"-"`
+	Description       string            `json:"description"`
+	RepoRoles         map[string]string `json:"repoRoles"`
+	MetaPlans         []MetaPlan        `json:"metaPlans"`
+	RepoPlanSummaries []RepoPlanSummary `json:"repoPlanSummaries"`
 }
 
 type RepoSummary struct {
-	Name        string        // directory name
-	Path        string        // absolute path
-	Branch      string        // current branch
-	IsDirty     bool          // len(StatusFiles) > 0
-	StatusFiles []StatusEntry // git status --porcelain
-	DiffStat    string        // git diff --stat raw output
-	RecentLogs  []LogEntry    // git log --oneline -10
-	HasForge    bool          // forge.yaml exists in repo
-	RepoLink   string        // URL path: /workspaces/{ws}/repos/{repo}
-	Ahead       int           // commits ahead of upstream
-	Behind      int           // commits behind upstream
-	HasUpstream    bool          // tracking branch exists
-	LastCommitTime time.Time
+	Name        string        `json:"name"`        // directory name
+	Path        string        `json:"path"`        // absolute path
+	Branch      string        `json:"branch"`      // current branch
+	IsDirty     bool          `json:"isDirty"`     // len(StatusFiles) > 0
+	StatusFiles []StatusEntry `json:"statusFiles"` // git status --porcelain
+	DiffStat    string        `json:"diffStat"`    // git diff --stat raw output
+	RecentLogs  []LogEntry    `json:"recentLogs"`  // git log --oneline -10
+	HasForge    bool          `json:"hasForge"`    // forge.yaml exists in repo
+	RepoLink   string         `json:"repoLink"`    // URL path: /workspaces/{ws}/repos/{repo}
+	Ahead       int           `json:"ahead"`       // commits ahead of upstream
+	Behind      int           `json:"behind"`      // commits behind upstream
+	HasUpstream    bool       `json:"hasUpstream"`    // tracking branch exists
+	LastCommitTime time.Time  `json:"lastCommitTime"`
 }
 
 // RepoOverview is a lightweight repo summary for the workspaces listing page.
 type RepoOverview struct {
-	Name          string
-	WorkspaceName string
-	Path          string
-	Branch        string
-	IsDirty       bool
-	Ahead         int
-	Behind        int
-	HasUpstream   bool
-	HasForge       bool
-	RepoLink       string
-	LastCommitTime time.Time
+	Name          string    `json:"name"`
+	WorkspaceName string    `json:"workspaceName"`
+	Path          string    `json:"path"`
+	Branch        string    `json:"branch"`
+	IsDirty       bool      `json:"isDirty"`
+	Ahead         int       `json:"ahead"`
+	Behind        int       `json:"behind"`
+	HasUpstream   bool      `json:"hasUpstream"`
+	HasForge       bool     `json:"hasForge"`
+	RepoLink       string   `json:"repoLink"`
+	LastCommitTime time.Time `json:"lastCommitTime"`
 }
 
 type StatusEntry struct {
-	Code     string // "M", "A", "D", "??"
-	FilePath string // file path from status
+	Code     string `json:"code"`     // "M", "A", "D", "??"
+	FilePath string `json:"filePath"` // file path from status
 }
 
 type LogEntry struct {
-	Hash    string // short commit hash
-	Message string // commit subject line
+	Hash    string `json:"hash"`    // short commit hash
+	Message string `json:"message"` // commit subject line
 }
 
 // --- Page 3: /workspaces/{ws}/repos/{repo} ---
 
 type ForgePageData struct {
-	WorkspaceName  string
-	RepoName       string
-	PortfolioName  string
-	Spec           ForgeSpec
-	Artifacts      []Artifact
-	TestReports    []TestReport
-	TestEnvs       []TestEnv
-	Stats          ForgeStats
-	StageStatusMap map[string]string
-	DarkMode       bool
-	HomeURL        string
-	LightPalette   string
-	RepoPlans      []RepoPlan
+	WorkspaceName  string            `json:"workspaceName"`
+	RepoName       string            `json:"repoName"`
+	PortfolioName  string            `json:"portfolioName"`
+	Spec           ForgeSpec         `json:"spec"`
+	Artifacts      []Artifact        `json:"artifacts"`
+	TestReports    []TestReport      `json:"testReports"`
+	TestEnvs       []TestEnv         `json:"testEnvs"`
+	Stats          ForgeStats        `json:"stats"`
+	StageStatusMap map[string]string `json:"stageStatusMap"`
+	DarkMode       bool              `json:"-"`
+	HomeURL        string            `json:"-"`
+	LightPalette   string            `json:"-"`
+	RepoPlans      []RepoPlan        `json:"repoPlans"`
 }
 
 type ForgeSpec struct {
-	Name  string
-	Build []BuildSpec
-	Test  []TestSpec
+	Name  string      `json:"name"`
+	Build []BuildSpec `json:"build"`
+	Test  []TestSpec  `json:"test"`
 }
 
 type BuildSpec struct {
-	Name   string
-	Src    string
-	Dest   string
-	Engine string
+	Name   string `json:"name"`
+	Src    string `json:"src"`
+	Dest   string `json:"dest"`
+	Engine string `json:"engine"`
 }
 
 type TestSpec struct {
-	Name    string
-	Testenv string
-	Runner  string
+	Name    string `json:"name"`
+	Testenv string `json:"testenv"`
+	Runner  string `json:"runner"`
 }
 
 type Artifact struct {
-	Name         string
-	Type         string // "binary" or "container"
-	Location     string
-	Timestamp    string // RFC3339
-	Version      string // git SHA
-	Dependencies []ArtifactDependency
+	Name         string               `json:"name"`
+	Type         string               `json:"type"`         // "binary" or "container"
+	Location     string               `json:"location"`
+	Timestamp    string               `json:"timestamp"`    // RFC3339
+	Version      string               `json:"version"`      // git SHA
+	Dependencies []ArtifactDependency `json:"dependencies"`
 }
 
 type ArtifactDependency struct {
-	Type            string // "file" or "externalPackage"
-	FilePath        string
-	Timestamp       string
-	ExternalPackage string
-	Semver          string
+	Type            string `json:"type"`            // "file" or "externalPackage"
+	FilePath        string `json:"filePath"`
+	Timestamp       string `json:"timestamp"`
+	ExternalPackage string `json:"externalPackage"`
+	Semver          string `json:"semver"`
 }
 
 type TestReport struct {
-	ID           string
-	Stage        string
-	Status       string // "passed" or "failed"
-	StartTime    time.Time
-	Duration     float64 // seconds
-	Stats        TestStats
-	Coverage     Coverage
-	ErrorMessage string
+	ID           string    `json:"id"`
+	Stage        string    `json:"stage"`
+	Status       string    `json:"status"` // "passed" or "failed"
+	StartTime    time.Time `json:"startTime"`
+	Duration     float64   `json:"duration"` // seconds
+	Stats        TestStats `json:"stats"`
+	Coverage     Coverage  `json:"coverage"`
+	ErrorMessage string    `json:"errorMessage"`
 }
 
 type TestStats struct {
-	Total   int
-	Passed  int
-	Failed  int
-	Skipped int
+	Total   int `json:"total"`
+	Passed  int `json:"passed"`
+	Failed  int `json:"failed"`
+	Skipped int `json:"skipped"`
 }
 
 type Coverage struct {
-	Enabled    bool
-	Percentage float64
-	FilePath   string
+	Enabled    bool    `json:"enabled"`
+	Percentage float64 `json:"percentage"`
+	FilePath   string  `json:"filePath"`
 }
 
 type TestEnv struct {
-	ID               string
-	Name             string
-	Status           string // "created","running","passed","failed"
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
-	ManagedResources []string
+	ID               string    `json:"id"`
+	Name             string    `json:"name"`
+	Status           string    `json:"status"` // "created","running","passed","failed"
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
+	ManagedResources []string  `json:"managedResources"`
 }
 
 // --- Statistics types ---
 
 type WorkspacesStats struct {
-	TotalWorkspaces int
-	TotalRepos      int
-	DirtyRepos      int
-	TotalTests      int
-	Passed          int
-	Failed          int
-	Portfolio       PortfolioProgress
+	TotalWorkspaces int               `json:"totalWorkspaces"`
+	TotalRepos      int               `json:"totalRepos"`
+	DirtyRepos      int               `json:"dirtyRepos"`
+	TotalTests      int               `json:"totalTests"`
+	Passed          int               `json:"passed"`
+	Failed          int               `json:"failed"`
+	Portfolio       PortfolioProgress `json:"portfolio"`
 }
 
 // --- Portfolio types ---
 
 type PortfolioSummary struct {
-	Name        string             // directory name under baseDir (or "default")
-	Path        string             // absolute path (baseDir for "default" portfolio)
-	IsDefault   bool               // true for the catch-all portfolio
-	Workspaces  []WorkspaceSummary // workspaces within this portfolio
-	Stats       WorkspacesStats    // reuse existing type for aggregate stats
-	Description string
+	Name        string             `json:"name"`        // directory name under baseDir (or "default")
+	Path        string             `json:"path"`        // absolute path (baseDir for "default" portfolio)
+	IsDefault   bool               `json:"isDefault"`   // true for the catch-all portfolio
+	Workspaces  []WorkspaceSummary `json:"workspaces"`  // workspaces within this portfolio
+	Stats       WorkspacesStats    `json:"stats"`       // reuse existing type for aggregate stats
+	Description string             `json:"description"`
 }
 
 type PortfoliosPageData struct {
-	Portfolios   []PortfolioSummary
-	Stats        PortfoliosStats
-	SortMode     string
-	DarkMode     bool
-	HomeURL      string // always "/portfolios"
-	LightPalette string
+	Portfolios   []PortfolioSummary `json:"portfolios"`
+	Stats        PortfoliosStats    `json:"stats"`
+	SortMode     string             `json:"sortMode"`
+	DarkMode     bool               `json:"-"`
+	HomeURL      string             `json:"-"` // always "/portfolios"
+	LightPalette string             `json:"-"`
 }
 
 type PortfoliosStats struct {
-	TotalPortfolios int
-	TotalWorkspaces int
-	TotalRepos      int
-	DirtyRepos      int
-	TotalTests      int
-	Passed          int
-	Failed          int
-	Portfolio       PortfolioProgress
+	TotalPortfolios int               `json:"totalPortfolios"`
+	TotalWorkspaces int               `json:"totalWorkspaces"`
+	TotalRepos      int               `json:"totalRepos"`
+	DirtyRepos      int               `json:"dirtyRepos"`
+	TotalTests      int               `json:"totalTests"`
+	Passed          int               `json:"passed"`
+	Failed          int               `json:"failed"`
+	Portfolio       PortfolioProgress `json:"portfolio"`
 }
 
 type PortfolioPageData struct {
-	Name         string
-	Path         string
-	IsDefault    bool
-	Workspaces   []WorkspaceSummary
-	Stats        WorkspacesStats // reuse existing type
-	Description  string
-	SortMode     string
-	DarkMode     bool
-	HomeURL      string // always "/portfolios"
-	LightPalette string
+	Name         string             `json:"name"`
+	Path         string             `json:"path"`
+	IsDefault    bool               `json:"isDefault"`
+	Workspaces   []WorkspaceSummary `json:"workspaces"`
+	Stats        WorkspacesStats    `json:"stats"` // reuse existing type
+	Description  string             `json:"description"`
+	SortMode     string             `json:"sortMode"`
+	DarkMode     bool               `json:"-"`
+	HomeURL      string             `json:"-"` // always "/portfolios"
+	LightPalette string             `json:"-"`
 }
 
 type WorkspaceStats struct {
-	TotalRepos int
-	ForgeRepos int
-	TotalTests int
-	Passed     int
-	Failed     int
-	Skipped    int
+	TotalRepos int `json:"totalRepos"`
+	ForgeRepos int `json:"forgeRepos"`
+	TotalTests int `json:"totalTests"`
+	Passed     int `json:"passed"`
+	Failed     int `json:"failed"`
+	Skipped    int `json:"skipped"`
 }
 
 type RepoForgeStats struct {
-	RepoName     string
-	RepoLink    string
-	StageResults map[string]string
+	RepoName     string            `json:"repoName"`
+	RepoLink    string             `json:"repoLink"`
+	StageResults map[string]string `json:"stageResults"`
 }
 
 type ForgeStats struct {
-	TotalTests  int
-	Passed      int
-	Failed      int
-	Skipped     int
-	AvgCoverage float64
-	HasCoverage bool
-	StageCount  int
+	TotalTests  int     `json:"totalTests"`
+	Passed      int     `json:"passed"`
+	Failed      int     `json:"failed"`
+	Skipped     int     `json:"skipped"`
+	AvgCoverage float64 `json:"avgCoverage"`
+	HasCoverage bool    `json:"hasCoverage"`
+	StageCount  int     `json:"stageCount"`
 }
 
 // --- Workspace orchestration types ---
 
 type WsConfig struct {
-	Name        string
-	Description string
-	Repos       []WsRepoEntry
-	MetaPlans   []string
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	Repos       []WsRepoEntry `json:"repos"`
+	MetaPlans   []string      `json:"metaPlans"`
 }
 
 type WsRepoEntry struct {
-	Name        string
-	Description string
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 type PortfolioConfig struct {
-	Name         string
-	Description  string
-	TrackerPaths []string
+	Name         string   `json:"name"`
+	Description  string   `json:"description"`
+	TrackerPaths []string `json:"trackerPaths"`
 }
 
 type MetaPlan struct {
-	Name        string
-	Description string
-	Status      string // "pending", "in_progress", "completed"
-	Stages      []MetaPlanStage
-	Checkpoints []MetaCheckpoint
+	Name        string           `json:"name"`
+	Description string           `json:"description"`
+	Status      string           `json:"status"` // "pending", "in_progress", "completed"
+	Stages      []MetaPlanStage  `json:"stages"`
+	Checkpoints []MetaCheckpoint `json:"checkpoints"`
 }
 
 type MetaPlanStage struct {
-	Name   string
-	Status string // "pending", "in_progress", "completed"
-	Repos  []StageRepo
+	Name   string      `json:"name"`
+	Status string      `json:"status"` // "pending", "in_progress", "completed"
+	Repos  []StageRepo `json:"repos"`
 }
 
 type StageRepo struct {
-	Name       string
-	Plan       string
-	TasksTotal int
-	TasksDone  int
+	Name       string `json:"name"`
+	Plan       string `json:"plan"`
+	TasksTotal int    `json:"tasksTotal"`
+	TasksDone  int    `json:"tasksDone"`
 }
 
 type MetaCheckpoint struct {
-	Name      string
-	Stage     string
-	Condition string
-	Met       bool
+	Name      string `json:"name"`
+	Stage     string `json:"stage"`
+	Condition string `json:"condition"`
+	Met       bool   `json:"met"`
 }
 
 type RepoPlan struct {
-	Name       string
-	TasksTotal int
-	TasksDone  int
+	Name       string `json:"name"`
+	TasksTotal int    `json:"tasksTotal"`
+	TasksDone  int    `json:"tasksDone"`
 }
 
 type RepoPlanSummary struct {
-	RepoName   string
-	Plans      []RepoPlan
-	TasksTotal int
-	TasksDone  int
+	RepoName   string     `json:"repoName"`
+	Plans      []RepoPlan `json:"plans"`
+	TasksTotal int        `json:"tasksTotal"`
+	TasksDone  int        `json:"tasksDone"`
 }
 
 type PortfolioProgress struct {
-	TotalMetaPlans     int
-	ActiveMetaPlans    int
-	CompletedMetaPlans int
-	TasksTotal         int
-	TasksDone          int
-	PercentDone        int
+	TotalMetaPlans     int `json:"totalMetaPlans"`
+	ActiveMetaPlans    int `json:"activeMetaPlans"`
+	CompletedMetaPlans int `json:"completedMetaPlans"`
+	TasksTotal         int `json:"tasksTotal"`
+	TasksDone          int `json:"tasksDone"`
+	PercentDone        int `json:"percentDone"`
 }
 
 type WorkspaceProgress struct {
-	MetaPlanCount int
-	TasksTotal    int
-	TasksDone     int
-	PercentDone   int
+	MetaPlanCount int `json:"metaPlanCount"`
+	TasksTotal    int `json:"tasksTotal"`
+	TasksDone     int `json:"tasksDone"`
+	PercentDone   int `json:"percentDone"`
 }
 
 // CacheWorkspaceData holds cached git data for all repos in a single workspace.
 type CacheWorkspaceData struct {
-	Summaries map[string]RepoSummary  // keyed by repo name
-	Overviews map[string]RepoOverview // keyed by repo name
-	UpdatedAt time.Time
+	Summaries map[string]RepoSummary  `json:"summaries"` // keyed by repo name
+	Overviews map[string]RepoOverview `json:"overviews"`  // keyed by repo name
+	UpdatedAt time.Time               `json:"updatedAt"`
 }

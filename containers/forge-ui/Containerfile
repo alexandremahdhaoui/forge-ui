@@ -1,9 +1,0 @@
-FROM docker.io/alpine:3.20.1
-
-RUN apk add --no-cache git
-
-COPY build/bin/forge-ui /bin/forge-ui
-COPY templates /templates
-
-EXPOSE 8080
-CMD [ "forge-ui", "-port", "8080" ]

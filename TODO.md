@@ -4,8 +4,6 @@
 
 ## Done
 
-- [x] Create the CONTRIBUTING, DESIGN.md and README.md for this repo
-
 - [x] Implement /portfolio as new root route for workspaces a portfolio is a collection of workspaces -> this allow creating hierarchy of workspaces for larger projects and/or helping grouping workspaces logically
 - [x] In /workspaces display most recently modified workspaces sorted from most recent modified date to least recent modified
 - [x] Refactor UI using <https://m3.material.io/> -> Use the frontend-design-material skill in /home/alexandremahdhaoui/go/src/github.com/alexandremahdhaoui/skills
@@ -18,3 +16,4 @@
   - You must create a Claude Skill for META_ORCHESTRATOR mode and also a Skill for ORCHESTRATOR mode
   - Update forge-ui to ensure it's using the forge-workspace.yaml
 - [x] Remove the color grey from the light UI
+- [x] Create the CONTRIBUTING, DESIGN.md and README.md for this repo

@@ -1,3 +1,5 @@
+//go:build !js || !wasm
+
 package controller
 
 import (
@@ -14,17 +16,30 @@ type WorkspaceService interface {
 }
 
 type workspaceService struct {
-	workspaceDisc adapter.WorkspaceDiscovery
-	cache         adapter.Cache
-	forgeLoader   adapter.ForgeLoader
+	workspaceDisc  adapter.WorkspaceDiscovery
+	cache          adapter.Cache
+	forgeLoader    adapter.ForgeLoader
+	wsConfigLoader adapter.WsConfigLoader
+	metaPlanLoader adapter.MetaPlanLoader
+	repoPlanLoader adapter.RepoPlanLoader
 }
 
 // NewWorkspaceService creates a WorkspaceService.
-func NewWorkspaceService(ws adapter.WorkspaceDiscovery, c adapter.Cache, fl adapter.ForgeLoader) WorkspaceService {
+func NewWorkspaceService(
+	ws adapter.WorkspaceDiscovery,
+	c adapter.Cache,
+	fl adapter.ForgeLoader,
+	wc adapter.WsConfigLoader,
+	mp adapter.MetaPlanLoader,
+	rp adapter.RepoPlanLoader,
+) WorkspaceService {
 	return &workspaceService{
-		workspaceDisc: ws,
-		cache:         c,
-		forgeLoader:   fl,
+		workspaceDisc:  ws,
+		cache:          c,
+		forgeLoader:    fl,
+		wsConfigLoader: wc,
+		metaPlanLoader: mp,
+		repoPlanLoader: rp,
 	}
 }
 
@@ -120,6 +135,32 @@ func (s *workspaceService) GetWorkspace(baseDir, portfolio, workspace, sortMode 
 	data.Stats = stats
 	data.PortfolioName = portfolio
 	data.SortMode = sortMode
+
+	// Load workspace orchestration data.
+	wsPath := filepath.Join(wsBaseDir, workspace)
+	if cfg, err := s.wsConfigLoader.Load(wsPath); err == nil {
+		data.Description = cfg.Description
+		if len(cfg.Repos) > 0 {
+			data.RepoRoles = make(map[string]string, len(cfg.Repos))
+			for _, r := range cfg.Repos {
+				if r.Description != "" {
+					data.RepoRoles[r.Name] = r.Description
+				}
+			}
+		}
+	}
+
+	if plans, err := s.metaPlanLoader.LoadAll(wsPath); err == nil && len(plans) > 0 {
+		data.MetaPlans = plans
+	}
+
+	for _, repo := range data.Repos {
+		summary, err := s.repoPlanLoader.LoadSummary(repo.Path, repo.Name)
+		if err != nil || summary.TasksTotal == 0 {
+			continue
+		}
+		data.RepoPlanSummaries = append(data.RepoPlanSummaries, summary)
+	}
 
 	return data, nil
 }

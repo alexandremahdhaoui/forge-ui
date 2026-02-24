@@ -3,68 +3,70 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="api-base-url" content="http://localhost:8081/api/v1">
     <title>forge-ui</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Roboto:wght@400;500&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         /* ========================================
-           Color Tokens — Catppuccin Latte / Mocha
+           Color Tokens — 4 Light Palettes + Dark
            ======================================== */
 
         :root {
+            /* Color — Palette 1: Warm Sand (default light) */
             --md-sys-color-primary: #1e66f5;
             --md-sys-color-on-primary: #ffffff;
-            --md-sys-color-primary-container: #dce4fc;
+            --md-sys-color-primary-container: #D6E2FB;
             --md-sys-color-on-primary-container: #102a68;
-            --md-sys-color-secondary: #8839ef;
+            --md-sys-color-secondary: #7A6E5A;
             --md-sys-color-on-secondary: #ffffff;
-            --md-sys-color-secondary-container: #eddcfb;
-            --md-sys-color-on-secondary-container: #4a1590;
-            --md-sys-color-tertiary: #179299;
+            --md-sys-color-secondary-container: #EDE5D4;
+            --md-sys-color-on-secondary-container: #3D3528;
+            --md-sys-color-tertiary: #6B7D5A;
             --md-sys-color-on-tertiary: #ffffff;
-            --md-sys-color-tertiary-container: #c8f0ee;
-            --md-sys-color-on-tertiary-container: #064b4d;
+            --md-sys-color-tertiary-container: #D8E8C8;
+            --md-sys-color-on-tertiary-container: #2D3A22;
             --md-sys-color-error: #d20f39;
             --md-sys-color-on-error: #ffffff;
             --md-sys-color-error-container: #fcdde3;
             --md-sys-color-on-error-container: #5c0016;
-            --md-sys-color-surface: #edf0fd;
-            --md-sys-color-on-surface: #151730;
-            --md-sys-color-surface-variant: #c8d0f8;
-            --md-sys-color-on-surface-variant: #3a3d5c;
-            --md-sys-color-outline: #5c62a0;
-            --md-sys-color-outline-variant: #a8b0e0;
+            --md-sys-color-surface: #F5EFD5;
+            --md-sys-color-on-surface: #302D26;
+            --md-sys-color-surface-variant: #E2DDD0;
+            --md-sys-color-on-surface-variant: #5C574D;
+            --md-sys-color-outline: #8A8478;
+            --md-sys-color-outline-variant: #B6AE9F;
             --md-sys-color-shadow: #000000;
             --md-sys-color-scrim: #000000;
-            --md-sys-color-inverse-surface: #1e2044;
-            --md-sys-color-inverse-on-surface: #edf0fd;
+            --md-sys-color-inverse-surface: #302D26;
+            --md-sys-color-inverse-on-surface: #F5EFD5;
             --md-sys-color-inverse-primary: #89b4fa;
-            --md-sys-color-surface-dim: #c2cae6;
-            --md-sys-color-surface-bright: #f8f9ff;
-            --md-sys-color-surface-container-lowest: #ffffff;
-            --md-sys-color-surface-container-low: #f6f8ff;
-            --md-sys-color-surface-container: #dde4ff;
-            --md-sys-color-surface-container-high: #d0d8fc;
-            --md-sys-color-surface-container-highest: #c2ccf8;
+            --md-sys-color-surface-dim: #D9D3B9;
+            --md-sys-color-surface-bright: #FEFBF0;
+            --md-sys-color-surface-container-lowest: #FFFFFF;
+            --md-sys-color-surface-container-low: #FBF7E8;
+            --md-sys-color-surface-container: #F0EADA;
+            --md-sys-color-surface-container-high: #E5DFCF;
+            --md-sys-color-surface-container-highest: #DEDED1;
             --md-sys-color-surface-tint: #1e66f5;
             --md-sys-color-link: #1e66f5;
 
             --status-pass: #2e8b20;
-            --status-pass-container: #a8e6a0;
+            --status-pass-container: #C2E0B8;
             --status-on-pass-container: #1a4d12;
             --status-fail: #d20f39;
-            --status-fail-container: #e47888;
+            --status-fail-container: #F0C4CC;
             --status-on-fail-container: #5c0016;
             --status-warn: #c07a10;
-            --status-warn-container: #eebc5a;
+            --status-warn-container: #EDCE8A;
             --status-on-warn-container: #5c3a07;
             --status-info: #1e66f5;
-            --status-info-container: #b0cefa;
+            --status-info-container: #C4D8F8;
             --status-on-info-container: #102a68;
-            --status-neutral: #5c62a0;
-            --status-neutral-container: #c8d0f8;
-            --status-on-neutral-container: #3a3d5c;
+            --status-neutral: #8A8478;
+            --status-neutral-container: #E2DDD0;
+            --status-on-neutral-container: #3D3728;
 
             --md-sys-typescale-brand-font: 'Inter', sans-serif;
             --md-sys-typescale-plain-font: 'Roboto', sans-serif;
@@ -91,6 +93,106 @@
             --md-sys-motion-duration-long: 600ms;
         }
 
+        /* Color — Palette 2: Natural Sage */
+        [data-light-palette="2"] {
+            --md-sys-color-surface: #F2F2EC;
+            --md-sys-color-on-surface: #1F3328;
+            --md-sys-color-surface-variant: #E0D5C6;
+            --md-sys-color-on-surface-variant: #4A6653;
+            --md-sys-color-outline: #8EA696;
+            --md-sys-color-outline-variant: #C2A68C;
+            --md-sys-color-inverse-surface: #1F3328;
+            --md-sys-color-inverse-on-surface: #F2F2EC;
+            --md-sys-color-surface-dim: #D6D4CC;
+            --md-sys-color-surface-bright: #FAFAF8;
+            --md-sys-color-surface-container-lowest: #FFFFFF;
+            --md-sys-color-surface-container-low: #F5F5F0;
+            --md-sys-color-surface-container: #EDE5D8;
+            --md-sys-color-surface-container-high: #E6D8C3;
+            --md-sys-color-surface-container-highest: #DDD0BA;
+            --md-sys-color-primary-container: #D0DEF8;
+            --md-sys-color-secondary: #5D866C;
+            --md-sys-color-secondary-container: #C8E0D0;
+            --md-sys-color-on-secondary-container: #1F3328;
+            --md-sys-color-tertiary: #8B7355;
+            --md-sys-color-tertiary-container: #E6D8C3;
+            --md-sys-color-on-tertiary-container: #3E3020;
+            --status-pass-container: #B8DEB0;
+            --status-fail-container: #F0C4CC;
+            --status-warn-container: #EDCE8A;
+            --status-info-container: #C0D4F4;
+            --status-neutral: #8EA696;
+            --status-neutral-container: #D2E2D8;
+            --status-on-neutral-container: #2A4432;
+        }
+
+        /* Color — Palette 3: Tropical */
+        [data-light-palette="3"] {
+            --md-sys-color-surface: #F4EDCF;
+            --md-sys-color-on-surface: #332510;
+            --md-sys-color-surface-variant: #E4D9AF;
+            --md-sys-color-on-surface-variant: #6E5034;
+            --md-sys-color-outline: #9A8A6E;
+            --md-sys-color-outline-variant: #CDB885;
+            --md-sys-color-inverse-surface: #332510;
+            --md-sys-color-inverse-on-surface: #F4EDCF;
+            --md-sys-color-surface-dim: #D8D1B3;
+            --md-sys-color-surface-bright: #FBF8EE;
+            --md-sys-color-surface-container-lowest: #FEFDF6;
+            --md-sys-color-surface-container-low: #F6F0D8;
+            --md-sys-color-surface-container: #EFE1B5;
+            --md-sys-color-surface-container-high: #E2D5A4;
+            --md-sys-color-surface-container-highest: #D8CB98;
+            --md-sys-color-primary-container: #D2E0FA;
+            --md-sys-color-secondary: #3DAA90;
+            --md-sys-color-secondary-container: #B4E8DA;
+            --md-sys-color-on-secondary-container: #0E4838;
+            --md-sys-color-tertiary: #8B7142;
+            --md-sys-color-tertiary-container: #E8D8AA;
+            --md-sys-color-on-tertiary-container: #3E3018;
+            --status-pass-container: #B4E4C0;
+            --status-fail-container: #F0C4CC;
+            --status-warn-container: #EDD09A;
+            --status-info-container: #B8D4F4;
+            --status-neutral: #5DD3B6;
+            --status-neutral-container: #B4E8DA;
+            --status-on-neutral-container: #0E4838;
+        }
+
+        /* Color — Palette 4: Forest Autumn */
+        [data-light-palette="4"] {
+            --md-sys-color-surface: #F0E9CE;
+            --md-sys-color-on-surface: #1A2E18;
+            --md-sys-color-surface-variant: #E0D8BC;
+            --md-sys-color-on-surface-variant: #3D5C3A;
+            --md-sys-color-outline: #6D8A6A;
+            --md-sys-color-outline-variant: #A8BCA6;
+            --md-sys-color-inverse-surface: #1A2E18;
+            --md-sys-color-inverse-on-surface: #F0E9CE;
+            --md-sys-color-surface-dim: #D4CDB2;
+            --md-sys-color-surface-bright: #FAF8F0;
+            --md-sys-color-surface-container-lowest: #FEFDF6;
+            --md-sys-color-surface-container-low: #F5F0DC;
+            --md-sys-color-surface-container: #EDE4C2;
+            --md-sys-color-surface-container-high: #E2D9B4;
+            --md-sys-color-surface-container-highest: #D8CFA8;
+            --md-sys-color-primary-container: #D0DEF6;
+            --md-sys-color-secondary: #A03A13;
+            --md-sys-color-secondary-container: #FAD0B8;
+            --md-sys-color-on-secondary-container: #4A1A08;
+            --md-sys-color-tertiary: #254F22;
+            --md-sys-color-tertiary-container: #B8D8B4;
+            --md-sys-color-on-tertiary-container: #0E240C;
+            --status-pass-container: #B8D8B4;
+            --status-fail-container: #F0C4CC;
+            --status-warn-container: #EDC880;
+            --status-info-container: #BCD4F2;
+            --status-neutral: #6D8A6A;
+            --status-neutral-container: #C8DCC6;
+            --status-on-neutral-container: #253824;
+        }
+
+        /* Color — Dark mode (Catppuccin Mocha) */
         [data-theme="dark"] {
             --md-sys-color-primary: #89b4fa;
             --md-sys-color-on-primary: #0a0c1e;
@@ -240,6 +342,68 @@
         .theme-icon--light { display: inline; }
         [data-theme="dark"] .theme-icon--dark  { display: inline; }
         [data-theme="dark"] .theme-icon--light { display: none; }
+
+        .sync-select {
+            appearance: none;
+            -webkit-appearance: none;
+            background-color: var(--md-sys-color-surface-container);
+            border: 1px solid var(--md-sys-color-outline);
+            color: var(--md-sys-color-on-surface);
+            border-radius: var(--md-sys-shape-corner-small);
+            font-family: var(--md-sys-typescale-plain-font);
+            font-size: 13px;
+            font-weight: 500;
+            padding: 6px 24px 6px 10px;
+            height: 36px;
+            margin-right: 8px;
+            cursor: pointer;
+            outline: none;
+            transition: border-color var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard);
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%235c62a0' stroke-width='1.5'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+        }
+
+        .sync-select:hover { border-color: var(--md-sys-color-on-surface); }
+        .sync-select:focus { border-color: var(--md-sys-color-primary); border-width: 2px; padding: 5px 23px 5px 9px; }
+
+        [data-theme="dark"] .sync-select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%237478ae' stroke-width='1.5'/%3E%3C/svg%3E");
+        }
+
+        .palette-dropdown { position: relative; margin-right: 4px; }
+        [data-theme="dark"] .palette-dropdown { display: none; }
+
+        .palette-dropdown__trigger {
+            display: flex; align-items: center; justify-content: center;
+            width: 40px; height: 40px; border-radius: var(--md-sys-shape-corner-full);
+            color: var(--md-sys-color-on-surface-variant); cursor: pointer;
+            background: none; border: none;
+            transition: background-color var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard);
+        }
+        .palette-dropdown__trigger:hover { background-color: color-mix(in srgb, var(--md-sys-color-on-surface-variant) 8%, transparent); }
+        .palette-dropdown__trigger svg { fill: currentColor; }
+
+        .palette-dropdown__menu {
+            display: none; position: absolute; top: 100%; right: 0; margin-top: 4px; padding: 8px;
+            background-color: var(--md-sys-color-surface-container-low);
+            border-radius: var(--md-sys-shape-corner-medium);
+            box-shadow: var(--md-sys-elevation-3); z-index: 20; min-width: 160px;
+        }
+        .palette-dropdown:focus-within .palette-dropdown__menu { display: block; }
+
+        .palette-dropdown__item {
+            display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+            border-radius: var(--md-sys-shape-corner-small);
+            color: var(--md-sys-color-on-surface); font-family: var(--md-sys-typescale-plain-font);
+            font-size: 14px; line-height: 20px; cursor: pointer; border: none; background: none; width: 100%;
+            transition: background-color var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard);
+        }
+        .palette-dropdown__item:hover { background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent); }
+        .palette-dropdown__item--active { background-color: color-mix(in srgb, var(--md-sys-color-primary) 12%, transparent); }
+
+        .palette-swatch { display: flex; gap: 2px; flex-shrink: 0; }
+        .palette-swatch__color { width: 14px; height: 14px; border-radius: 3px; }
 
         .page-content {
             max-width: 1200px;
@@ -414,6 +578,117 @@
             white-space: pre;
         }
 
+        .goal-text {
+            color: var(--md-sys-color-on-surface-variant);
+            font-family: var(--md-sys-typescale-plain-font);
+            font-size: 15px;
+            line-height: 22px;
+            margin: 8px 0 16px 0;
+            font-style: italic;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: var(--md-sys-color-surface-container-highest);
+            border-radius: var(--md-sys-shape-corner-full);
+            overflow: hidden;
+            margin: 4px 0;
+        }
+
+        .progress-bar__fill {
+            height: 100%;
+            background-color: var(--md-sys-color-primary);
+            border-radius: var(--md-sys-shape-corner-full);
+            transition: width var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-standard);
+        }
+
+        .progress-bar--complete .progress-bar__fill {
+            background-color: var(--status-pass);
+        }
+
+        .meta-plan-card {
+            background-color: var(--md-sys-color-surface-container-low);
+            border-radius: var(--md-sys-shape-corner-medium);
+            padding: 16px;
+            margin: 12px 0;
+            box-shadow: var(--md-sys-elevation-1);
+        }
+
+        .meta-plan-stage {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 0;
+        }
+
+        .meta-plan-stage__name {
+            font-family: var(--md-sys-typescale-plain-font);
+            font-size: 14px;
+            font-weight: 500;
+            min-width: 100px;
+            color: var(--md-sys-color-on-surface);
+        }
+
+        .meta-plan-stage__bar { flex: 1; }
+
+        .meta-plan-stage__pct {
+            font-family: var(--md-sys-typescale-plain-font);
+            font-size: 13px;
+            font-weight: 500;
+            min-width: 40px;
+            text-align: right;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .checkpoint-list {
+            list-style: none;
+            margin: 8px 0 0 0;
+            padding: 0;
+        }
+
+        .checkpoint-item {
+            font-family: var(--md-sys-typescale-plain-font);
+            font-size: 14px;
+            padding: 2px 0;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .checkpoint-item--met { color: var(--status-pass); }
+
+        .plan-progress-card {
+            background-color: var(--md-sys-color-surface-container-low);
+            border-radius: var(--md-sys-shape-corner-medium);
+            padding: 16px;
+            margin: 12px 0;
+            box-shadow: var(--md-sys-elevation-1);
+        }
+
+        .plan-progress-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 4px 0;
+        }
+
+        .plan-progress-item__name {
+            font-family: var(--md-sys-typescale-plain-font);
+            font-size: 14px;
+            font-weight: 500;
+            min-width: 120px;
+            color: var(--md-sys-color-on-surface);
+        }
+
+        .plan-progress-item__bar { flex: 1; }
+
+        .plan-progress-item__count {
+            font-family: var(--md-sys-typescale-plain-font);
+            font-size: 13px;
+            font-weight: 500;
+            min-width: 50px;
+            text-align: right;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
         .empty-state { color: var(--md-sys-color-on-surface-variant); padding: 24px; }
         a { color: var(--md-sys-color-link); text-decoration: none; }
         a:hover { text-decoration: underline; }
@@ -477,6 +752,58 @@
         <a class="top-app-bar__title title-large" href="#/portfolios">forge-ui</a>
         <span class="top-app-bar__badge">wasm</span>
         <span class="top-app-bar__spacer"></span>
+        <button class="theme-toggle" id="sync-btn" title="Sync now">
+            <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor"><path d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z"/></svg>
+        </button>
+        <select id="sync-select" class="sync-select" title="Auto-sync interval">
+            <option value="30000">30s</option>
+            <option value="60000" selected>1m</option>
+            <option value="120000">2m</option>
+            <option value="300000">5m</option>
+        </select>
+        <div class="palette-dropdown" id="palette-dropdown">
+            <button class="palette-dropdown__trigger" title="Choose light palette" tabindex="0">
+                <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M480-80q-82 0-155-31.5t-127.5-86Q143-252 111.5-325T80-480q0-83 32.5-156t88-127Q256-817 330-848.5T480-880q83 0 156 31.5t127 86q54 54.5 85.5 127T880-480q0 82-31.5 155T762-197.5q-54 54.5-127 86T480-80Zm0-400Zm-120 80h240q0-50-35-85t-85-35q-50 0-85 35t-35 85ZM200-200h560q-54-53-125.5-86.5T480-320q-83 0-154.5 33.5T200-200Zm280-320q33 0 56.5-23.5T560-600q0-33-23.5-56.5T480-680q-33 0-56.5 23.5T400-600q0 33 23.5 56.5T480-520Z"/></svg>
+            </button>
+            <div class="palette-dropdown__menu">
+                <button class="palette-dropdown__item" data-palette="1">
+                    <span class="palette-swatch">
+                        <span class="palette-swatch__color" style="background:#FBF3D1"></span>
+                        <span class="palette-swatch__color" style="background:#DEDED1"></span>
+                        <span class="palette-swatch__color" style="background:#C5C7BC"></span>
+                        <span class="palette-swatch__color" style="background:#B6AE9F"></span>
+                    </span>
+                    Warm Sand
+                </button>
+                <button class="palette-dropdown__item" data-palette="2">
+                    <span class="palette-swatch">
+                        <span class="palette-swatch__color" style="background:#F5F5F0"></span>
+                        <span class="palette-swatch__color" style="background:#E6D8C3"></span>
+                        <span class="palette-swatch__color" style="background:#C2A68C"></span>
+                        <span class="palette-swatch__color" style="background:#5D866C"></span>
+                    </span>
+                    Natural Sage
+                </button>
+                <button class="palette-dropdown__item" data-palette="3">
+                    <span class="palette-swatch">
+                        <span class="palette-swatch__color" style="background:#EFE1B5"></span>
+                        <span class="palette-swatch__color" style="background:#CDB885"></span>
+                        <span class="palette-swatch__color" style="background:#5DD3B6"></span>
+                        <span class="palette-swatch__color" style="background:#6E5034"></span>
+                    </span>
+                    Tropical
+                </button>
+                <button class="palette-dropdown__item" data-palette="4">
+                    <span class="palette-swatch">
+                        <span class="palette-swatch__color" style="background:#EDE4C2"></span>
+                        <span class="palette-swatch__color" style="background:#F5824A"></span>
+                        <span class="palette-swatch__color" style="background:#A03A13"></span>
+                        <span class="palette-swatch__color" style="background:#254F22"></span>
+                    </span>
+                    Forest Autumn
+                </button>
+            </div>
+        </div>
         <button class="theme-toggle" id="theme-btn" title="Toggle theme">
             <svg class="theme-icon--light" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M480-360q50 0 85-35t35-85q0-50-35-85t-85-35q-50 0-85 35t-35 85q0 50 35 85t85 35Zm0 80q-83 0-141.5-58.5T280-480q0-83 58.5-141.5T480-680q83 0 141.5 58.5T680-480q0 83-58.5 141.5T480-280ZM200-440H40v-80h160v80Zm720 0H760v-80h160v80ZM440-760v-160h80v160h-80Zm0 720v-160h80v160h-80ZM256-650l-101-97 57-59 96 100-52 56Zm492 496-97-101 53-55 101 97-57 59Zm-98-550 97-101 59 57-100 96-56-52ZM154-212l101-97 55 53-97 101-59-57Zm326-268Z"/></svg>
             <svg class="theme-icon--dark" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M480-120q-150 0-255-105T120-480q0-150 105-255t255-105q14 0 27.5 1t26.5 3q-41 29-65.5 75.5T444-660q0 90 63 153t153 63q55 0 101-24.5t75-65.5q2 13 3 26.5t1 27.5q0 150-105 255T480-120Zm0-80q88 0 158-48.5T740-375q-20 5-40 8t-40 3q-123 0-209.5-86.5T364-660q0-20 3-40t8-40q-78 32-126.5 102T200-480q0 116 82 198t198 82Zm-10-270Z"/></svg>

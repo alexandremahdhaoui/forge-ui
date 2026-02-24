@@ -1,3 +1,5 @@
+//go:build !js || !wasm
+
 package controller
 
 import (
@@ -11,6 +13,17 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
+
+func stubOrchestrationMocksForWorkspace() (*mockadapter.WsConfigLoader, *mockadapter.MetaPlanLoader, *mockadapter.RepoPlanLoader) {
+	wc := new(mockadapter.WsConfigLoader)
+	mp := new(mockadapter.MetaPlanLoader)
+	rp := new(mockadapter.RepoPlanLoader)
+	wc.On("Load", mock.Anything).Return(types.WsConfig{}, errors.New("none")).Maybe()
+	mp.On("LoadAll", mock.Anything).Return(nil, errors.New("none")).Maybe()
+	rp.On("LoadSummary", mock.Anything, mock.Anything).Return(types.RepoPlanSummary{}, errors.New("none")).Maybe()
+	rp.On("LoadAll", mock.Anything).Return(nil, errors.New("none")).Maybe()
+	return wc, mp, rp
+}
 
 func TestGetWorkspace_Success(t *testing.T) {
 	t.Parallel()
@@ -30,7 +43,8 @@ func TestGetWorkspace_Success(t *testing.T) {
 	ws.On("Get", "/base", "ws1").Return(wsData, nil)
 	c.On("GetRepoSummary", "default/ws1", mock.Anything).Return(types.RepoSummary{}, false)
 
-	svc := NewWorkspaceService(ws, c, fl)
+	wc, mp, rp := stubOrchestrationMocksForWorkspace()
+	svc := NewWorkspaceService(ws, c, fl, wc, mp, rp)
 	result, err := svc.GetWorkspace("/base", "default", "ws1", "name")
 
 	require.NoError(t, err)
@@ -74,7 +88,8 @@ func TestGetWorkspace_WithCachedGitData(t *testing.T) {
 		LastCommitTime: commitTime,
 	}, true)
 
-	svc := NewWorkspaceService(wsMock, c, fl)
+	wc, mp, rp := stubOrchestrationMocksForWorkspace()
+	svc := NewWorkspaceService(wsMock, c, fl, wc, mp, rp)
 	result, err := svc.GetWorkspace("/base", "myportfolio", "ws1", "name")
 
 	require.NoError(t, err)
@@ -118,7 +133,8 @@ func TestGetWorkspace_WithForgeHeatmap(t *testing.T) {
 		},
 	}, nil)
 
-	svc := NewWorkspaceService(wsMock, c, fl)
+	wc, mp, rp := stubOrchestrationMocksForWorkspace()
+	svc := NewWorkspaceService(wsMock, c, fl, wc, mp, rp)
 	result, err := svc.GetWorkspace("/base", "default", "ws1", "name")
 
 	require.NoError(t, err)
@@ -159,7 +175,8 @@ func TestGetWorkspace_SortByTime(t *testing.T) {
 		LastCommitTime: now.Add(-10 * time.Minute),
 	}, true)
 
-	svc := NewWorkspaceService(wsMock, c, fl)
+	wc, mp, rp := stubOrchestrationMocksForWorkspace()
+	svc := NewWorkspaceService(wsMock, c, fl, wc, mp, rp)
 	result, err := svc.GetWorkspace("/base", "default", "ws1", "time")
 
 	require.NoError(t, err)
@@ -181,7 +198,8 @@ func TestGetWorkspace_NotFound(t *testing.T) {
 
 	wsMock.On("Get", "/base", "nonexistent").Return(types.WorkspacePageData{}, errors.New("workspace not found"))
 
-	svc := NewWorkspaceService(wsMock, c, fl)
+	wc, mp, rp := stubOrchestrationMocksForWorkspace()
+	svc := NewWorkspaceService(wsMock, c, fl, wc, mp, rp)
 	_, err := svc.GetWorkspace("/base", "default", "nonexistent", "name")
 
 	assert.EqualError(t, err, "workspace not found")
@@ -203,7 +221,8 @@ func TestGetWorkspace_NamedPortfolioPath(t *testing.T) {
 	// When portfolio != "default", basedir should be baseDir/portfolio
 	wsMock.On("Get", "/base/myportfolio", "ws1").Return(wsData, nil)
 
-	svc := NewWorkspaceService(wsMock, c, fl)
+	wc, mp, rp := stubOrchestrationMocksForWorkspace()
+	svc := NewWorkspaceService(wsMock, c, fl, wc, mp, rp)
 	result, err := svc.GetWorkspace("/base", "myportfolio", "ws1", "name")
 
 	require.NoError(t, err)

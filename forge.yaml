@@ -24,8 +24,8 @@ engines:
       - engine: go://generic-builder
 
 build:
-  - name: forge-ui
-    src: ./cmd/forge-ui
+  - name: forge-frontend
+    src: ./cmd/forge-frontend
     dest: ./build/bin
     engine: go://go-build
 
@@ -51,6 +51,17 @@ build:
   - name: generate-mocks
     src: .
     engine: alias://generate-mocks
+
+  - name: generate-rest-api
+    src: ./api/forge-ui.v1.yaml
+    dest: ./internal/driver/rest
+    engine: go://go-gen-openapi
+    spec:
+      sourceFile: ./api/forge-ui.v1.yaml
+      destinationDir: ./internal/driver
+      server:
+        enabled: true
+        packageName: rest
 
 test:
   - name: lint

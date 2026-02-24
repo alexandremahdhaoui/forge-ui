@@ -22,7 +22,15 @@ type renderer struct {
 
 // NewPageRenderer creates a PageRenderer backed by the given DataSource.
 func NewPageRenderer(ds adapter.DataSource) PageRenderer {
-	tmpl, err := template.New("").ParseFS(templateFS, "templates/*.html")
+	funcMap := template.FuncMap{
+		"percent": func(done, total int) int {
+			if total == 0 {
+				return 0
+			}
+			return (done * 100) / total
+		},
+	}
+	tmpl, err := template.New("").Funcs(funcMap).ParseFS(templateFS, "templates/*.html")
 	if err != nil {
 		panic(fmt.Sprintf("controller: failed to parse templates: %v", err))
 	}

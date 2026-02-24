@@ -1,3 +1,5 @@
+//go:build !js || !wasm
+
 package controller
 
 import (
@@ -13,12 +15,13 @@ type ForgeService interface {
 }
 
 type forgeService struct {
-	forgeLoader adapter.ForgeLoader
+	forgeLoader    adapter.ForgeLoader
+	repoPlanLoader adapter.RepoPlanLoader
 }
 
 // NewForgeService creates a ForgeService.
-func NewForgeService(fl adapter.ForgeLoader) ForgeService {
-	return &forgeService{forgeLoader: fl}
+func NewForgeService(fl adapter.ForgeLoader, rp adapter.RepoPlanLoader) ForgeService {
+	return &forgeService{forgeLoader: fl, repoPlanLoader: rp}
 }
 
 func (s *forgeService) GetForge(baseDir, portfolio, workspace, repo string) (types.ForgePageData, error) {
@@ -66,6 +69,11 @@ func (s *forgeService) GetForge(baseDir, portfolio, workspace, repo string) (typ
 	stats.StageCount = len(stageSet)
 	data.Stats = stats
 	data.StageStatusMap = stageStatusMap
+
+	// Load repo plan progress.
+	if plans, err := s.repoPlanLoader.LoadAll(repoPath); err == nil && len(plans) > 0 {
+		data.RepoPlans = plans
+	}
 
 	return data, nil
 }

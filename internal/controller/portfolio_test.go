@@ -1,3 +1,5 @@
+//go:build !js || !wasm
+
 package controller
 
 import (
@@ -11,6 +13,16 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
+
+func stubOrchestrationMocksForPortfolio() (*mockadapter.WsConfigLoader, *mockadapter.MetaPlanLoader, *mockadapter.PortfolioConfigLoader) {
+	wc := new(mockadapter.WsConfigLoader)
+	mp := new(mockadapter.MetaPlanLoader)
+	pc := new(mockadapter.PortfolioConfigLoader)
+	pc.On("Load", mock.Anything).Return(types.PortfolioConfig{}, errors.New("none")).Maybe()
+	wc.On("Load", mock.Anything).Return(types.WsConfig{}, errors.New("none")).Maybe()
+	mp.On("LoadAll", mock.Anything).Return(nil, errors.New("none")).Maybe()
+	return wc, mp, pc
+}
 
 func TestListPortfolios_SortByTime(t *testing.T) {
 	t.Parallel()
@@ -55,7 +67,9 @@ func TestListPortfolios_SortByTime(t *testing.T) {
 		LastCommitTime: now.Add(-10 * time.Minute),
 	}, true)
 
-	svc := NewPortfolioService(pd, c, fl)
+	wc, mp, pc := stubOrchestrationMocksForPortfolio()
+
+	svc := NewPortfolioService(pd, c, fl, wc, mp, pc)
 	result, err := svc.ListPortfolios("/base", "time")
 
 	require.NoError(t, err)
@@ -90,7 +104,8 @@ func TestListPortfolios_SortByName(t *testing.T) {
 	pd.On("List", "/base").Return(portfolios, nil)
 	c.On("GetRepoOverview", "only/ws1", "r1").Return(types.RepoOverview{}, false)
 
-	svc := NewPortfolioService(pd, c, fl)
+	wc, mp, pc := stubOrchestrationMocksForPortfolio()
+	svc := NewPortfolioService(pd, c, fl, wc, mp, pc)
 	result, err := svc.ListPortfolios("/base", "name")
 
 	require.NoError(t, err)
@@ -109,7 +124,8 @@ func TestListPortfolios_ErrorFromDiscovery(t *testing.T) {
 
 	pd.On("List", "/base").Return(nil, errors.New("disk error"))
 
-	svc := NewPortfolioService(pd, c, fl)
+	wc, mp, pc := stubOrchestrationMocksForPortfolio()
+	svc := NewPortfolioService(pd, c, fl, wc, mp, pc)
 	_, err := svc.ListPortfolios("/base", "time")
 
 	assert.EqualError(t, err, "disk error")
@@ -141,7 +157,8 @@ func TestGetPortfolio_Success(t *testing.T) {
 	pd.On("Get", "/base", "myportfolio").Return(data, nil)
 	c.On("GetRepoOverview", mock.Anything, mock.Anything).Return(types.RepoOverview{}, false)
 
-	svc := NewPortfolioService(pd, c, fl)
+	wc, mp, pc := stubOrchestrationMocksForPortfolio()
+	svc := NewPortfolioService(pd, c, fl, wc, mp, pc)
 	result, err := svc.GetPortfolio("/base", "myportfolio", "name")
 
 	require.NoError(t, err)
@@ -163,7 +180,8 @@ func TestGetPortfolio_NotFound(t *testing.T) {
 
 	pd.On("Get", "/base", "missing").Return(types.PortfolioPageData{}, errors.New("not found"))
 
-	svc := NewPortfolioService(pd, c, fl)
+	wc, mp, pc := stubOrchestrationMocksForPortfolio()
+	svc := NewPortfolioService(pd, c, fl, wc, mp, pc)
 	_, err := svc.GetPortfolio("/base", "missing", "time")
 
 	assert.EqualError(t, err, "not found")
@@ -202,7 +220,8 @@ func TestGetPortfolio_WithCacheEnrichment(t *testing.T) {
 		LastCommitTime: commitTime,
 	}, true)
 
-	svc := NewPortfolioService(pd, c, fl)
+	wc, mp, pc := stubOrchestrationMocksForPortfolio()
+	svc := NewPortfolioService(pd, c, fl, wc, mp, pc)
 	result, err := svc.GetPortfolio("/base", "p1", "time")
 
 	require.NoError(t, err)
@@ -254,7 +273,8 @@ func TestGetPortfolio_WithForgeHeatmap(t *testing.T) {
 		},
 	}, nil)
 
-	svc := NewPortfolioService(pd, c, fl)
+	wc, mp, pc := stubOrchestrationMocksForPortfolio()
+	svc := NewPortfolioService(pd, c, fl, wc, mp, pc)
 	result, err := svc.GetPortfolio("/base", "p1", "name")
 
 	require.NoError(t, err)

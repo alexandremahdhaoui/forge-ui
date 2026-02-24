@@ -3,15 +3,27 @@
 package main
 
 import (
+	"syscall/js"
+
 	"github.com/alexandremahdhaoui/forge-ui/internal/adapter"
 	"github.com/alexandremahdhaoui/forge-ui/internal/controller"
 	"github.com/alexandremahdhaoui/forge-ui/internal/driver/wasm"
 )
 
 func main() {
-	ds := adapter.NewDemoDataSource()
+	apiBaseURL := getAPIBaseURL()
+	ds := adapter.NewAPIDataSource(apiBaseURL)
 	renderer := controller.NewPageRenderer(ds)
 	d := wasm.New(renderer)
 	d.Init()
 	select {} // block forever
+}
+
+func getAPIBaseURL() string {
+	doc := js.Global().Get("document")
+	meta := doc.Call("querySelector", `meta[name="api-base-url"]`)
+	if meta.IsNull() || meta.IsUndefined() {
+		return "http://localhost:8081/api/v1" // fallback default
+	}
+	return meta.Get("content").String()
 }

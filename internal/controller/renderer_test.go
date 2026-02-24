@@ -5,20 +5,197 @@ import (
 	"html/template"
 	"strings"
 	"testing"
+	"time"
 
-	"github.com/alexandremahdhaoui/forge-ui/internal/adapter"
 	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 	"github.com/alexandremahdhaoui/forge-ui/internal/util/mocks/mockadapter"
 	"github.com/stretchr/testify/assert"
 )
 
-func newTestRenderer() PageRenderer {
-	ds := adapter.NewDemoDataSource()
-	return NewPageRenderer(ds)
+// --- Test data builders ---
+
+func testPortfoliosPageData(sort string) types.PortfoliosPageData {
+	return types.PortfoliosPageData{
+		Portfolios: []types.PortfolioSummary{
+			{
+				Name:      "infrastructure",
+				Path:      "/home/user/workspaces/infrastructure",
+				IsDefault: false,
+				Workspaces: []types.WorkspaceSummary{
+					{
+						Name:      "platform",
+						Path:      "/home/user/workspaces/infrastructure/platform",
+						RepoCount: 3,
+						Repos: []types.RepoOverview{
+							{Name: "forge", WorkspaceName: "platform", Branch: "main", HasForge: true, RepoLink: "#/portfolios/infrastructure/workspaces/platform/repos/forge"},
+						},
+						AllStages: []string{"lint", "unit", "integration"},
+						RepoForge: []types.RepoForgeStats{
+							{RepoName: "forge", RepoLink: "#/portfolios/infrastructure/workspaces/platform/repos/forge", StageResults: map[string]string{"lint": "passed", "unit": "passed", "integration": "passed"}},
+							{RepoName: "config-server", RepoLink: "#/portfolios/infrastructure/workspaces/platform/repos/config-server", StageResults: map[string]string{"lint": "passed", "unit": "failed"}},
+						},
+					},
+					{
+						Name:      "networking",
+						Path:      "/home/user/workspaces/infrastructure/networking",
+						RepoCount: 2,
+					},
+				},
+				Stats: types.WorkspacesStats{TotalWorkspaces: 2, TotalRepos: 5, DirtyRepos: 2, TotalTests: 42, Passed: 38, Failed: 4},
+			},
+			{
+				Name:      "default",
+				Path:      "/home/user/workspaces",
+				IsDefault: true,
+				Workspaces: []types.WorkspaceSummary{
+					{Name: "personal", Path: "/home/user/workspaces/personal", RepoCount: 2},
+				},
+				Stats: types.WorkspacesStats{TotalWorkspaces: 1, TotalRepos: 2, DirtyRepos: 1},
+			},
+		},
+		Stats: types.PortfoliosStats{
+			TotalPortfolios: 2,
+			TotalWorkspaces: 3,
+			TotalRepos:      7,
+			DirtyRepos:      3,
+			Passed:          38,
+			Failed:          4,
+		},
+		SortMode: sort,
+		HomeURL:  "#/portfolios",
+	}
+}
+
+func testPortfolioPageData(sort string) types.PortfolioPageData {
+	return types.PortfolioPageData{
+		Name:      "infrastructure",
+		Path:      "/home/user/workspaces/infrastructure",
+		IsDefault: false,
+		Workspaces: []types.WorkspaceSummary{
+			{
+				Name:      "platform",
+				Path:      "/home/user/workspaces/infrastructure/platform",
+				RepoCount: 3,
+				Repos: []types.RepoOverview{
+					{Name: "forge", WorkspaceName: "platform", Branch: "main", HasForge: true, RepoLink: "#/portfolios/infrastructure/workspaces/platform/repos/forge"},
+				},
+				AllStages: []string{"lint", "unit", "integration"},
+				RepoForge: []types.RepoForgeStats{
+					{RepoName: "forge", StageResults: map[string]string{"lint": "passed", "unit": "passed", "integration": "passed"}},
+				},
+			},
+			{
+				Name:      "networking",
+				Path:      "/home/user/workspaces/infrastructure/networking",
+				RepoCount: 2,
+			},
+		},
+		Stats:    types.WorkspacesStats{TotalWorkspaces: 2, TotalRepos: 5, DirtyRepos: 2, Passed: 38, Failed: 4},
+		SortMode: sort,
+		HomeURL:  "#/portfolios",
+	}
+}
+
+func testWorkspacePageData(sort string) types.WorkspacePageData {
+	return types.WorkspacePageData{
+		Name:          "platform",
+		PortfolioName: "infrastructure",
+		Path:          "/home/user/workspaces/infrastructure/platform",
+		Repos: []types.RepoSummary{
+			{
+				Name: "forge", Branch: "main", HasForge: true,
+				RepoLink:       "#/portfolios/infrastructure/workspaces/platform/repos/forge",
+				LastCommitTime: time.Date(2026, 2, 21, 10, 0, 0, 0, time.UTC),
+				RecentLogs: []types.LogEntry{
+					{Hash: "a1b2c3d", Message: "feat: add generic-builder engine"},
+				},
+			},
+			{
+				Name: "forge-ui", Branch: "feat/wasm", IsDirty: true, Ahead: 3, HasForge: true,
+				RepoLink:       "#/portfolios/infrastructure/workspaces/platform/repos/forge-ui",
+				LastCommitTime: time.Date(2026, 2, 21, 12, 30, 0, 0, time.UTC),
+				StatusFiles: []types.StatusEntry{
+					{Code: "M", FilePath: "cmd/forge-ui-wasm/main.go"},
+					{Code: "A", FilePath: "web/index.html"},
+				},
+				DiffStat: " 2 files changed, 450 insertions(+)",
+			},
+			{
+				Name: "config-server", Branch: "main", Behind: 2, HasForge: true,
+				RepoLink:       "#/portfolios/infrastructure/workspaces/platform/repos/config-server",
+				LastCommitTime: time.Date(2026, 2, 20, 8, 15, 0, 0, time.UTC),
+			},
+		},
+		Stats:     types.WorkspaceStats{TotalRepos: 3, ForgeRepos: 3, TotalTests: 30, Passed: 27, Failed: 3, Skipped: 2},
+		AllStages: []string{"lint", "unit", "integration"},
+		RepoForge: []types.RepoForgeStats{
+			{RepoName: "forge", RepoLink: "#/portfolios/infrastructure/workspaces/platform/repos/forge", StageResults: map[string]string{"lint": "passed", "unit": "passed", "integration": "passed"}},
+			{RepoName: "forge-ui", RepoLink: "#/portfolios/infrastructure/workspaces/platform/repos/forge-ui", StageResults: map[string]string{"lint": "passed", "unit": "passed"}},
+			{RepoName: "config-server", RepoLink: "#/portfolios/infrastructure/workspaces/platform/repos/config-server", StageResults: map[string]string{"lint": "passed", "unit": "failed"}},
+		},
+		SortMode: sort,
+		HomeURL:  "#/portfolios",
+	}
+}
+
+func testForgePageData() types.ForgePageData {
+	return types.ForgePageData{
+		WorkspaceName: "platform",
+		RepoName:      "forge",
+		PortfolioName: "infrastructure",
+		Spec: types.ForgeSpec{
+			Name: "forge",
+			Build: []types.BuildSpec{
+				{Name: "forge", Src: "./cmd/forge", Dest: "./build/bin", Engine: "go://go-build"},
+				{Name: "forge-container", Src: "./containers/forge/Containerfile", Engine: "go://container-build"},
+			},
+			Test: []types.TestSpec{
+				{Name: "lint", Runner: "go://go-lint"},
+				{Name: "unit", Runner: "go://go-test"},
+				{Name: "integration", Testenv: "kind-cluster", Runner: "go://go-test"},
+			},
+		},
+		Artifacts: []types.Artifact{
+			{Name: "forge", Type: "binary", Location: "./build/bin/forge", Timestamp: "2026-02-21T10:00:00Z", Version: "a1b2c3d"},
+			{Name: "forge-container", Type: "container", Location: "ghcr.io/user/forge:latest", Timestamp: "2026-02-21T10:05:00Z", Version: "a1b2c3d"},
+		},
+		TestReports: []types.TestReport{
+			{ID: "rpt-001", Stage: "lint", Status: "passed", StartTime: time.Date(2026, 2, 21, 9, 50, 0, 0, time.UTC), Duration: 4.2, Stats: types.TestStats{Total: 1, Passed: 1}},
+			{ID: "rpt-002", Stage: "unit", Status: "passed", StartTime: time.Date(2026, 2, 21, 9, 51, 0, 0, time.UTC), Duration: 12.8, Stats: types.TestStats{Total: 87, Passed: 85, Skipped: 2}, Coverage: types.Coverage{Enabled: true, Percentage: 78.4, FilePath: "coverage.out"}},
+			{ID: "rpt-003", Stage: "integration", Status: "passed", StartTime: time.Date(2026, 2, 21, 9, 55, 0, 0, time.UTC), Duration: 45.1, Stats: types.TestStats{Total: 12, Passed: 12}},
+		},
+		TestEnvs: []types.TestEnv{
+			{ID: "env-001", Name: "kind-cluster", Status: "passed", CreatedAt: time.Date(2026, 2, 21, 9, 54, 0, 0, time.UTC), UpdatedAt: time.Date(2026, 2, 21, 10, 1, 0, 0, time.UTC), ManagedResources: []string{"kind-cluster/forge-test", "namespace/forge-integration"}},
+		},
+		Stats:          types.ForgeStats{TotalTests: 100, Passed: 98, Skipped: 2, AvgCoverage: 78.4, HasCoverage: true, StageCount: 3},
+		StageStatusMap: map[string]string{"lint": "passed", "unit": "passed", "integration": "passed"},
+		HomeURL:        "#/portfolios",
+	}
+}
+
+// --- Rendering tests using mock DataSource ---
+
+func newMockRenderer(ds *mockadapter.DataSource) *renderer {
+	funcMap := template.FuncMap{
+		"percent": func(done, total int) int {
+			if total == 0 {
+				return 0
+			}
+			return (done * 100) / total
+		},
+	}
+	tmpl, err := template.New("").Funcs(funcMap).ParseFS(templateFS, "templates/*.html")
+	if err != nil {
+		panic("failed to parse embedded templates: " + err.Error())
+	}
+	return &renderer{ds: ds, templates: tmpl}
 }
 
 func TestRender_Portfolios(t *testing.T) {
-	r := newTestRenderer()
+	ds := mockadapter.NewDataSource(t)
+	ds.On("ListPortfolios", "time").Return(testPortfoliosPageData("time"), nil)
+	r := newMockRenderer(ds)
+
 	html, err := r.Render("/portfolios?sort=time")
 	if err != nil {
 		t.Fatalf("Render: %v", err)
@@ -43,7 +220,10 @@ func TestRender_Portfolios(t *testing.T) {
 }
 
 func TestRender_Portfolio(t *testing.T) {
-	r := newTestRenderer()
+	ds := mockadapter.NewDataSource(t)
+	ds.On("GetPortfolio", "infrastructure", "name").Return(testPortfolioPageData("name"), nil)
+	r := newMockRenderer(ds)
+
 	html, err := r.Render("/portfolios/infrastructure?sort=name")
 	if err != nil {
 		t.Fatalf("Render: %v", err)
@@ -64,7 +244,10 @@ func TestRender_Portfolio(t *testing.T) {
 }
 
 func TestRender_Workspace(t *testing.T) {
-	r := newTestRenderer()
+	ds := mockadapter.NewDataSource(t)
+	ds.On("GetWorkspace", "infrastructure", "platform", "time").Return(testWorkspacePageData("time"), nil)
+	r := newMockRenderer(ds)
+
 	html, err := r.Render("/portfolios/infrastructure/workspaces/platform?sort=time")
 	if err != nil {
 		t.Fatalf("Render: %v", err)
@@ -91,7 +274,10 @@ func TestRender_Workspace(t *testing.T) {
 }
 
 func TestRender_Forge(t *testing.T) {
-	r := newTestRenderer()
+	ds := mockadapter.NewDataSource(t)
+	ds.On("GetForge", "infrastructure", "platform", "forge").Return(testForgePageData(), nil)
+	r := newMockRenderer(ds)
+
 	html, err := r.Render("/portfolios/infrastructure/workspaces/platform/repos/forge")
 	if err != nil {
 		t.Fatalf("Render: %v", err)
@@ -121,7 +307,12 @@ func TestRender_Forge(t *testing.T) {
 }
 
 func TestRender_UnknownPortfolio_FallsBackToPortfolios(t *testing.T) {
-	r := newTestRenderer()
+	ds := mockadapter.NewDataSource(t)
+	// GetPortfolio returns empty Name -> triggers fallback to ListPortfolios.
+	ds.On("GetPortfolio", "nonexistent", "time").Return(types.PortfolioPageData{}, nil)
+	ds.On("ListPortfolios", "time").Return(testPortfoliosPageData("time"), nil)
+	r := newMockRenderer(ds)
+
 	html, err := r.Render("/portfolios/nonexistent")
 	if err != nil {
 		t.Fatalf("Render: %v", err)
@@ -133,7 +324,10 @@ func TestRender_UnknownPortfolio_FallsBackToPortfolios(t *testing.T) {
 }
 
 func TestRender_DefaultRoute(t *testing.T) {
-	r := newTestRenderer()
+	ds := mockadapter.NewDataSource(t)
+	ds.On("ListPortfolios", "time").Return(testPortfoliosPageData("time"), nil)
+	r := newMockRenderer(ds)
+
 	html, err := r.Render("")
 	if err != nil {
 		t.Fatalf("Render: %v", err)
@@ -145,7 +339,10 @@ func TestRender_DefaultRoute(t *testing.T) {
 }
 
 func TestRender_SortButtons(t *testing.T) {
-	r := newTestRenderer()
+	ds := mockadapter.NewDataSource(t)
+	ds.On("ListPortfolios", "time").Return(testPortfoliosPageData("time"), nil)
+	r := newMockRenderer(ds)
+
 	html, err := r.Render("/portfolios?sort=time")
 	if err != nil {
 		t.Fatalf("Render: %v", err)
@@ -157,7 +354,10 @@ func TestRender_SortButtons(t *testing.T) {
 }
 
 func TestRender_HashRoute(t *testing.T) {
-	r := newTestRenderer()
+	ds := mockadapter.NewDataSource(t)
+	ds.On("GetPortfolio", "infrastructure", "time").Return(testPortfolioPageData("time"), nil)
+	r := newMockRenderer(ds)
+
 	html, err := r.Render("#/portfolios/infrastructure")
 	if err != nil {
 		t.Fatalf("Render: %v", err)
@@ -167,6 +367,8 @@ func TestRender_HashRoute(t *testing.T) {
 		t.Error("expected hash route to resolve correctly")
 	}
 }
+
+// --- parseInput tests ---
 
 func TestParseInput_Defaults(t *testing.T) {
 	in := parseInput("")
@@ -202,14 +404,6 @@ func TestParseInput_HashPrefix(t *testing.T) {
 }
 
 // --- Error cases using mock DataSource ---
-
-func newMockRenderer(ds *mockadapter.DataSource) *renderer {
-	tmpl, err := template.New("").ParseFS(templateFS, "templates/*.html")
-	if err != nil {
-		panic("failed to parse embedded templates: " + err.Error())
-	}
-	return &renderer{ds: ds, templates: tmpl}
-}
 
 func TestRender_ListPortfoliosError(t *testing.T) {
 	t.Parallel()

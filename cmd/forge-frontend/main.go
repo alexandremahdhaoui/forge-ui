@@ -13,12 +13,12 @@ import (
 
 	"github.com/alexandremahdhaoui/forge-ui/internal/adapter"
 	"github.com/alexandremahdhaoui/forge-ui/internal/controller"
-	httpdriver "github.com/alexandremahdhaoui/forge-ui/internal/driver/http"
+	restdriver "github.com/alexandremahdhaoui/forge-ui/internal/driver/rest"
 )
 
 func main() {
 	// Flags
-	port := flag.Int("port", 8080, "HTTP server port")
+	port := flag.Int("port", 8081, "HTTP server port")
 	workspaces := flag.String("workspaces", "", "base directory containing workspaces (default: $WORKSPACES or $HOME/workspaces)")
 	refreshInterval := flag.Duration("refresh-interval", 1*time.Minute, "background git refresh interval")
 	refreshWorkers := flag.Int("refresh-workers", 3, "number of background git refresh workers")
@@ -42,15 +42,16 @@ func main() {
 		log.Fatalf("workspaces directory does not exist: %s", baseDir)
 	}
 
-	// Resolve templates directory.
-	templateDir := resolveTemplateDir()
-
 	// Create adapters.
 	c := adapter.NewCache()
 	gi := adapter.NewGitInfo()
 	ws := adapter.NewWorkspaceDiscovery()
 	pd := adapter.NewPortfolioDiscovery(ws)
 	fl := adapter.NewForgeLoader()
+	wc := adapter.NewWsConfigLoader()
+	mp := adapter.NewMetaPlanLoader()
+	rp := adapter.NewRepoPlanLoader()
+	pc := adapter.NewPortfolioConfigLoader()
 
 	// Start background refresher.
 	r := controller.NewRefresher(c, gi, pd, ws, controller.RefresherConfig{
@@ -61,32 +62,22 @@ func main() {
 	r.Start() // blocks until initial refresh completes
 
 	// Create controller services.
-	ps := controller.NewPortfolioService(pd, c, fl)
-	wsSvc := controller.NewWorkspaceService(ws, c, fl)
-	fsSvc := controller.NewForgeService(fl)
+	ps := controller.NewPortfolioService(pd, c, fl, wc, mp, pc)
+	wsSvc := controller.NewWorkspaceService(ws, c, fl, wc, mp, rp)
+	fsSvc := controller.NewForgeService(fl, rp)
 
-	// Create handler
-	h, err := httpdriver.New(baseDir, templateDir, ps, wsSvc, fsSvc)
-	if err != nil {
-		log.Fatalf("failed to initialize handlers: %v", err)
-	}
-
-	// Register routes
+	// Create REST API handler and register routes.
+	h := restdriver.NewAPIHandler(baseDir, ps, wsSvc, fsSvc)
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /{$}", h.HandleRedirect)
-	mux.HandleFunc("GET /portfolios", h.HandlePortfolios)
-	mux.HandleFunc("GET /portfolios/{name}", h.HandlePortfolio)
-	mux.HandleFunc("GET /portfolios/{p}/workspaces/{w}", h.HandleWorkspace)
-	mux.HandleFunc("GET /portfolios/{p}/workspaces/{w}/repos/{r}", h.HandleForge)
-	mux.HandleFunc("GET /theme/toggle", h.HandleToggleTheme)
-	mux.HandleFunc("GET /light-palette/{n}", h.HandleSetLightPalette)
+	si := restdriver.NewStrictHandler(h, nil)
+	restdriver.HandlerFromMux(si, mux)
 
 	addr := fmt.Sprintf(":%d", *port)
-	srv := &http.Server{Addr: addr, Handler: mux}
+	srv := &http.Server{Addr: addr, Handler: corsMiddleware(mux)}
 
 	// Start server in a goroutine.
 	go func() {
-		log.Printf("forge-ui listening on http://localhost%s", addr)
+		log.Printf("forge-frontend listening on http://localhost%s", addr)
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 			log.Fatalf("server error: %v", err)
 		}
@@ -104,30 +95,18 @@ func main() {
 	_ = srv.Close()
 }
 
-// resolveTemplateDir finds the templates directory.
-// Priority: ./templates, then <binary-dir>/templates.
-func resolveTemplateDir() string {
-	// Try current working directory
-	if info, err := os.Stat("templates"); err == nil && info.IsDir() {
-		abs, _ := filepath.Abs("templates")
-		return abs
-	}
-
-	// Try relative to binary
-	exe, err := os.Executable()
-	if err == nil {
-		dir := filepath.Join(filepath.Dir(exe), "templates")
-		if info, err := os.Stat(dir); err == nil && info.IsDir() {
-			return dir
+// corsMiddleware wraps an http.Handler with permissive CORS headers.
+// The WASM frontend (served on :8080) calls this backend (:8081) cross-origin.
+// Allow-Origin "*" is acceptable because the API is read-only.
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
 		}
-	}
-
-	// Try /templates (container path)
-	if info, err := os.Stat("/templates"); err == nil && info.IsDir() {
-		return "/templates"
-	}
-
-	// Fallback
-	log.Fatal("cannot find templates/ directory. Run from the project root or place templates/ next to the binary.")
-	return ""
+		next.ServeHTTP(w, r)
+	})
 }

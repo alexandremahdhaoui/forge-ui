@@ -39,3 +39,11 @@ func getLocalStorage(key, fallback string) string {
 func setLocalStorage(key, value string) {
 	js.Global().Get("localStorage").Call("setItem", key, value)
 }
+
+func jsSetInterval(fn js.Func, ms int) js.Value {
+	return js.Global().Call("setInterval", fn, ms)
+}
+
+func jsClearInterval(id js.Value) {
+	js.Global().Call("clearInterval", id)
+}

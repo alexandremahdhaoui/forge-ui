@@ -1,0 +1,870 @@
+openapi: 3.0.3
+info:
+  title: forge-ui API
+  description: REST API for forge-ui portfolio, workspace, and repo data.
+  version: v1.0.0
+
+paths:
+  /api/v1/portfolios:
+    get:
+      operationId: listPortfolios
+      summary: List all portfolios
+      parameters:
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ["name", "time"]
+            default: "time"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfoliosPageData'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/portfolios/{name}:
+    get:
+      operationId: getPortfolio
+      summary: Get a single portfolio by name
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ["name", "time"]
+            default: "time"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioPageData'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Portfolio not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/portfolios/{portfolio}/workspaces/{workspace}:
+    get:
+      operationId: getWorkspace
+      summary: Get a single workspace within a portfolio
+      parameters:
+        - name: portfolio
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: workspace
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ["name", "time"]
+            default: "time"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspacePageData'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/portfolios/{portfolio}/workspaces/{workspace}/repos/{repo}:
+    get:
+      operationId: getRepo
+      summary: Get forge data for a single repo
+      parameters:
+        - name: portfolio
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: workspace
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForgePageData'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Repo not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    # ---------------------------------------------------------------
+    # Error response (no corresponding Go type)
+    # ---------------------------------------------------------------
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    # ---------------------------------------------------------------
+    # Page-level response schemas
+    # ---------------------------------------------------------------
+    PortfoliosPageData:
+      x-go-type: types.PortfoliosPageData
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        portfolios:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioSummary'
+        stats:
+          $ref: '#/components/schemas/PortfoliosStats'
+        sortMode:
+          type: string
+
+    PortfolioPageData:
+      x-go-type: types.PortfolioPageData
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+        isDefault:
+          type: boolean
+        workspaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspaceSummary'
+        stats:
+          $ref: '#/components/schemas/WorkspacesStats'
+        description:
+          type: string
+        sortMode:
+          type: string
+
+    WorkspacePageData:
+      x-go-type: types.WorkspacePageData
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        portfolioName:
+          type: string
+        path:
+          type: string
+        repos:
+          type: array
+          items:
+            $ref: '#/components/schemas/RepoSummary'
+        stats:
+          $ref: '#/components/schemas/WorkspaceStats'
+        allStages:
+          type: array
+          items:
+            type: string
+        repoForge:
+          type: array
+          items:
+            $ref: '#/components/schemas/RepoForgeStats'
+        sortMode:
+          type: string
+        description:
+          type: string
+        repoRoles:
+          type: object
+          additionalProperties:
+            type: string
+        metaPlans:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetaPlan'
+        repoPlanSummaries:
+          type: array
+          items:
+            $ref: '#/components/schemas/RepoPlanSummary'
+
+    ForgePageData:
+      x-go-type: types.ForgePageData
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        workspaceName:
+          type: string
+        repoName:
+          type: string
+        portfolioName:
+          type: string
+        spec:
+          $ref: '#/components/schemas/ForgeSpec'
+        artifacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Artifact'
+        testReports:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestReport'
+        testEnvs:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestEnv'
+        stats:
+          $ref: '#/components/schemas/ForgeStats'
+        stageStatusMap:
+          type: object
+          additionalProperties:
+            type: string
+        repoPlans:
+          type: array
+          items:
+            $ref: '#/components/schemas/RepoPlan'
+
+    # ---------------------------------------------------------------
+    # Portfolio / workspace summary schemas
+    # ---------------------------------------------------------------
+    PortfolioSummary:
+      x-go-type: types.PortfolioSummary
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+        isDefault:
+          type: boolean
+        workspaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspaceSummary'
+        stats:
+          $ref: '#/components/schemas/WorkspacesStats'
+        description:
+          type: string
+
+    WorkspaceSummary:
+      x-go-type: types.WorkspaceSummary
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+        repoCount:
+          type: integer
+        repos:
+          type: array
+          items:
+            $ref: '#/components/schemas/RepoOverview'
+        allStages:
+          type: array
+          items:
+            type: string
+        repoForge:
+          type: array
+          items:
+            $ref: '#/components/schemas/RepoForgeStats'
+        description:
+          type: string
+        metaPlans:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetaPlan'
+        progress:
+          $ref: '#/components/schemas/WorkspaceProgress'
+
+    # ---------------------------------------------------------------
+    # Repo schemas
+    # ---------------------------------------------------------------
+    RepoSummary:
+      x-go-type: types.RepoSummary
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+        branch:
+          type: string
+        isDirty:
+          type: boolean
+        statusFiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatusEntry'
+        diffStat:
+          type: string
+        recentLogs:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogEntry'
+        hasForge:
+          type: boolean
+        repoLink:
+          type: string
+        ahead:
+          type: integer
+        behind:
+          type: integer
+        hasUpstream:
+          type: boolean
+        lastCommitTime:
+          type: string
+          format: date-time
+
+    RepoOverview:
+      x-go-type: types.RepoOverview
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        workspaceName:
+          type: string
+        path:
+          type: string
+        branch:
+          type: string
+        isDirty:
+          type: boolean
+        ahead:
+          type: integer
+        behind:
+          type: integer
+        hasUpstream:
+          type: boolean
+        hasForge:
+          type: boolean
+        repoLink:
+          type: string
+        lastCommitTime:
+          type: string
+          format: date-time
+
+    StatusEntry:
+      x-go-type: types.StatusEntry
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        code:
+          type: string
+        filePath:
+          type: string
+
+    LogEntry:
+      x-go-type: types.LogEntry
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        hash:
+          type: string
+        message:
+          type: string
+
+    # ---------------------------------------------------------------
+    # Forge spec schemas
+    # ---------------------------------------------------------------
+    ForgeSpec:
+      x-go-type: types.ForgeSpec
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        build:
+          type: array
+          items:
+            $ref: '#/components/schemas/BuildSpec'
+        test:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestSpec'
+
+    BuildSpec:
+      x-go-type: types.BuildSpec
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        src:
+          type: string
+        dest:
+          type: string
+        engine:
+          type: string
+
+    TestSpec:
+      x-go-type: types.TestSpec
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        testenv:
+          type: string
+        runner:
+          type: string
+
+    # ---------------------------------------------------------------
+    # Artifact schemas
+    # ---------------------------------------------------------------
+    Artifact:
+      x-go-type: types.Artifact
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        location:
+          type: string
+        timestamp:
+          type: string
+        version:
+          type: string
+        dependencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArtifactDependency'
+
+    ArtifactDependency:
+      x-go-type: types.ArtifactDependency
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        type:
+          type: string
+        filePath:
+          type: string
+        timestamp:
+          type: string
+        externalPackage:
+          type: string
+        semver:
+          type: string
+
+    # ---------------------------------------------------------------
+    # Test report schemas
+    # ---------------------------------------------------------------
+    TestReport:
+      x-go-type: types.TestReport
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        id:
+          type: string
+        stage:
+          type: string
+        status:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        duration:
+          type: number
+          format: double
+        stats:
+          $ref: '#/components/schemas/TestStats'
+        coverage:
+          $ref: '#/components/schemas/Coverage'
+        errorMessage:
+          type: string
+
+    TestStats:
+      x-go-type: types.TestStats
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        total:
+          type: integer
+        passed:
+          type: integer
+        failed:
+          type: integer
+        skipped:
+          type: integer
+
+    Coverage:
+      x-go-type: types.Coverage
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        percentage:
+          type: number
+          format: double
+        filePath:
+          type: string
+
+    TestEnv:
+      x-go-type: types.TestEnv
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        managedResources:
+          type: array
+          items:
+            type: string
+
+    # ---------------------------------------------------------------
+    # Statistics schemas
+    # ---------------------------------------------------------------
+    WorkspacesStats:
+      x-go-type: types.WorkspacesStats
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        totalWorkspaces:
+          type: integer
+        totalRepos:
+          type: integer
+        dirtyRepos:
+          type: integer
+        totalTests:
+          type: integer
+        passed:
+          type: integer
+        failed:
+          type: integer
+        portfolio:
+          $ref: '#/components/schemas/PortfolioProgress'
+
+    PortfoliosStats:
+      x-go-type: types.PortfoliosStats
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        totalPortfolios:
+          type: integer
+        totalWorkspaces:
+          type: integer
+        totalRepos:
+          type: integer
+        dirtyRepos:
+          type: integer
+        totalTests:
+          type: integer
+        passed:
+          type: integer
+        failed:
+          type: integer
+        portfolio:
+          $ref: '#/components/schemas/PortfolioProgress'
+
+    WorkspaceStats:
+      x-go-type: types.WorkspaceStats
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        totalRepos:
+          type: integer
+        forgeRepos:
+          type: integer
+        totalTests:
+          type: integer
+        passed:
+          type: integer
+        failed:
+          type: integer
+        skipped:
+          type: integer
+
+    RepoForgeStats:
+      x-go-type: types.RepoForgeStats
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        repoName:
+          type: string
+        repoLink:
+          type: string
+        stageResults:
+          type: object
+          additionalProperties:
+            type: string
+
+    ForgeStats:
+      x-go-type: types.ForgeStats
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        totalTests:
+          type: integer
+        passed:
+          type: integer
+        failed:
+          type: integer
+        skipped:
+          type: integer
+        avgCoverage:
+          type: number
+          format: double
+        hasCoverage:
+          type: boolean
+        stageCount:
+          type: integer
+
+    # ---------------------------------------------------------------
+    # Meta-plan schemas
+    # ---------------------------------------------------------------
+    MetaPlan:
+      x-go-type: types.MetaPlan
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetaPlanStage'
+        checkpoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetaCheckpoint'
+
+    MetaPlanStage:
+      x-go-type: types.MetaPlanStage
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+        repos:
+          type: array
+          items:
+            $ref: '#/components/schemas/StageRepo'
+
+    StageRepo:
+      x-go-type: types.StageRepo
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        plan:
+          type: string
+        tasksTotal:
+          type: integer
+        tasksDone:
+          type: integer
+
+    MetaCheckpoint:
+      x-go-type: types.MetaCheckpoint
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        stage:
+          type: string
+        condition:
+          type: string
+        met:
+          type: boolean
+
+    # ---------------------------------------------------------------
+    # Plan schemas
+    # ---------------------------------------------------------------
+    RepoPlan:
+      x-go-type: types.RepoPlan
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        tasksTotal:
+          type: integer
+        tasksDone:
+          type: integer
+
+    RepoPlanSummary:
+      x-go-type: types.RepoPlanSummary
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        repoName:
+          type: string
+        plans:
+          type: array
+          items:
+            $ref: '#/components/schemas/RepoPlan'
+        tasksTotal:
+          type: integer
+        tasksDone:
+          type: integer
+
+    # ---------------------------------------------------------------
+    # Progress schemas
+    # ---------------------------------------------------------------
+    PortfolioProgress:
+      x-go-type: types.PortfolioProgress
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        totalMetaPlans:
+          type: integer
+        activeMetaPlans:
+          type: integer
+        completedMetaPlans:
+          type: integer
+        tasksTotal:
+          type: integer
+        tasksDone:
+          type: integer
+        percentDone:
+          type: integer
+
+    WorkspaceProgress:
+      x-go-type: types.WorkspaceProgress
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        metaPlanCount:
+          type: integer
+        tasksTotal:
+          type: integer
+        tasksDone:
+          type: integer
+        percentDone:
+          type: integer

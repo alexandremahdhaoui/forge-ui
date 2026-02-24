@@ -26,6 +26,12 @@
         <span class="stat-value {{if gt .Stats.Failed 0}}stat-value--fail{{end}}">{{.Stats.Failed}}</span>
         <span class="stat-label">Tests Failed</span>
     </div>
+    {{if gt .Stats.Portfolio.TotalMetaPlans 0}}
+    <div class="stat-card">
+        <span class="stat-value {{if gt .Stats.Portfolio.ActiveMetaPlans 0}}stat-value--pass{{end}}">{{.Stats.Portfolio.ActiveMetaPlans}}</span>
+        <span class="stat-label">Active Plans</span>
+    </div>
+    {{end}}
 </div>
 
 <div class="segmented-btn-group">
@@ -41,10 +47,26 @@
 <h2 class="headline-medium"><a href="#/portfolios/{{.Name}}">{{.Name}}</a>{{if .IsDefault}} <span class="chip chip--neutral">catch-all</span>{{end}}</h2>
 <p class="body-small" style="color: var(--md-sys-color-on-surface-variant);">{{.Stats.TotalWorkspaces}} workspaces, {{.Stats.TotalRepos}} repos</p>
 
+{{if .Description}}<p class="goal-text">{{.Description}}</p>{{end}}
+{{if gt .Stats.Portfolio.TasksTotal 0}}
+<div class="progress-bar{{if eq .Stats.Portfolio.PercentDone 100}} progress-bar--complete{{end}}">
+    <div class="progress-bar__fill" style="width: {{.Stats.Portfolio.PercentDone}}%"></div>
+</div>
+<p class="body-small" style="color: var(--md-sys-color-on-surface-variant); margin: 4px 0 8px 0;">{{.Stats.Portfolio.PercentDone}}% complete &middot; {{.Stats.Portfolio.TotalMetaPlans}} meta-plans &middot; {{.Stats.Portfolio.TasksDone}}/{{.Stats.Portfolio.TasksTotal}} tasks</p>
+{{end}}
+
 {{range .Workspaces}}
 {{$ws := .}}
 <h3 class="title-large" style="margin: 16px 0 4px 0;"><a href="#/portfolios/{{$pName}}/workspaces/{{.Name}}">{{.Name}}</a></h3>
 <p class="body-small" style="font-family: 'Roboto Mono', monospace; color: var(--md-sys-color-on-surface-variant);">{{.Path}}</p>
+
+{{if .Description}}<p class="goal-text">{{.Description}}</p>{{end}}
+{{if .MetaPlans}}
+<div class="progress-bar{{if eq .Progress.PercentDone 100}} progress-bar--complete{{end}}">
+    <div class="progress-bar__fill" style="width: {{.Progress.PercentDone}}%"></div>
+</div>
+<p class="body-small" style="color: var(--md-sys-color-on-surface-variant); margin: 4px 0 8px 0;">{{.Progress.PercentDone}}% complete &middot; {{len .MetaPlans}} meta-plans</p>
+{{end}}
 
 {{if .RepoForge}}
 <div style="overflow-x: auto;">
@@ -93,7 +115,7 @@
     <tbody>
         {{range .Repos}}
         <tr>
-            <td>{{.Name}}{{if .HasForge}} <a href="{{.RepoLink}}">[forge]</a>{{end}}</td>
+            <td><a href="{{.RepoLink}}">{{.Name}}</a>{{if .HasForge}} <a href="{{.RepoLink}}">[forge]</a>{{end}}</td>
             <td><span class="code-inline">{{.Branch}}</span></td>
             <td>
                 {{if .IsDirty}}<span class="chip chip--warn">dirty</span>

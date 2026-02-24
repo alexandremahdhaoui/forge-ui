@@ -1,0 +1,7 @@
+FROM docker.io/nginx:1.27-alpine
+
+COPY containers/forge-ui-wasm/nginx.conf /etc/nginx/conf.d/default.conf
+COPY build/web/ /usr/share/nginx/html/
+
+EXPOSE 8080
+CMD ["nginx", "-g", "daemon off;"]

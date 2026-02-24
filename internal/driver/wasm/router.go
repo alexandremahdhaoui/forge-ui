@@ -18,7 +18,7 @@ func NewRouter(onNavigate func(string)) *Router {
 // Start registers the hashchange event listener and triggers an initial
 // navigation if a hash is already set.
 func (r *Router) Start() {
-	r.cb = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	r.cb = js.FuncOf(func(this js.Value, args []js.Value) any {
 		hash := getHash()
 		r.onNavigate(hash)
 		return nil

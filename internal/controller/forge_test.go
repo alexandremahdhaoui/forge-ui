@@ -1,3 +1,5 @@
+//go:build !js || !wasm
+
 package controller
 
 import (
@@ -7,8 +9,15 @@ import (
 	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 	"github.com/alexandremahdhaoui/forge-ui/internal/util/mocks/mockadapter"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
+
+func stubRepoPlanLoaderForForge() *mockadapter.RepoPlanLoader {
+	rp := new(mockadapter.RepoPlanLoader)
+	rp.On("LoadAll", mock.Anything).Return(nil, errors.New("none")).Maybe()
+	return rp
+}
 
 func TestGetForge_Success(t *testing.T) {
 	t.Parallel()
@@ -22,7 +31,8 @@ func TestGetForge_Success(t *testing.T) {
 		},
 	}, nil)
 
-	svc := NewForgeService(fl)
+	rp := stubRepoPlanLoaderForForge()
+	svc := NewForgeService(fl, rp)
 	result, err := svc.GetForge("/base", "myportfolio", "ws1", "repo-a")
 
 	require.NoError(t, err)
@@ -54,7 +64,8 @@ func TestGetForge_WithTestReports(t *testing.T) {
 		},
 	}, nil)
 
-	svc := NewForgeService(fl)
+	rp := stubRepoPlanLoaderForForge()
+	svc := NewForgeService(fl, rp)
 	result, err := svc.GetForge("/base", "p1", "ws1", "repo-a")
 
 	require.NoError(t, err)
@@ -90,7 +101,8 @@ func TestGetForge_WithCoverage(t *testing.T) {
 		},
 	}, nil)
 
-	svc := NewForgeService(fl)
+	rp := stubRepoPlanLoaderForForge()
+	svc := NewForgeService(fl, rp)
 	result, err := svc.GetForge("/base", "p1", "ws1", "repo-a")
 
 	require.NoError(t, err)
@@ -107,7 +119,8 @@ func TestGetForge_LoadError(t *testing.T) {
 
 	fl.On("Load", "/base/p1/ws1/repo-a").Return(types.ForgePageData{}, errors.New("no forge.yaml"))
 
-	svc := NewForgeService(fl)
+	rp := stubRepoPlanLoaderForForge()
+	svc := NewForgeService(fl, rp)
 	_, err := svc.GetForge("/base", "p1", "ws1", "repo-a")
 
 	assert.EqualError(t, err, "no forge.yaml")
@@ -124,7 +137,8 @@ func TestGetForge_DefaultPortfolio(t *testing.T) {
 		Spec: types.ForgeSpec{Name: "repo-a"},
 	}, nil)
 
-	svc := NewForgeService(fl)
+	rp := stubRepoPlanLoaderForForge()
+	svc := NewForgeService(fl, rp)
 	result, err := svc.GetForge("/base", "default", "ws1", "repo-a")
 
 	require.NoError(t, err)
