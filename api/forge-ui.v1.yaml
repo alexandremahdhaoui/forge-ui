@@ -307,6 +307,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/RepoPlan'
+        siblingRepos:
+          type: array
+          items:
+            $ref: '#/components/schemas/SideNavItem'
 
     # ---------------------------------------------------------------
     # Portfolio / workspace summary schemas
@@ -868,3 +872,21 @@ components:
           type: integer
         percentDone:
           type: integer
+
+    # ---------------------------------------------------------------
+    # Side navigation schemas
+    # ---------------------------------------------------------------
+    SideNavItem:
+      x-go-type: types.SideNavItem
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        link:
+          type: string
+        isActive:
+          type: boolean
+        badge:
+          type: string

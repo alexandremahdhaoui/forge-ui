@@ -170,6 +170,11 @@ func testForgePageData() types.ForgePageData {
 		Stats:          types.ForgeStats{TotalTests: 100, Passed: 98, Skipped: 2, AvgCoverage: 78.4, HasCoverage: true, StageCount: 3},
 		StageStatusMap: map[string]string{"lint": "passed", "unit": "passed", "integration": "passed"},
 		HomeURL:        "#/portfolios",
+		SiblingRepos: []types.SideNavItem{
+			{Name: "forge", Link: "#/portfolios/infrastructure/workspaces/platform/repos/forge", IsActive: true},
+			{Name: "forge-ui", Link: "#/portfolios/infrastructure/workspaces/platform/repos/forge-ui"},
+			{Name: "config-server", Link: "#/portfolios/infrastructure/workspaces/platform/repos/config-server"},
+		},
 	}
 }
 
@@ -196,7 +201,7 @@ func TestRender_Portfolios(t *testing.T) {
 	ds.On("ListPortfolios", "time").Return(testPortfoliosPageData("time"), nil)
 	r := newMockRenderer(ds)
 
-	html, err := r.Render("/portfolios?sort=time")
+	result, err := r.Render("/portfolios?sort=time")
 	if err != nil {
 		t.Fatalf("Render: %v", err)
 	}
@@ -213,8 +218,22 @@ func TestRender_Portfolios(t *testing.T) {
 	}
 
 	for _, check := range checks {
-		if !strings.Contains(html, check) {
-			t.Errorf("expected HTML to contain %q", check)
+		if !strings.Contains(result.Content, check) {
+			t.Errorf("expected Content to contain %q", check)
+		}
+	}
+
+	// Verify side nav contains portfolio names.
+	sideNavChecks := []string{
+		"infrastructure",
+		"default",
+		"#/portfolios/infrastructure",
+		"#/portfolios/default",
+		"side-nav__item",
+	}
+	for _, check := range sideNavChecks {
+		if !strings.Contains(result.SideNav, check) {
+			t.Errorf("expected SideNav to contain %q", check)
 		}
 	}
 }
@@ -224,7 +243,7 @@ func TestRender_Portfolio(t *testing.T) {
 	ds.On("GetPortfolio", "infrastructure", "name").Return(testPortfolioPageData("name"), nil)
 	r := newMockRenderer(ds)
 
-	html, err := r.Render("/portfolios/infrastructure?sort=name")
+	result, err := r.Render("/portfolios/infrastructure?sort=name")
 	if err != nil {
 		t.Fatalf("Render: %v", err)
 	}
@@ -237,8 +256,23 @@ func TestRender_Portfolio(t *testing.T) {
 	}
 
 	for _, check := range checks {
-		if !strings.Contains(html, check) {
-			t.Errorf("expected HTML to contain %q", check)
+		if !strings.Contains(result.Content, check) {
+			t.Errorf("expected Content to contain %q", check)
+		}
+	}
+
+	// Verify side nav contains workspace names and links.
+	sideNavChecks := []string{
+		"platform",
+		"networking",
+		"#/portfolios/infrastructure/workspaces/platform",
+		"#/portfolios/infrastructure/workspaces/networking",
+		"side-nav__item",
+		"side-nav__breadcrumb",
+	}
+	for _, check := range sideNavChecks {
+		if !strings.Contains(result.SideNav, check) {
+			t.Errorf("expected SideNav to contain %q", check)
 		}
 	}
 }
@@ -248,7 +282,7 @@ func TestRender_Workspace(t *testing.T) {
 	ds.On("GetWorkspace", "infrastructure", "platform", "time").Return(testWorkspacePageData("time"), nil)
 	r := newMockRenderer(ds)
 
-	html, err := r.Render("/portfolios/infrastructure/workspaces/platform?sort=time")
+	result, err := r.Render("/portfolios/infrastructure/workspaces/platform?sort=time")
 	if err != nil {
 		t.Fatalf("Render: %v", err)
 	}
@@ -267,8 +301,23 @@ func TestRender_Workspace(t *testing.T) {
 	}
 
 	for _, check := range checks {
-		if !strings.Contains(html, check) {
-			t.Errorf("expected HTML to contain %q", check)
+		if !strings.Contains(result.Content, check) {
+			t.Errorf("expected Content to contain %q", check)
+		}
+	}
+
+	// Verify side nav contains repo names and links.
+	sideNavChecks := []string{
+		"forge",
+		"forge-ui",
+		"config-server",
+		"#/portfolios/infrastructure/workspaces/platform/repos/forge",
+		"side-nav__item",
+		"side-nav__breadcrumb",
+	}
+	for _, check := range sideNavChecks {
+		if !strings.Contains(result.SideNav, check) {
+			t.Errorf("expected SideNav to contain %q", check)
 		}
 	}
 }
@@ -278,7 +327,7 @@ func TestRender_Forge(t *testing.T) {
 	ds.On("GetForge", "infrastructure", "platform", "forge").Return(testForgePageData(), nil)
 	r := newMockRenderer(ds)
 
-	html, err := r.Render("/portfolios/infrastructure/workspaces/platform/repos/forge")
+	result, err := r.Render("/portfolios/infrastructure/workspaces/platform/repos/forge")
 	if err != nil {
 		t.Fatalf("Render: %v", err)
 	}
@@ -300,8 +349,24 @@ func TestRender_Forge(t *testing.T) {
 	}
 
 	for _, check := range checks {
-		if !strings.Contains(html, check) {
-			t.Errorf("expected HTML to contain %q", check)
+		if !strings.Contains(result.Content, check) {
+			t.Errorf("expected Content to contain %q", check)
+		}
+	}
+
+	// Verify side nav contains sibling repo names.
+	sideNavChecks := []string{
+		"forge",
+		"forge-ui",
+		"config-server",
+		"#/portfolios/infrastructure/workspaces/platform/repos/forge",
+		"side-nav__item",
+		"side-nav__item--active",
+		"side-nav__breadcrumb",
+	}
+	for _, check := range sideNavChecks {
+		if !strings.Contains(result.SideNav, check) {
+			t.Errorf("expected SideNav to contain %q", check)
 		}
 	}
 }
@@ -313,12 +378,12 @@ func TestRender_UnknownPortfolio_FallsBackToPortfolios(t *testing.T) {
 	ds.On("ListPortfolios", "time").Return(testPortfoliosPageData("time"), nil)
 	r := newMockRenderer(ds)
 
-	html, err := r.Render("/portfolios/nonexistent")
+	result, err := r.Render("/portfolios/nonexistent")
 	if err != nil {
 		t.Fatalf("Render: %v", err)
 	}
 
-	if !strings.Contains(html, "Portfolios") {
+	if !strings.Contains(result.Content, "Portfolios") {
 		t.Error("expected fallback to portfolios page")
 	}
 }
@@ -328,12 +393,12 @@ func TestRender_DefaultRoute(t *testing.T) {
 	ds.On("ListPortfolios", "time").Return(testPortfoliosPageData("time"), nil)
 	r := newMockRenderer(ds)
 
-	html, err := r.Render("")
+	result, err := r.Render("")
 	if err != nil {
 		t.Fatalf("Render: %v", err)
 	}
 
-	if !strings.Contains(html, "Portfolios") {
+	if !strings.Contains(result.Content, "Portfolios") {
 		t.Error("expected default route to render portfolios")
 	}
 }
@@ -343,12 +408,12 @@ func TestRender_SortButtons(t *testing.T) {
 	ds.On("ListPortfolios", "time").Return(testPortfoliosPageData("time"), nil)
 	r := newMockRenderer(ds)
 
-	html, err := r.Render("/portfolios?sort=time")
+	result, err := r.Render("/portfolios?sort=time")
 	if err != nil {
 		t.Fatalf("Render: %v", err)
 	}
 
-	if !strings.Contains(html, "segmented-btn--active\">Recent") {
+	if !strings.Contains(result.Content, "segmented-btn--active\">Recent") {
 		t.Error("expected Recent button to be active by default")
 	}
 }
@@ -358,12 +423,12 @@ func TestRender_HashRoute(t *testing.T) {
 	ds.On("GetPortfolio", "infrastructure", "time").Return(testPortfolioPageData("time"), nil)
 	r := newMockRenderer(ds)
 
-	html, err := r.Render("#/portfolios/infrastructure")
+	result, err := r.Render("#/portfolios/infrastructure")
 	if err != nil {
 		t.Fatalf("Render: %v", err)
 	}
 
-	if !strings.Contains(html, "infrastructure") {
+	if !strings.Contains(result.Content, "infrastructure") {
 		t.Error("expected hash route to resolve correctly")
 	}
 }
@@ -456,10 +521,10 @@ func TestRender_GetForgeEmptyFallsBackToWorkspace(t *testing.T) {
 	}, nil)
 
 	r := newMockRenderer(ds)
-	html, err := r.Render("/portfolios/infra/workspaces/platform/repos/empty-repo")
+	result, err := r.Render("/portfolios/infra/workspaces/platform/repos/empty-repo")
 
 	assert.NoError(t, err)
-	assert.Contains(t, html, "platform")
+	assert.Contains(t, result.Content, "platform")
 }
 
 func TestRender_GetWorkspaceEmptyFallsBackToPortfolio(t *testing.T) {
@@ -474,10 +539,10 @@ func TestRender_GetWorkspaceEmptyFallsBackToPortfolio(t *testing.T) {
 	}, nil)
 
 	r := newMockRenderer(ds)
-	html, err := r.Render("/portfolios/infra/workspaces/missing-ws")
+	result, err := r.Render("/portfolios/infra/workspaces/missing-ws")
 
 	assert.NoError(t, err)
-	assert.Contains(t, html, "infra")
+	assert.Contains(t, result.Content, "infra")
 }
 
 func TestRenderTemplate_ExecutionError(t *testing.T) {

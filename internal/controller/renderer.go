@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/alexandremahdhaoui/forge-ui/internal/adapter"
+	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 )
 
 //go:embed templates/*.html
@@ -39,7 +40,7 @@ func NewPageRenderer(ds adapter.DataSource) PageRenderer {
 
 // Render takes a raw route string (with optional query params and hash prefix)
 // and returns rendered HTML.
-func (r *renderer) Render(route string) (string, error) {
+func (r *renderer) Render(route string) (RenderResult, error) {
 	input := parseInput(route)
 	return r.executeRoute(input)
 }
@@ -82,7 +83,7 @@ func parseInput(raw string) input {
 	}
 }
 
-func (r *renderer) executeRoute(in input) (string, error) {
+func (r *renderer) executeRoute(in input) (RenderResult, error) {
 	parts := splitRoute(in.Route)
 
 	switch {
@@ -107,49 +108,139 @@ func splitRoute(route string) []string {
 	return strings.Split(route, "/")
 }
 
-func (r *renderer) renderPortfolios(in input) (string, error) {
+func (r *renderer) renderPortfolios(in input) (RenderResult, error) {
 	data, err := r.ds.ListPortfolios(in.Sort)
 	if err != nil {
-		return "", fmt.Errorf("list portfolios: %w", err)
+		return RenderResult{}, fmt.Errorf("list portfolios: %w", err)
 	}
 	data.DarkMode = in.Theme == "dark"
-	return r.renderTemplate("portfolios", data)
+
+	var nav types.SideNavData
+	for _, p := range data.Portfolios {
+		nav.Items = append(nav.Items, types.SideNavItem{
+			Name: p.Name,
+			Link: "#/portfolios/" + p.Name,
+		})
+	}
+	sideNav, err := r.renderSideNav(nav)
+	if err != nil {
+		return RenderResult{}, err
+	}
+
+	content, err := r.renderTemplate("portfolios", data)
+	if err != nil {
+		return RenderResult{}, err
+	}
+	return RenderResult{SideNav: sideNav, Content: content}, nil
 }
 
-func (r *renderer) renderPortfolio(name string, in input) (string, error) {
+func (r *renderer) renderPortfolio(name string, in input) (RenderResult, error) {
 	data, err := r.ds.GetPortfolio(name, in.Sort)
 	if err != nil {
-		return "", fmt.Errorf("get portfolio: %w", err)
+		return RenderResult{}, fmt.Errorf("get portfolio: %w", err)
 	}
 	if data.Name == "" {
 		return r.renderPortfolios(in)
 	}
 	data.DarkMode = in.Theme == "dark"
-	return r.renderTemplate("portfolio", data)
+
+	nav := types.SideNavData{
+		Header: types.SideNavHeader{
+			Segments: []types.SideNavBreadcrumb{
+				{Text: name, Link: "#/portfolios/" + name},
+			},
+		},
+	}
+	for _, ws := range data.Workspaces {
+		nav.Items = append(nav.Items, types.SideNavItem{
+			Name: ws.Name,
+			Link: "#/portfolios/" + name + "/workspaces/" + ws.Name,
+		})
+	}
+	sideNav, err := r.renderSideNav(nav)
+	if err != nil {
+		return RenderResult{}, err
+	}
+
+	content, err := r.renderTemplate("portfolio", data)
+	if err != nil {
+		return RenderResult{}, err
+	}
+	return RenderResult{SideNav: sideNav, Content: content}, nil
 }
 
-func (r *renderer) renderWorkspace(portfolio, workspace string, in input) (string, error) {
+func (r *renderer) renderWorkspace(portfolio, workspace string, in input) (RenderResult, error) {
 	data, err := r.ds.GetWorkspace(portfolio, workspace, in.Sort)
 	if err != nil {
-		return "", fmt.Errorf("get workspace: %w", err)
+		return RenderResult{}, fmt.Errorf("get workspace: %w", err)
 	}
 	if data.Name == "" {
 		return r.renderPortfolio(portfolio, in)
 	}
 	data.DarkMode = in.Theme == "dark"
-	return r.renderTemplate("workspace", data)
+
+	nav := types.SideNavData{
+		Header: types.SideNavHeader{
+			Segments: []types.SideNavBreadcrumb{
+				{Text: portfolio, Link: "#/portfolios/" + portfolio},
+				{Text: workspace, Link: "#/portfolios/" + portfolio + "/workspaces/" + workspace},
+			},
+		},
+	}
+	for _, repo := range data.Repos {
+		nav.Items = append(nav.Items, types.SideNavItem{
+			Name: repo.Name,
+			Link: repo.RepoLink,
+		})
+	}
+	sideNav, err := r.renderSideNav(nav)
+	if err != nil {
+		return RenderResult{}, err
+	}
+
+	content, err := r.renderTemplate("workspace", data)
+	if err != nil {
+		return RenderResult{}, err
+	}
+	return RenderResult{SideNav: sideNav, Content: content}, nil
 }
 
-func (r *renderer) renderForge(portfolio, workspace, repo string, in input) (string, error) {
+func (r *renderer) renderForge(portfolio, workspace, repo string, in input) (RenderResult, error) {
 	data, err := r.ds.GetForge(portfolio, workspace, repo)
 	if err != nil {
-		return "", fmt.Errorf("get forge: %w", err)
+		return RenderResult{}, fmt.Errorf("get forge: %w", err)
 	}
 	if data.RepoName == "" {
 		return r.renderWorkspace(portfolio, workspace, in)
 	}
 	data.DarkMode = in.Theme == "dark"
-	return r.renderTemplate("forge", data)
+
+	nav := types.SideNavData{
+		Header: types.SideNavHeader{
+			Segments: []types.SideNavBreadcrumb{
+				{Text: portfolio, Link: "#/portfolios/" + portfolio},
+				{Text: workspace, Link: "#/portfolios/" + portfolio + "/workspaces/" + workspace},
+			},
+		},
+		Items: data.SiblingRepos,
+	}
+	sideNav, err := r.renderSideNav(nav)
+	if err != nil {
+		return RenderResult{}, err
+	}
+
+	content, err := r.renderTemplate("forge", data)
+	if err != nil {
+		return RenderResult{}, err
+	}
+	return RenderResult{SideNav: sideNav, Content: content}, nil
+}
+
+func (r *renderer) renderSideNav(nav types.SideNavData) (string, error) {
+	if len(nav.Items) == 0 {
+		return "", nil
+	}
+	return r.renderTemplate("sidenav", nav)
 }
 
 func (r *renderer) renderTemplate(name string, data any) (string, error) {

@@ -5,6 +5,7 @@
 package mockcontroller
 
 import (
+	"github.com/alexandremahdhaoui/forge-ui/internal/controller"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -36,22 +37,22 @@ func (_m *PageRenderer) EXPECT() *PageRenderer_Expecter {
 }
 
 // Render provides a mock function for the type PageRenderer
-func (_mock *PageRenderer) Render(route string) (string, error) {
+func (_mock *PageRenderer) Render(route string) (controller.RenderResult, error) {
 	ret := _mock.Called(route)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Render")
 	}
 
-	var r0 string
+	var r0 controller.RenderResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(string) (string, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(string) (controller.RenderResult, error)); ok {
 		return returnFunc(route)
 	}
-	if returnFunc, ok := ret.Get(0).(func(string) string); ok {
+	if returnFunc, ok := ret.Get(0).(func(string) controller.RenderResult); ok {
 		r0 = returnFunc(route)
 	} else {
-		r0 = ret.Get(0).(string)
+		r0 = ret.Get(0).(controller.RenderResult)
 	}
 	if returnFunc, ok := ret.Get(1).(func(string) error); ok {
 		r1 = returnFunc(route)
@@ -85,12 +86,12 @@ func (_c *PageRenderer_Render_Call) Run(run func(route string)) *PageRenderer_Re
 	return _c
 }
 
-func (_c *PageRenderer_Render_Call) Return(s string, err error) *PageRenderer_Render_Call {
-	_c.Call.Return(s, err)
+func (_c *PageRenderer_Render_Call) Return(renderResult controller.RenderResult, err error) *PageRenderer_Render_Call {
+	_c.Call.Return(renderResult, err)
 	return _c
 }
 
-func (_c *PageRenderer_Render_Call) RunAndReturn(run func(route string) (string, error)) *PageRenderer_Render_Call {
+func (_c *PageRenderer_Render_Call) RunAndReturn(run func(route string) (controller.RenderResult, error)) *PageRenderer_Render_Call {
 	_c.Call.Return(run)
 	return _c
 }

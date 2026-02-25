@@ -14,6 +14,7 @@ type Driver struct {
 	renderer       controller.PageRenderer
 	router         *Router
 	content        js.Value
+	sideNav        js.Value
 	theme          string
 	palette        string
 	themeCb        js.Func
@@ -32,6 +33,7 @@ func New(renderer controller.PageRenderer) *Driver {
 // Init sets up the DOM, registers event listeners, and performs the initial render.
 func (d *Driver) Init() {
 	d.content = getElementById("content")
+	d.sideNav = getElementById("side-nav")
 
 	// Restore theme from localStorage.
 	d.theme = getLocalStorage("forge-ui-theme", "light")
@@ -114,12 +116,14 @@ func (d *Driver) navigate(hash string) {
 	route += sep + "theme=" + d.theme
 
 	go func() {
-		html, err := d.renderer.Render(route)
+		result, err := d.renderer.Render(route)
 		if err != nil {
 			setInnerHTML(d.content, `<div class="empty-state body-large">Error: `+err.Error()+`</div>`)
+			setInnerHTML(d.sideNav, "")
 			return
 		}
-		setInnerHTML(d.content, html)
+		setInnerHTML(d.sideNav, result.SideNav)
+		setInnerHTML(d.content, result.Content)
 	}()
 }
 

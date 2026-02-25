@@ -91,6 +91,7 @@ type ForgePageData struct {
 	HomeURL        string            `json:"-"`
 	LightPalette   string            `json:"-"`
 	RepoPlans      []RepoPlan        `json:"repoPlans"`
+	SiblingRepos   []SideNavItem     `json:"siblingRepos"`
 }
 
 type ForgeSpec struct {
@@ -325,4 +326,29 @@ type CacheWorkspaceData struct {
 	Summaries map[string]RepoSummary  `json:"summaries"` // keyed by repo name
 	Overviews map[string]RepoOverview `json:"overviews"`  // keyed by repo name
 	UpdatedAt time.Time               `json:"updatedAt"`
+}
+
+// SideNavData holds data for rendering the side navigation bar.
+type SideNavData struct {
+	Header SideNavHeader `json:"header"`
+	Items  []SideNavItem `json:"items"`
+}
+
+// SideNavHeader holds breadcrumb segments for the side nav header.
+type SideNavHeader struct {
+	Segments []SideNavBreadcrumb `json:"segments"`
+}
+
+// SideNavBreadcrumb represents a single breadcrumb segment.
+type SideNavBreadcrumb struct {
+	Text string `json:"text"`
+	Link string `json:"link"`
+}
+
+// SideNavItem represents a single navigation item in the side nav.
+type SideNavItem struct {
+	Name     string `json:"name"`
+	Link     string `json:"link"`
+	IsActive bool   `json:"isActive"`
+	Badge    string `json:"badge,omitempty"`
 }

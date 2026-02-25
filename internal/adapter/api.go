@@ -85,6 +85,11 @@ func (a *apiDataSource) GetForge(portfolio, workspace, repo string) (types.Forge
 		return types.ForgePageData{}, err
 	}
 
+	// Add "#" prefix to SiblingRepos links for hash-based routing.
+	for i := range data.SiblingRepos {
+		data.SiblingRepos[i].Link = "#" + data.SiblingRepos[i].Link
+	}
+
 	return data, nil
 }
 

@@ -1,0 +1,15 @@
+{{define "sidenav"}}
+{{if .Items}}
+<div class="side-nav__header">
+    {{range $i, $seg := .Header.Segments}}{{if $i}} <span class="side-nav__separator body-small">&#x203A;</span> {{end}}<a href="{{$seg.Link}}" class="side-nav__breadcrumb body-small">{{$seg.Text}}</a>{{end}}
+</div>
+<nav class="side-nav__list">
+    {{range .Items}}
+    <a href="{{.Link}}" class="side-nav__item body-medium{{if .IsActive}} side-nav__item--active{{end}}">
+        {{.Name}}
+        {{if .Badge}}<span class="side-nav__badge label-small">{{.Badge}}</span>{{end}}
+    </a>
+    {{end}}
+</nav>
+{{end}}
+{{end}}

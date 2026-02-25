@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/alexandremahdhaoui/forge-ui/internal/controller"
+	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 )
 
 // APIHandler implements the generated StrictServerInterface, delegating to
@@ -94,6 +95,20 @@ func (h *APIHandler) GetRepo(ctx context.Context, request GetRepoRequestObject) 
 
 	if data.RepoName == "" {
 		return GetRepo404JSONResponse{Error: "repo not found"}, nil
+	}
+
+	// Populate sibling repos for side navigation.
+	wsData, err := h.WorkspaceService.GetWorkspace(h.BaseDir, request.Portfolio, request.Workspace, "name")
+	if err == nil {
+		siblings := make([]types.SideNavItem, 0, len(wsData.Repos))
+		for _, r := range wsData.Repos {
+			siblings = append(siblings, types.SideNavItem{
+				Name:     r.Name,
+				Link:     r.RepoLink,
+				IsActive: r.Name == request.Repo,
+			})
+		}
+		data.SiblingRepos = siblings
 	}
 
 	return GetRepo200JSONResponse(data), nil

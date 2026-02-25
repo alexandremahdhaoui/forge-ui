@@ -405,9 +405,84 @@
         .palette-swatch { display: flex; gap: 2px; flex-shrink: 0; }
         .palette-swatch__color { width: 14px; height: 14px; border-radius: 3px; }
 
+        .app-layout {
+            display: flex;
+            min-height: calc(100vh - 64px);
+        }
+
+        .side-nav {
+            width: 260px;
+            flex-shrink: 0;
+            background: var(--md-sys-color-surface-container-low);
+            border-right: 1px solid var(--md-sys-color-outline-variant);
+            padding: 16px 0;
+            overflow-y: auto;
+            position: sticky;
+            top: 64px;
+            height: calc(100vh - 64px);
+            align-self: flex-start;
+        }
+
+        .side-nav__header {
+            padding: 8px 20px 12px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .side-nav__breadcrumb {
+            color: var(--md-sys-color-link);
+            text-decoration: none;
+        }
+
+        .side-nav__breadcrumb:hover {
+            text-decoration: underline;
+        }
+
+        .side-nav__separator {
+            color: var(--md-sys-color-on-surface-variant);
+            margin: 0 2px;
+        }
+
+        .side-nav__list {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .side-nav__item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            color: var(--md-sys-color-on-surface);
+            text-decoration: none;
+            transition: background-color var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard);
+        }
+
+        .side-nav__item:hover {
+            background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+            text-decoration: none;
+        }
+
+        .side-nav__item--active {
+            background-color: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+            font-weight: 500;
+        }
+
+        .side-nav__item--active:hover {
+            background-color: color-mix(in srgb, var(--md-sys-color-on-secondary-container) 8%, var(--md-sys-color-secondary-container));
+        }
+
+        .side-nav__badge {
+            background-color: var(--md-sys-color-surface-container-highest);
+            padding: 2px 8px;
+            border-radius: var(--md-sys-shape-corner-full);
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
         .page-content {
-            max-width: 1200px;
-            margin: 0 auto;
+            flex: 1;
+            min-width: 0;
+            max-width: none;
             padding: 24px;
         }
 
@@ -741,6 +816,7 @@
         @keyframes spin { to { transform: rotate(360deg); } }
 
         @media (max-width: 600px) {
+            .side-nav { display: none; }
             .page-content { padding: 16px; }
             .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); }
             .top-app-bar { padding: 0 16px; }
@@ -809,12 +885,15 @@
             <svg class="theme-icon--dark" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M480-120q-150 0-255-105T120-480q0-150 105-255t255-105q14 0 27.5 1t26.5 3q-41 29-65.5 75.5T444-660q0 90 63 153t153 63q55 0 101-24.5t75-65.5q2 13 3 26.5t1 27.5q0 150-105 255T480-120Zm0-80q88 0 158-48.5T740-375q-20 5-40 8t-40 3q-123 0-209.5-86.5T364-660q0-20 3-40t8-40q-78 32-126.5 102T200-480q0 116 82 198t198 82Zm-10-270Z"/></svg>
         </button>
     </header>
-    <main id="content" class="page-content">
-        <div class="loading">
-            <div class="loading-spinner"></div>
-            <span class="body-large">Loading WASM module...</span>
-        </div>
-    </main>
+    <div class="app-layout">
+        <aside id="side-nav" class="side-nav"></aside>
+        <main id="content" class="page-content">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <span class="body-large">Loading WASM module...</span>
+            </div>
+        </main>
+    </div>
     <script src="wasm_exec.js"></script>
     <script>
         const go = new Go();

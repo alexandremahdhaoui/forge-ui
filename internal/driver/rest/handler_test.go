@@ -409,11 +409,17 @@ func TestGetWorkspace_ExcludesDarkModeFields(t *testing.T) {
 func TestGetRepo_Success(t *testing.T) {
 	t.Parallel()
 
+	wsSvc := new(mockcontroller.WorkspaceService)
 	fsSvc := new(mockcontroller.ForgeService)
-	_, handler := newTestHandler(nil, nil, fsSvc)
+	_, handler := newTestHandler(nil, wsSvc, fsSvc)
 
 	fsSvc.On("GetForge", "/base", "p1", "ws1", "repo-a").Return(types.ForgePageData{
 		RepoName: "repo-a",
+	}, nil)
+	wsSvc.On("GetWorkspace", "/base", "p1", "ws1", "name").Return(types.WorkspacePageData{
+		Repos: []types.RepoSummary{
+			{Name: "repo-a", RepoLink: "/portfolios/p1/workspaces/ws1/repos/repo-a"},
+		},
 	}, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/portfolios/p1/workspaces/ws1/repos/repo-a", nil)
@@ -430,6 +436,7 @@ func TestGetRepo_Success(t *testing.T) {
 	assert.Equal(t, "repo-a", body.RepoName)
 
 	fsSvc.AssertExpectations(t)
+	wsSvc.AssertExpectations(t)
 }
 
 func TestGetRepo_NotFound(t *testing.T) {
@@ -481,8 +488,9 @@ func TestGetRepo_Error(t *testing.T) {
 func TestGetRepo_ExcludesDarkModeFields(t *testing.T) {
 	t.Parallel()
 
+	wsSvc := new(mockcontroller.WorkspaceService)
 	fsSvc := new(mockcontroller.ForgeService)
-	_, handler := newTestHandler(nil, nil, fsSvc)
+	_, handler := newTestHandler(nil, wsSvc, fsSvc)
 
 	fsSvc.On("GetForge", "/base", "p1", "ws1", "repo-a").Return(types.ForgePageData{
 		RepoName:     "repo-a",
@@ -490,6 +498,7 @@ func TestGetRepo_ExcludesDarkModeFields(t *testing.T) {
 		HomeURL:      "/portfolios",
 		LightPalette: "1",
 	}, nil)
+	wsSvc.On("GetWorkspace", "/base", "p1", "ws1", "name").Return(types.WorkspacePageData{}, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/portfolios/p1/workspaces/ws1/repos/repo-a", nil)
 	w := httptest.NewRecorder()
@@ -503,6 +512,86 @@ func TestGetRepo_ExcludesDarkModeFields(t *testing.T) {
 	assert.NotContains(t, rawBody, "lightPalette")
 
 	fsSvc.AssertExpectations(t)
+	wsSvc.AssertExpectations(t)
+}
+
+func TestGetRepo_PopulatesSiblingRepos(t *testing.T) {
+	t.Parallel()
+
+	wsSvc := new(mockcontroller.WorkspaceService)
+	fsSvc := new(mockcontroller.ForgeService)
+	_, handler := newTestHandler(nil, wsSvc, fsSvc)
+
+	fsSvc.On("GetForge", "/base", "p1", "ws1", "repo-b").Return(types.ForgePageData{
+		RepoName: "repo-b",
+	}, nil)
+	wsSvc.On("GetWorkspace", "/base", "p1", "ws1", "name").Return(types.WorkspacePageData{
+		Repos: []types.RepoSummary{
+			{Name: "repo-a", RepoLink: "/portfolios/p1/workspaces/ws1/repos/repo-a"},
+			{Name: "repo-b", RepoLink: "/portfolios/p1/workspaces/ws1/repos/repo-b"},
+			{Name: "repo-c", RepoLink: "/portfolios/p1/workspaces/ws1/repos/repo-c"},
+		},
+	}, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/portfolios/p1/workspaces/ws1/repos/repo-b", nil)
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var body types.ForgePageData
+	err := json.Unmarshal(w.Body.Bytes(), &body)
+	require.NoError(t, err)
+
+	require.Len(t, body.SiblingRepos, 3)
+
+	// Verify names.
+	assert.Equal(t, "repo-a", body.SiblingRepos[0].Name)
+	assert.Equal(t, "repo-b", body.SiblingRepos[1].Name)
+	assert.Equal(t, "repo-c", body.SiblingRepos[2].Name)
+
+	// Verify the requested repo is marked active.
+	assert.False(t, body.SiblingRepos[0].IsActive)
+	assert.True(t, body.SiblingRepos[1].IsActive)
+	assert.False(t, body.SiblingRepos[2].IsActive)
+
+	// Verify links do NOT have "#" prefix (server-side links are plain paths).
+	assert.Equal(t, "/portfolios/p1/workspaces/ws1/repos/repo-a", body.SiblingRepos[0].Link)
+	assert.Equal(t, "/portfolios/p1/workspaces/ws1/repos/repo-b", body.SiblingRepos[1].Link)
+	assert.Equal(t, "/portfolios/p1/workspaces/ws1/repos/repo-c", body.SiblingRepos[2].Link)
+
+	fsSvc.AssertExpectations(t)
+	wsSvc.AssertExpectations(t)
+}
+
+func TestGetRepo_WorkspaceServiceError_SkipsSiblingRepos(t *testing.T) {
+	t.Parallel()
+
+	wsSvc := new(mockcontroller.WorkspaceService)
+	fsSvc := new(mockcontroller.ForgeService)
+	_, handler := newTestHandler(nil, wsSvc, fsSvc)
+
+	fsSvc.On("GetForge", "/base", "p1", "ws1", "repo-a").Return(types.ForgePageData{
+		RepoName: "repo-a",
+	}, nil)
+	wsSvc.On("GetWorkspace", "/base", "p1", "ws1", "name").Return(types.WorkspacePageData{}, errors.New("workspace lookup failed"))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/portfolios/p1/workspaces/ws1/repos/repo-a", nil)
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var body types.ForgePageData
+	err := json.Unmarshal(w.Body.Bytes(), &body)
+	require.NoError(t, err)
+	assert.Equal(t, "repo-a", body.RepoName)
+	assert.Nil(t, body.SiblingRepos)
+
+	fsSvc.AssertExpectations(t)
+	wsSvc.AssertExpectations(t)
 }
 
 // --- sortOrDefault ---
