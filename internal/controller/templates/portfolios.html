@@ -19,6 +19,19 @@
 </div>
 {{end}}
 
+{{if .Unattended}}
+<h2 class="title-medium" style="margin: 16px 0 8px 0;">Needs Attention</h2>
+<div class="recent-cards" id="unattended">
+    {{range .Unattended}}
+    <a href="#/portfolios/{{.Name}}" class="recent-card recent-card--warn">
+        <span class="recent-card__name">{{.Name}}</span>
+        <span class="recent-card__detail">{{.Stats.TotalWorkspaces}} workspaces &middot; {{.Stats.DirtyRepos}} dirty</span>
+        <span class="recent-card__detail">last active: {{timeAgo .LastActivity}}</span>
+    </a>
+    {{end}}
+</div>
+{{end}}
+
 {{if .Portfolios}}
 <h2 class="title-medium" style="margin: 16px 0 8px 0;">Overview</h2>
 <div style="overflow-x: auto;">

@@ -25,6 +25,19 @@
 </div>
 {{end}}
 
+{{if .Unattended}}
+<h2 class="title-medium" style="margin: 16px 0 8px 0;">Needs Attention</h2>
+<div class="recent-cards" id="unattended">
+    {{range .Unattended}}
+    <a href="{{.RepoLink}}" class="recent-card recent-card--warn">
+        <span class="recent-card__name">{{.Name}}</span>
+        <span class="recent-card__detail"><span class="code-inline" style="font-size: 12px;">{{.Branch}}</span>{{if .IsDirty}} &middot; dirty{{end}}{{if gt .Ahead 0}} &middot; {{.Ahead}} unpushed{{end}}</span>
+        <span class="recent-card__detail">last active: {{timeAgo .LastCommitTime}}</span>
+    </a>
+    {{end}}
+</div>
+{{end}}
+
 {{if .Repos}}
 <h2 class="title-medium" style="margin: 16px 0 8px 0;">Overview</h2>
 <div style="overflow-x: auto;">

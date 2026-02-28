@@ -28,6 +28,7 @@ func testPortfoliosPageData(sort string) types.PortfoliosPageData {
 						RepoCount: 3,
 						Repos: []types.RepoOverview{
 							{Name: "forge", WorkspaceName: "platform", Branch: "main", HasForge: true, RepoLink: "#/portfolios/infrastructure/workspaces/platform/repos/forge", LastCommitTime: time.Date(2026, 2, 21, 12, 0, 0, 0, time.UTC)},
+							{Name: "legacy-service", WorkspaceName: "platform", IsDirty: true, LastCommitTime: time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC)},
 						},
 						AllStages: []string{"lint", "unit", "integration"},
 						RepoForge: []types.RepoForgeStats{
@@ -88,7 +89,7 @@ func testPortfolioPageData(sort string) types.PortfolioPageData {
 				Name:      "networking",
 				Path:      "/home/user/workspaces/infrastructure/networking",
 				RepoCount: 2,
-				Repos:     []types.RepoOverview{{Name: "gateway", LastCommitTime: time.Date(2026, 2, 19, 14, 0, 0, 0, time.UTC)}},
+				Repos:     []types.RepoOverview{{Name: "gateway", IsDirty: true, LastCommitTime: time.Date(2026, 1, 10, 14, 0, 0, 0, time.UTC)}},
 			},
 		},
 		Stats:    types.WorkspacesStats{TotalWorkspaces: 2, TotalRepos: 5, DirtyRepos: 2, Passed: 38, Failed: 4},
@@ -122,9 +123,9 @@ func testWorkspacePageData(sort string) types.WorkspacePageData {
 				DiffStat: " 2 files changed, 450 insertions(+)",
 			},
 			{
-				Name: "config-server", Branch: "main", Behind: 2, HasForge: true,
+				Name: "config-server", Branch: "main", Behind: 2, Ahead: 1, HasForge: true,
 				RepoLink:       "#/portfolios/infrastructure/workspaces/platform/repos/config-server",
-				LastCommitTime: time.Date(2026, 2, 20, 8, 15, 0, 0, time.UTC),
+				LastCommitTime: time.Date(2026, 1, 5, 8, 15, 0, 0, time.UTC),
 			},
 		},
 		Stats:     types.WorkspaceStats{TotalRepos: 3, ForgeRepos: 3, TotalTests: 30, Passed: 27, Failed: 3, Skipped: 2},
@@ -223,6 +224,9 @@ func TestRender_Portfolios(t *testing.T) {
 		"ago",
 		"recent-active",
 		"recent-card",
+		"unattended",
+		"recent-card--warn",
+		"Needs Attention",
 	}
 
 	for _, check := range checks {
@@ -267,6 +271,9 @@ func TestRender_Portfolio(t *testing.T) {
 		"ago",
 		"recent-active",
 		"recent-card",
+		"unattended",
+		"recent-card--warn",
+		"Needs Attention",
 	}
 
 	for _, check := range checks {
@@ -318,6 +325,9 @@ func TestRender_Workspace(t *testing.T) {
 		"ago",
 		"recent-active",
 		"recent-card",
+		"unattended",
+		"recent-card--warn",
+		"Needs Attention",
 	}
 
 	for _, check := range checks {
@@ -658,4 +668,98 @@ func TestTimeAgo(t *testing.T) {
 	assert.Contains(t, timeAgo(time.Now().Add(-3*24*time.Hour)), "d ago")
 	assert.Contains(t, timeAgo(time.Now().Add(-60*24*time.Hour)), "mo ago")
 	assert.Contains(t, timeAgo(time.Now().Add(-400*24*time.Hour)), "y ago")
+}
+
+func TestIsRepoUnattended(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+	old := now.Add(-10 * 24 * time.Hour) // 10 days ago
+	recent := now.Add(-2 * 24 * time.Hour) // 2 days ago
+
+	// Dirty + old = unattended
+	assert.True(t, isRepoUnattended(true, 0, old))
+	// Ahead + old = unattended
+	assert.True(t, isRepoUnattended(false, 3, old))
+	// Dirty + recent = NOT unattended
+	assert.False(t, isRepoUnattended(true, 0, recent))
+	// Clean + synced = NOT unattended
+	assert.False(t, isRepoUnattended(false, 0, old))
+	// Zero time + dirty = unattended (zero is very old)
+	assert.True(t, isRepoUnattended(true, 0, time.Time{}))
+}
+
+func TestUnattendedRepos(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+	repos := []types.RepoSummary{
+		{Name: "active-dirty", IsDirty: true, LastCommitTime: now.Add(-1 * 24 * time.Hour)},
+		{Name: "stale-dirty", IsDirty: true, LastCommitTime: now.Add(-14 * 24 * time.Hour)},
+		{Name: "stale-ahead", Ahead: 2, LastCommitTime: now.Add(-10 * 24 * time.Hour)},
+		{Name: "clean-old", LastCommitTime: now.Add(-30 * 24 * time.Hour)},
+	}
+	got := unattendedRepos(repos)
+	assert.Len(t, got, 2)
+	assert.Equal(t, "stale-dirty", got[0].Name)
+	assert.Equal(t, "stale-ahead", got[1].Name)
+}
+
+func TestUnattendedRepos_Empty(t *testing.T) {
+	t.Parallel()
+	got := unattendedRepos(nil)
+	assert.Nil(t, got)
+}
+
+func TestUnattendedWorkspaces(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+	old := now.Add(-14 * 24 * time.Hour)
+	recent := now.Add(-1 * 24 * time.Hour)
+
+	workspaces := []types.WorkspaceSummary{
+		{Name: "stale-ws", Repos: []types.RepoOverview{
+			{Name: "dirty-old", IsDirty: true, LastCommitTime: old},
+		}},
+		{Name: "active-ws", Repos: []types.RepoOverview{
+			{Name: "dirty-new", IsDirty: true, LastCommitTime: recent},
+		}},
+		{Name: "clean-ws", Repos: []types.RepoOverview{
+			{Name: "clean-old", LastCommitTime: old},
+		}},
+	}
+	got := unattendedWorkspaces(workspaces)
+	assert.Len(t, got, 1)
+	assert.Equal(t, "stale-ws", got[0].Name)
+}
+
+func TestUnattendedWorkspaces_Empty(t *testing.T) {
+	t.Parallel()
+	got := unattendedWorkspaces(nil)
+	assert.Nil(t, got)
+}
+
+func TestUnattendedPortfolios(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+	old := now.Add(-14 * 24 * time.Hour)
+	recent := now.Add(-1 * 24 * time.Hour)
+
+	portfolios := []types.PortfolioSummary{
+		{Name: "stale-portfolio", Workspaces: []types.WorkspaceSummary{
+			{Name: "ws1", Repos: []types.RepoOverview{
+				{Name: "dirty-old", IsDirty: true, LastCommitTime: old},
+			}},
+		}},
+		{Name: "active-portfolio", Workspaces: []types.WorkspaceSummary{
+			{Name: "ws2", Repos: []types.RepoOverview{
+				{Name: "dirty-new", IsDirty: true, LastCommitTime: recent},
+			}},
+		}},
+	}
+	got := unattendedPortfolios(portfolios)
+	assert.Len(t, got, 1)
+	assert.Equal(t, "stale-portfolio", got[0].Name)
 }

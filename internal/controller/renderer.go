@@ -14,6 +14,8 @@ import (
 	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 )
 
+const unattendedThreshold = 7 * 24 * time.Hour
+
 //go:embed templates/*.html
 var templateFS embed.FS
 
@@ -122,6 +124,7 @@ func (r *renderer) renderPortfolios(in input) (RenderResult, error) {
 	for i := range data.Portfolios {
 		data.Portfolios[i].LastActivity = maxPortfolioTime(data.Portfolios[i].Workspaces)
 	}
+	data.Unattended = unattendedPortfolios(data.Portfolios)
 
 	var nav types.SideNavData
 	for _, p := range data.Portfolios {
@@ -161,6 +164,7 @@ func (r *renderer) renderPortfolio(name string, in input) (RenderResult, error) 
 			}
 		}
 	}
+	data.Unattended = unattendedWorkspaces(data.Workspaces)
 
 	nav := types.SideNavData{
 		Header: types.SideNavHeader{
@@ -198,6 +202,7 @@ func (r *renderer) renderWorkspace(portfolio, workspace string, in input) (Rende
 	data.DarkMode = in.Theme == "dark"
 	// Compute top 3 recently active repos by most recent commit.
 	data.TopRecentRepos = topRecentRepos(data.Repos, 3)
+	data.Unattended = unattendedRepos(data.Repos)
 
 	nav := types.SideNavData{
 		Header: types.SideNavHeader{
@@ -368,4 +373,59 @@ func timeAgo(t time.Time) string {
 	default:
 		return fmt.Sprintf("%dy ago", int(d.Hours()/(24*365)))
 	}
+}
+
+// isRepoUnattended returns true if a repo has uncommitted changes or unpushed
+// commits and the last commit is older than the unattended threshold.
+func isRepoUnattended(dirty bool, ahead int, lastCommit time.Time) bool {
+	if !dirty && ahead <= 0 {
+		return false
+	}
+	return time.Since(lastCommit) > unattendedThreshold
+}
+
+// unattendedPortfolios returns portfolios containing at least one unattended repo.
+func unattendedPortfolios(portfolios []types.PortfolioSummary) []types.PortfolioSummary {
+	var result []types.PortfolioSummary
+	for _, p := range portfolios {
+		for _, ws := range p.Workspaces {
+			if hasUnattendedRepo(ws.Repos) {
+				result = append(result, p)
+				break
+			}
+		}
+	}
+	return result
+}
+
+// unattendedWorkspaces returns workspaces containing at least one unattended repo.
+func unattendedWorkspaces(workspaces []types.WorkspaceSummary) []types.WorkspaceSummary {
+	var result []types.WorkspaceSummary
+	for _, ws := range workspaces {
+		if hasUnattendedRepo(ws.Repos) {
+			result = append(result, ws)
+		}
+	}
+	return result
+}
+
+// hasUnattendedRepo checks if any RepoOverview in the slice is unattended.
+func hasUnattendedRepo(repos []types.RepoOverview) bool {
+	for _, r := range repos {
+		if isRepoUnattended(r.IsDirty, r.Ahead, r.LastCommitTime) {
+			return true
+		}
+	}
+	return false
+}
+
+// unattendedRepos returns repos that have dirty/ahead state and old last commit.
+func unattendedRepos(repos []types.RepoSummary) []types.RepoSummary {
+	var result []types.RepoSummary
+	for _, r := range repos {
+		if isRepoUnattended(r.IsDirty, r.Ahead, r.LastCommitTime) {
+			result = append(result, r)
+		}
+	}
+	return result
 }

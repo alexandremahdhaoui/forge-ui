@@ -31,6 +31,7 @@ type WorkspacePageData struct {
 	HomeURL           string            `json:"-"`
 	LightPalette      string            `json:"-"`
 	TopRecentRepos    []RepoSummary     `json:"-"`
+	Unattended        []RepoSummary     `json:"-"`
 	Description       string            `json:"description"`
 	RepoRoles         map[string]string `json:"repoRoles"`
 	MetaPlans         []MetaPlan        `json:"metaPlans"`
@@ -199,6 +200,7 @@ type PortfoliosPageData struct {
 	HomeURL               string             `json:"-"` // always "/portfolios"
 	LightPalette          string             `json:"-"`
 	TopRecentPortfolios   []PortfolioSummary `json:"-"`
+	Unattended            []PortfolioSummary `json:"-"`
 }
 
 type PortfoliosStats struct {
@@ -224,6 +226,7 @@ type PortfolioPageData struct {
 	HomeURL               string             `json:"-"` // always "/portfolios"
 	LightPalette          string             `json:"-"`
 	TopRecentWorkspaces   []WorkspaceSummary `json:"-"`
+	Unattended            []WorkspaceSummary `json:"-"`
 }
 
 type WorkspaceStats struct {
