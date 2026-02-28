@@ -623,6 +623,46 @@
             font-size: 13px;
         }
 
+        .recent-cards {
+            display: flex;
+            gap: 12px;
+            margin: 12px 0;
+            flex-wrap: wrap;
+        }
+
+        .recent-card {
+            flex: 1 1 180px;
+            max-width: 280px;
+            padding: 12px 16px;
+            background-color: var(--md-sys-color-surface-container);
+            border-radius: var(--md-sys-shape-corner-medium);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            text-decoration: none;
+            color: inherit;
+            transition: background-color var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard);
+        }
+
+        .recent-card:hover {
+            background-color: var(--md-sys-color-surface-container-high);
+        }
+
+        .recent-card__name {
+            font-family: var(--md-sys-typescale-plain-font);
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--md-sys-color-on-surface);
+            margin: 0 0 4px 0;
+            display: block;
+        }
+
+        .recent-card__detail {
+            font-family: var(--md-sys-typescale-plain-font);
+            font-size: 12px;
+            color: var(--md-sys-color-on-surface-variant);
+            margin: 0;
+            display: block;
+        }
+
         .heatmap-table { border-collapse: separate; border-spacing: 3px; }
 
         .heatmap-table th, .heatmap-table td {

@@ -11,6 +11,19 @@
     <a href="#/portfolios/{{.Name}}?sort=time" class="segmented-btn{{if eq .SortMode "time"}} segmented-btn--active{{end}}">Recent</a>
 </div>
 
+{{if .TopRecentWorkspaces}}
+<h2 class="title-medium" style="margin: 16px 0 8px 0;">Recently Active</h2>
+<div class="recent-cards" id="recent-active">
+    {{range .TopRecentWorkspaces}}
+    <a href="#/portfolios/{{$.Name}}/workspaces/{{.Name}}" class="recent-card">
+        <span class="recent-card__name">{{.Name}}</span>
+        <span class="recent-card__detail">{{.RepoCount}} repos</span>
+        <span class="recent-card__detail">{{if .MetaPlans}}{{.Progress.PercentDone}}% progress{{else}}-{{end}}</span>
+    </a>
+    {{end}}
+</div>
+{{end}}
+
 {{if .Workspaces}}
 <h2 class="title-medium" style="margin: 16px 0 8px 0;">Overview</h2>
 <div style="overflow-x: auto;">

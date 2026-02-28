@@ -12,6 +12,19 @@
     <a href="#/portfolios/{{.PortfolioName}}/workspaces/{{.Name}}?sort=time" class="segmented-btn{{if eq .SortMode "time"}} segmented-btn--active{{end}}">Recent</a>
 </div>
 
+{{if .TopRecentRepos}}
+<h2 class="title-medium" style="margin: 16px 0 8px 0;">Recently Active</h2>
+<div class="recent-cards" id="recent-active">
+    {{range .TopRecentRepos}}
+    <a href="{{.RepoLink}}" class="recent-card">
+        <span class="recent-card__name">{{.Name}}</span>
+        <span class="recent-card__detail"><span class="code-inline" style="font-size: 12px;">{{.Branch}}</span></span>
+        <span class="recent-card__detail">{{if .IsDirty}}<span class="chip chip--warn" style="font-size: 11px;">dirty</span>{{else}}<span class="chip chip--pass" style="font-size: 11px;">clean</span>{{end}}</span>
+    </a>
+    {{end}}
+</div>
+{{end}}
+
 {{if .Repos}}
 <h2 class="title-medium" style="margin: 16px 0 8px 0;">Overview</h2>
 <div style="overflow-x: auto;">

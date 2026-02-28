@@ -28,6 +28,7 @@ type WorkspacePageData struct {
 	DarkMode          bool              `json:"-"`
 	HomeURL           string            `json:"-"`
 	LightPalette      string            `json:"-"`
+	TopRecentRepos    []RepoSummary     `json:"-"`
 	Description       string            `json:"description"`
 	RepoRoles         map[string]string `json:"repoRoles"`
 	MetaPlans         []MetaPlan        `json:"metaPlans"`
@@ -190,9 +191,10 @@ type PortfoliosPageData struct {
 	Portfolios   []PortfolioSummary `json:"portfolios"`
 	Stats        PortfoliosStats    `json:"stats"`
 	SortMode     string             `json:"sortMode"`
-	DarkMode     bool               `json:"-"`
-	HomeURL      string             `json:"-"` // always "/portfolios"
-	LightPalette string             `json:"-"`
+	DarkMode              bool               `json:"-"`
+	HomeURL               string             `json:"-"` // always "/portfolios"
+	LightPalette          string             `json:"-"`
+	TopRecentPortfolios   []PortfolioSummary `json:"-"`
 }
 
 type PortfoliosStats struct {
@@ -214,9 +216,10 @@ type PortfolioPageData struct {
 	Stats        WorkspacesStats    `json:"stats"` // reuse existing type
 	Description  string             `json:"description"`
 	SortMode     string             `json:"sortMode"`
-	DarkMode     bool               `json:"-"`
-	HomeURL      string             `json:"-"` // always "/portfolios"
-	LightPalette string             `json:"-"`
+	DarkMode              bool               `json:"-"`
+	HomeURL               string             `json:"-"` // always "/portfolios"
+	LightPalette          string             `json:"-"`
+	TopRecentWorkspaces   []WorkspaceSummary `json:"-"`
 }
 
 type WorkspaceStats struct {

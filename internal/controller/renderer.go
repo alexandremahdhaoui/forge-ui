@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"html/template"
 	"net/url"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/alexandremahdhaoui/forge-ui/internal/adapter"
 	"github.com/alexandremahdhaoui/forge-ui/internal/types"
@@ -114,6 +116,8 @@ func (r *renderer) renderPortfolios(in input) (RenderResult, error) {
 		return RenderResult{}, fmt.Errorf("list portfolios: %w", err)
 	}
 	data.DarkMode = in.Theme == "dark"
+	// Compute top 3 recently active portfolios by most recent commit.
+	data.TopRecentPortfolios = topRecentPortfolios(data.Portfolios, 3)
 
 	var nav types.SideNavData
 	for _, p := range data.Portfolios {
@@ -143,6 +147,8 @@ func (r *renderer) renderPortfolio(name string, in input) (RenderResult, error) 
 		return r.renderPortfolios(in)
 	}
 	data.DarkMode = in.Theme == "dark"
+	// Compute top 3 recently active workspaces by most recent commit.
+	data.TopRecentWorkspaces = topRecentWorkspaces(data.Workspaces, 3)
 
 	nav := types.SideNavData{
 		Header: types.SideNavHeader{
@@ -178,6 +184,8 @@ func (r *renderer) renderWorkspace(portfolio, workspace string, in input) (Rende
 		return r.renderPortfolio(portfolio, in)
 	}
 	data.DarkMode = in.Theme == "dark"
+	// Compute top 3 recently active repos by most recent commit.
+	data.TopRecentRepos = topRecentRepos(data.Repos, 3)
 
 	nav := types.SideNavData{
 		Header: types.SideNavHeader{
@@ -249,4 +257,74 @@ func (r *renderer) renderTemplate(name string, data any) (string, error) {
 		return "", fmt.Errorf("execute template %s: %w", name, err)
 	}
 	return buf.String(), nil
+}
+
+// topRecentPortfolios returns up to n portfolios sorted by most recent commit time.
+func topRecentPortfolios(portfolios []types.PortfolioSummary, n int) []types.PortfolioSummary {
+	if len(portfolios) == 0 {
+		return nil
+	}
+	sorted := make([]types.PortfolioSummary, len(portfolios))
+	copy(sorted, portfolios)
+	sort.Slice(sorted, func(i, j int) bool {
+		return maxPortfolioTime(sorted[i].Workspaces).After(maxPortfolioTime(sorted[j].Workspaces))
+	})
+	if n > len(sorted) {
+		n = len(sorted)
+	}
+	return sorted[:n]
+}
+
+// topRecentWorkspaces returns up to n workspaces sorted by most recent commit time.
+func topRecentWorkspaces(workspaces []types.WorkspaceSummary, n int) []types.WorkspaceSummary {
+	if len(workspaces) == 0 {
+		return nil
+	}
+	sorted := make([]types.WorkspaceSummary, len(workspaces))
+	copy(sorted, workspaces)
+	sort.Slice(sorted, func(i, j int) bool {
+		return maxWorkspaceTime(sorted[i].Repos).After(maxWorkspaceTime(sorted[j].Repos))
+	})
+	if n > len(sorted) {
+		n = len(sorted)
+	}
+	return sorted[:n]
+}
+
+// topRecentRepos returns up to n repos sorted by most recent commit time.
+func topRecentRepos(repos []types.RepoSummary, n int) []types.RepoSummary {
+	if len(repos) == 0 {
+		return nil
+	}
+	sorted := make([]types.RepoSummary, len(repos))
+	copy(sorted, repos)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].LastCommitTime.After(sorted[j].LastCommitTime)
+	})
+	if n > len(sorted) {
+		n = len(sorted)
+	}
+	return sorted[:n]
+}
+
+// maxPortfolioTime returns the most recent commit time across all repos in all workspaces.
+func maxPortfolioTime(workspaces []types.WorkspaceSummary) time.Time {
+	var max time.Time
+	for _, ws := range workspaces {
+		if t := maxWorkspaceTime(ws.Repos); t.After(max) {
+			max = t
+		}
+	}
+	return max
+}
+
+// maxWorkspaceTime returns the most recent commit time across RepoOverview items.
+func maxWorkspaceTime(repos []types.RepoOverview) time.Time {
+	var max time.Time
+	for _, r := range repos {
+		if r.LastCommitTime.After(max) {
+			max = r.LastCommitTime
+		}
+	}
+	return max
 }

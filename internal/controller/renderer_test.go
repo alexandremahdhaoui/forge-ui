@@ -27,7 +27,7 @@ func testPortfoliosPageData(sort string) types.PortfoliosPageData {
 						Path:      "/home/user/workspaces/infrastructure/platform",
 						RepoCount: 3,
 						Repos: []types.RepoOverview{
-							{Name: "forge", WorkspaceName: "platform", Branch: "main", HasForge: true, RepoLink: "#/portfolios/infrastructure/workspaces/platform/repos/forge"},
+							{Name: "forge", WorkspaceName: "platform", Branch: "main", HasForge: true, RepoLink: "#/portfolios/infrastructure/workspaces/platform/repos/forge", LastCommitTime: time.Date(2026, 2, 21, 12, 0, 0, 0, time.UTC)},
 						},
 						AllStages: []string{"lint", "unit", "integration"},
 						RepoForge: []types.RepoForgeStats{
@@ -77,7 +77,7 @@ func testPortfolioPageData(sort string) types.PortfolioPageData {
 				Path:      "/home/user/workspaces/infrastructure/platform",
 				RepoCount: 3,
 				Repos: []types.RepoOverview{
-					{Name: "forge", WorkspaceName: "platform", Branch: "main", HasForge: true, RepoLink: "#/portfolios/infrastructure/workspaces/platform/repos/forge"},
+					{Name: "forge", WorkspaceName: "platform", Branch: "main", HasForge: true, RepoLink: "#/portfolios/infrastructure/workspaces/platform/repos/forge", LastCommitTime: time.Date(2026, 2, 21, 12, 0, 0, 0, time.UTC)},
 				},
 				AllStages: []string{"lint", "unit", "integration"},
 				RepoForge: []types.RepoForgeStats{
@@ -217,6 +217,8 @@ func TestRender_Portfolios(t *testing.T) {
 		"segmented-btn--active",
 		"outlook-table",
 		"data-table--compact",
+		"recent-active",
+		"recent-card",
 	}
 
 	for _, check := range checks {
@@ -257,6 +259,8 @@ func TestRender_Portfolio(t *testing.T) {
 		"cell-passed",
 		"outlook-table",
 		"data-table--compact",
+		"recent-active",
+		"recent-card",
 	}
 
 	for _, check := range checks {
@@ -304,6 +308,8 @@ func TestRender_Workspace(t *testing.T) {
 		"card-elevated",
 		"outlook-table",
 		"data-table--compact",
+		"recent-active",
+		"recent-card",
 	}
 
 	for _, check := range checks {
@@ -577,4 +583,55 @@ func TestRender_GetPortfolioError(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "get portfolio")
+}
+
+func TestTopRecentPortfolios(t *testing.T) {
+	t.Parallel()
+	now := time.Now()
+	portfolios := []types.PortfolioSummary{
+		{Name: "old", Workspaces: []types.WorkspaceSummary{{Repos: []types.RepoOverview{{LastCommitTime: now.Add(-3 * time.Hour)}}}}},
+		{Name: "new", Workspaces: []types.WorkspaceSummary{{Repos: []types.RepoOverview{{LastCommitTime: now.Add(-10 * time.Minute)}}}}},
+		{Name: "mid", Workspaces: []types.WorkspaceSummary{{Repos: []types.RepoOverview{{LastCommitTime: now.Add(-1 * time.Hour)}}}}},
+		{Name: "oldest", Workspaces: []types.WorkspaceSummary{{Repos: []types.RepoOverview{{LastCommitTime: now.Add(-5 * time.Hour)}}}}},
+	}
+	got := topRecentPortfolios(portfolios, 3)
+	assert.Len(t, got, 3)
+	assert.Equal(t, "new", got[0].Name)
+	assert.Equal(t, "mid", got[1].Name)
+	assert.Equal(t, "old", got[2].Name)
+}
+
+func TestTopRecentWorkspaces(t *testing.T) {
+	t.Parallel()
+	now := time.Now()
+	workspaces := []types.WorkspaceSummary{
+		{Name: "ws-old", Repos: []types.RepoOverview{{LastCommitTime: now.Add(-2 * time.Hour)}}},
+		{Name: "ws-new", Repos: []types.RepoOverview{{LastCommitTime: now.Add(-5 * time.Minute)}}},
+	}
+	got := topRecentWorkspaces(workspaces, 3)
+	assert.Len(t, got, 2)
+	assert.Equal(t, "ws-new", got[0].Name)
+	assert.Equal(t, "ws-old", got[1].Name)
+}
+
+func TestTopRecentRepos(t *testing.T) {
+	t.Parallel()
+	now := time.Now()
+	repos := []types.RepoSummary{
+		{Name: "r1", LastCommitTime: now.Add(-3 * time.Hour)},
+		{Name: "r2", LastCommitTime: now.Add(-10 * time.Minute)},
+		{Name: "r3", LastCommitTime: now.Add(-1 * time.Hour)},
+		{Name: "r4", LastCommitTime: now.Add(-30 * time.Minute)},
+	}
+	got := topRecentRepos(repos, 3)
+	assert.Len(t, got, 3)
+	assert.Equal(t, "r2", got[0].Name)
+	assert.Equal(t, "r4", got[1].Name)
+	assert.Equal(t, "r3", got[2].Name)
+}
+
+func TestTopRecentRepos_Empty(t *testing.T) {
+	t.Parallel()
+	got := topRecentRepos(nil, 3)
+	assert.Nil(t, got)
 }
