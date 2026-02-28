@@ -11,6 +11,32 @@
     <a href="#/portfolios/{{.Name}}?sort=time" class="segmented-btn{{if eq .SortMode "time"}} segmented-btn--active{{end}}">Recent</a>
 </div>
 
+{{if .Workspaces}}
+<h2 class="title-medium" style="margin: 16px 0 8px 0;">Overview</h2>
+<div style="overflow-x: auto;">
+<table class="data-table data-table--compact" id="outlook-table">
+    <thead>
+        <tr>
+            <th class="label-medium">Workspace</th>
+            <th class="label-medium">Repos</th>
+            <th class="label-medium">Progress</th>
+            <th class="label-medium">Plans</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Workspaces}}
+        <tr>
+            <td><a href="#/portfolios/{{$.Name}}/workspaces/{{.Name}}">{{.Name}}</a></td>
+            <td>{{.RepoCount}}</td>
+            <td>{{if .MetaPlans}}{{.Progress.PercentDone}}%{{else}}-{{end}}</td>
+            <td>{{if .MetaPlans}}{{len .MetaPlans}}{{else}}-{{end}}</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+</div>
+{{end}}
+
 {{if .Description}}<p class="goal-text">{{.Description}}</p>{{end}}
 {{if gt .Stats.Portfolio.TasksTotal 0}}
 <div class="progress-bar{{if eq .Stats.Portfolio.PercentDone 100}} progress-bar--complete{{end}}">

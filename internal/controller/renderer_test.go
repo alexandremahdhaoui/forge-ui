@@ -215,6 +215,8 @@ func TestRender_Portfolios(t *testing.T) {
 		"/home/user/workspaces/infrastructure/platform",
 		"cell-passed",
 		"segmented-btn--active",
+		"outlook-table",
+		"data-table--compact",
 	}
 
 	for _, check := range checks {
@@ -253,6 +255,8 @@ func TestRender_Portfolio(t *testing.T) {
 		"Portfolios",
 		"platform",
 		"cell-passed",
+		"outlook-table",
+		"data-table--compact",
 	}
 
 	for _, check := range checks {
@@ -298,6 +302,8 @@ func TestRender_Workspace(t *testing.T) {
 		"a1b2c3d",
 		"feat: add generic-builder engine",
 		"card-elevated",
+		"outlook-table",
+		"data-table--compact",
 	}
 
 	for _, check := range checks {
