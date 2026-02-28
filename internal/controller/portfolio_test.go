@@ -77,6 +77,11 @@ func TestListPortfolios_SortByTime(t *testing.T) {
 	assert.Equal(t, 2, result.Stats.TotalPortfolios)
 	assert.Equal(t, 2, result.Stats.TotalRepos)
 
+	// Portfolios slice should be sorted: beta (recent) before alpha (old).
+	require.Len(t, result.Portfolios, 2)
+	assert.Equal(t, "beta", result.Portfolios[0].Name)
+	assert.Equal(t, "alpha", result.Portfolios[1].Name)
+
 	pd.AssertExpectations(t)
 	c.AssertExpectations(t)
 }
@@ -90,19 +95,30 @@ func TestListPortfolios_SortByName(t *testing.T) {
 
 	portfolios := []types.PortfolioSummary{
 		{
-			Name: "only",
+			Name: "beta",
 			Workspaces: []types.WorkspaceSummary{
 				{
-					Name:      "ws1",
+					Name:      "ws-b",
 					RepoCount: 1,
-					Repos:     []types.RepoOverview{{Name: "r1"}},
+					Repos:     []types.RepoOverview{{Name: "rb"}},
+				},
+			},
+		},
+		{
+			Name: "alpha",
+			Workspaces: []types.WorkspaceSummary{
+				{
+					Name:      "ws-a",
+					RepoCount: 1,
+					Repos:     []types.RepoOverview{{Name: "ra"}},
 				},
 			},
 		},
 	}
 
 	pd.On("List", "/base").Return(portfolios, nil)
-	c.On("GetRepoOverview", "only/ws1", "r1").Return(types.RepoOverview{}, false)
+	c.On("GetRepoOverview", "beta/ws-b", "rb").Return(types.RepoOverview{}, false)
+	c.On("GetRepoOverview", "alpha/ws-a", "ra").Return(types.RepoOverview{}, false)
 
 	wc, mp, pc := stubOrchestrationMocksForPortfolio()
 	svc := NewPortfolioService(pd, c, fl, wc, mp, pc)
@@ -110,7 +126,9 @@ func TestListPortfolios_SortByName(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, "name", result.SortMode)
-	assert.Len(t, result.Portfolios, 1)
+	require.Len(t, result.Portfolios, 2)
+	assert.Equal(t, "alpha", result.Portfolios[0].Name)
+	assert.Equal(t, "beta", result.Portfolios[1].Name)
 
 	pd.AssertExpectations(t)
 }

@@ -113,6 +113,58 @@ func TestMaxCommitTime_EmptySlice(t *testing.T) {
 	}
 }
 
+// --- maxPortfolioCommitTime tests ---
+
+func TestMaxPortfolioCommitTime(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+	workspaces := []types.WorkspaceSummary{
+		{
+			Name: "ws-old",
+			Repos: []types.RepoOverview{
+				{Name: "r1", LastCommitTime: now.Add(-3 * time.Hour)},
+			},
+		},
+		{
+			Name: "ws-new",
+			Repos: []types.RepoOverview{
+				{Name: "r2", LastCommitTime: now.Add(-10 * time.Minute)},
+				{Name: "r3", LastCommitTime: now.Add(-1 * time.Hour)},
+			},
+		},
+	}
+
+	got := maxPortfolioCommitTime(workspaces)
+	want := now.Add(-10 * time.Minute)
+	if !got.Equal(want) {
+		t.Errorf("maxPortfolioCommitTime = %v, want %v", got, want)
+	}
+}
+
+func TestMaxPortfolioCommitTime_Empty(t *testing.T) {
+	t.Parallel()
+
+	got := maxPortfolioCommitTime(nil)
+	if !got.IsZero() {
+		t.Errorf("maxPortfolioCommitTime(nil) = %v, want zero", got)
+	}
+}
+
+func TestMaxPortfolioCommitTime_WorkspacesWithNoRepos(t *testing.T) {
+	t.Parallel()
+
+	workspaces := []types.WorkspaceSummary{
+		{Name: "ws-empty", Repos: nil},
+		{Name: "ws-also-empty", Repos: []types.RepoOverview{}},
+	}
+
+	got := maxPortfolioCommitTime(workspaces)
+	if !got.IsZero() {
+		t.Errorf("maxPortfolioCommitTime(workspaces with no repos) = %v, want zero", got)
+	}
+}
+
 // --- enrichWorkspaces tests ---
 
 func TestEnrichWorkspaces_WithCachedData(t *testing.T) {

@@ -6,6 +6,12 @@
 </nav>
 
 <h1 class="headline-large">{{.Name}}</h1>
+
+<div class="segmented-btn-group">
+    <a href="#/portfolios/{{.PortfolioName}}/workspaces/{{.Name}}?sort=name" class="segmented-btn{{if eq .SortMode "name"}} segmented-btn--active{{end}}">A-Z</a>
+    <a href="#/portfolios/{{.PortfolioName}}/workspaces/{{.Name}}?sort=time" class="segmented-btn{{if eq .SortMode "time"}} segmented-btn--active{{end}}">Recent</a>
+</div>
+
 <p class="body-small" style="font-family: 'Roboto Mono', monospace; color: var(--md-sys-color-on-surface-variant);">{{.Path}}</p>
 
 {{if .Description}}<p class="goal-text">{{.Description}}</p>{{end}}
@@ -127,11 +133,6 @@
 </table>
 </div>
 {{end}}
-
-<div class="segmented-btn-group">
-    <a href="#/portfolios/{{.PortfolioName}}/workspaces/{{.Name}}?sort=name" class="segmented-btn{{if eq .SortMode "name"}} segmented-btn--active{{end}}">A-Z</a>
-    <a href="#/portfolios/{{.PortfolioName}}/workspaces/{{.Name}}?sort=time" class="segmented-btn{{if eq .SortMode "time"}} segmented-btn--active{{end}}">Recent</a>
-</div>
 
 {{if not .Repos}}
 <p class="empty-state body-large">No repositories found.</p>

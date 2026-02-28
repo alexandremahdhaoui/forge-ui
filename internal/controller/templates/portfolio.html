@@ -6,6 +6,11 @@
 
 <h1 class="headline-large">{{.Name}}{{if .IsDefault}} <span class="chip chip--neutral">catch-all</span>{{end}}</h1>
 
+<div class="segmented-btn-group">
+    <a href="#/portfolios/{{.Name}}?sort=name" class="segmented-btn{{if eq .SortMode "name"}} segmented-btn--active{{end}}">A-Z</a>
+    <a href="#/portfolios/{{.Name}}?sort=time" class="segmented-btn{{if eq .SortMode "time"}} segmented-btn--active{{end}}">Recent</a>
+</div>
+
 {{if .Description}}<p class="goal-text">{{.Description}}</p>{{end}}
 {{if gt .Stats.Portfolio.TasksTotal 0}}
 <div class="progress-bar{{if eq .Stats.Portfolio.PercentDone 100}} progress-bar--complete{{end}}">
@@ -35,11 +40,6 @@
         <span class="stat-value {{if gt .Stats.Failed 0}}stat-value--fail{{end}}">{{.Stats.Failed}}</span>
         <span class="stat-label">Tests Failed</span>
     </div>
-</div>
-
-<div class="segmented-btn-group">
-    <a href="#/portfolios/{{.Name}}?sort=name" class="segmented-btn{{if eq .SortMode "name"}} segmented-btn--active{{end}}">A-Z</a>
-    <a href="#/portfolios/{{.Name}}?sort=time" class="segmented-btn{{if eq .SortMode "time"}} segmented-btn--active{{end}}">Recent</a>
 </div>
 
 {{if not .Workspaces}}

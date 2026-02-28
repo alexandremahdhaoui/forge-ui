@@ -1,6 +1,11 @@
 {{define "portfolios"}}
 <h1 class="headline-large">Portfolios</h1>
 
+<div class="segmented-btn-group">
+    <a href="#/portfolios?sort=name" class="segmented-btn{{if eq .SortMode "name"}} segmented-btn--active{{end}}">A-Z</a>
+    <a href="#/portfolios?sort=time" class="segmented-btn{{if eq .SortMode "time"}} segmented-btn--active{{end}}">Recent</a>
+</div>
+
 <div class="stats-grid">
     <div class="stat-card">
         <span class="stat-value">{{.Stats.TotalPortfolios}}</span>
@@ -32,11 +37,6 @@
         <span class="stat-label">Active Plans</span>
     </div>
     {{end}}
-</div>
-
-<div class="segmented-btn-group">
-    <a href="#/portfolios?sort=name" class="segmented-btn{{if eq .SortMode "name"}} segmented-btn--active{{end}}">A-Z</a>
-    <a href="#/portfolios?sort=time" class="segmented-btn{{if eq .SortMode "time"}} segmented-btn--active{{end}}">Recent</a>
 </div>
 
 {{if not .Portfolios}}

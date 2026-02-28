@@ -104,6 +104,17 @@ func (s *portfolioService) ListPortfolios(baseDir, sortMode string) (types.Portf
 		globalStats.Portfolio.TasksDone += p.Stats.Portfolio.TasksDone
 	}
 
+	// Sort the portfolios slice itself.
+	if sortMode == "time" {
+		sort.Slice(portfolios, func(i, j int) bool {
+			return maxPortfolioCommitTime(portfolios[i].Workspaces).After(maxPortfolioCommitTime(portfolios[j].Workspaces))
+		})
+	} else {
+		sort.Slice(portfolios, func(i, j int) bool {
+			return portfolios[i].Name < portfolios[j].Name
+		})
+	}
+
 	if globalStats.Portfolio.TasksTotal > 0 {
 		globalStats.Portfolio.PercentDone = (globalStats.Portfolio.TasksDone * 100) / globalStats.Portfolio.TasksTotal
 	}
@@ -153,6 +164,10 @@ func (s *portfolioService) GetPortfolio(baseDir, name, sortMode string) (types.P
 		}
 		sort.Slice(data.Workspaces, func(i, j int) bool {
 			return maxCommitTime(data.Workspaces[i].Repos).After(maxCommitTime(data.Workspaces[j].Repos))
+		})
+	} else {
+		sort.Slice(data.Workspaces, func(i, j int) bool {
+			return data.Workspaces[i].Name < data.Workspaces[j].Name
 		})
 	}
 
@@ -249,6 +264,18 @@ func maxCommitTime(repos []types.RepoOverview) time.Time {
 	for _, r := range repos {
 		if r.LastCommitTime.After(max) {
 			max = r.LastCommitTime
+		}
+	}
+	return max
+}
+
+// maxPortfolioCommitTime returns the most recent commit time across all
+// workspaces by delegating to maxCommitTime for each workspace's repos.
+func maxPortfolioCommitTime(workspaces []types.WorkspaceSummary) time.Time {
+	var max time.Time
+	for _, ws := range workspaces {
+		if t := maxCommitTime(ws.Repos); t.After(max) {
+			max = t
 		}
 	}
 	return max

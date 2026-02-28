@@ -189,6 +189,35 @@ func TestGetWorkspace_SortByTime(t *testing.T) {
 	c.AssertExpectations(t)
 }
 
+func TestGetWorkspace_SortByName(t *testing.T) {
+	t.Parallel()
+
+	wsMock := new(mockadapter.WorkspaceDiscovery)
+	c := new(mockadapter.Cache)
+	fl := new(mockadapter.ForgeLoader)
+
+	wsData := types.WorkspacePageData{
+		Name: "ws1",
+		Repos: []types.RepoSummary{
+			{Name: "zebra", Path: "/path/zebra"},
+			{Name: "alpha", Path: "/path/alpha"},
+		},
+	}
+
+	wsMock.On("Get", "/base", "ws1").Return(wsData, nil)
+	c.On("GetRepoSummary", "default/ws1", mock.Anything).Return(types.RepoSummary{}, false)
+
+	wc, mp, rp := stubOrchestrationMocksForWorkspace()
+	svc := NewWorkspaceService(wsMock, c, fl, wc, mp, rp)
+	result, err := svc.GetWorkspace("/base", "default", "ws1", "name")
+
+	require.NoError(t, err)
+	assert.Equal(t, "alpha", result.Repos[0].Name)
+	assert.Equal(t, "zebra", result.Repos[1].Name)
+
+	wsMock.AssertExpectations(t)
+}
+
 func TestGetWorkspace_NotFound(t *testing.T) {
 	t.Parallel()
 

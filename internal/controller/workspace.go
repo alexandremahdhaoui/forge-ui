@@ -71,10 +71,14 @@ func (s *workspaceService) GetWorkspace(baseDir, portfolio, workspace, sortMode 
 		}
 	}
 
-	// Sort by last commit time if requested.
+	// Sort by last commit time if requested, otherwise sort by name.
 	if sortMode == "time" {
 		sort.Slice(data.Repos, func(a, b int) bool {
 			return data.Repos[a].LastCommitTime.After(data.Repos[b].LastCommitTime)
+		})
+	} else {
+		sort.Slice(data.Repos, func(a, b int) bool {
+			return data.Repos[a].Name < data.Repos[b].Name
 		})
 	}
 
