@@ -32,6 +32,7 @@ func NewPageRenderer(ds adapter.DataSource) PageRenderer {
 			}
 			return (done * 100) / total
 		},
+		"timeAgo": timeAgo,
 	}
 	tmpl, err := template.New("").Funcs(funcMap).ParseFS(templateFS, "templates/*.html")
 	if err != nil {
@@ -118,6 +119,9 @@ func (r *renderer) renderPortfolios(in input) (RenderResult, error) {
 	data.DarkMode = in.Theme == "dark"
 	// Compute top 3 recently active portfolios by most recent commit.
 	data.TopRecentPortfolios = topRecentPortfolios(data.Portfolios, 3)
+	for i := range data.Portfolios {
+		data.Portfolios[i].LastActivity = maxPortfolioTime(data.Portfolios[i].Workspaces)
+	}
 
 	var nav types.SideNavData
 	for _, p := range data.Portfolios {
@@ -149,6 +153,14 @@ func (r *renderer) renderPortfolio(name string, in input) (RenderResult, error) 
 	data.DarkMode = in.Theme == "dark"
 	// Compute top 3 recently active workspaces by most recent commit.
 	data.TopRecentWorkspaces = topRecentWorkspaces(data.Workspaces, 3)
+	for i := range data.Workspaces {
+		data.Workspaces[i].LastActivity = maxWorkspaceTime(data.Workspaces[i].Repos)
+		for _, r := range data.Workspaces[i].Repos {
+			if r.IsDirty {
+				data.Workspaces[i].DirtyRepoCount++
+			}
+		}
+	}
 
 	nav := types.SideNavData{
 		Header: types.SideNavHeader{
@@ -222,6 +234,13 @@ func (r *renderer) renderForge(portfolio, workspace, repo string, in input) (Ren
 		return r.renderWorkspace(portfolio, workspace, in)
 	}
 	data.DarkMode = in.Theme == "dark"
+	seen := make(map[string]bool)
+	for _, rpt := range data.TestReports {
+		if !seen[rpt.Stage] {
+			seen[rpt.Stage] = true
+			data.LatestStageReports = append(data.LatestStageReports, rpt)
+		}
+	}
 
 	nav := types.SideNavData{
 		Header: types.SideNavHeader{
@@ -327,4 +346,26 @@ func maxWorkspaceTime(repos []types.RepoOverview) time.Time {
 		}
 	}
 	return max
+}
+
+// timeAgo returns a human-readable relative time string.
+func timeAgo(t time.Time) string {
+	if t.IsZero() {
+		return "-"
+	}
+	d := time.Since(t)
+	switch {
+	case d < time.Minute:
+		return "just now"
+	case d < time.Hour:
+		return fmt.Sprintf("%dm ago", int(d.Minutes()))
+	case d < 24*time.Hour:
+		return fmt.Sprintf("%dh ago", int(d.Hours()))
+	case d < 30*24*time.Hour:
+		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
+	case d < 365*24*time.Hour:
+		return fmt.Sprintf("%d mo ago", int(d.Hours()/(24*30)))
+	default:
+		return fmt.Sprintf("%dy ago", int(d.Hours()/(24*365)))
+	}
 }

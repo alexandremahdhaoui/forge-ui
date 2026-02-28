@@ -48,7 +48,7 @@ func testPortfoliosPageData(sort string) types.PortfoliosPageData {
 				Path:      "/home/user/workspaces",
 				IsDefault: true,
 				Workspaces: []types.WorkspaceSummary{
-					{Name: "personal", Path: "/home/user/workspaces/personal", RepoCount: 2},
+					{Name: "personal", Path: "/home/user/workspaces/personal", RepoCount: 2, Repos: []types.RepoOverview{{Name: "blog", LastCommitTime: time.Date(2026, 2, 20, 8, 0, 0, 0, time.UTC)}}},
 				},
 				Stats: types.WorkspacesStats{TotalWorkspaces: 1, TotalRepos: 2, DirtyRepos: 1},
 			},
@@ -88,6 +88,7 @@ func testPortfolioPageData(sort string) types.PortfolioPageData {
 				Name:      "networking",
 				Path:      "/home/user/workspaces/infrastructure/networking",
 				RepoCount: 2,
+				Repos:     []types.RepoOverview{{Name: "gateway", LastCommitTime: time.Date(2026, 2, 19, 14, 0, 0, 0, time.UTC)}},
 			},
 		},
 		Stats:    types.WorkspacesStats{TotalWorkspaces: 2, TotalRepos: 5, DirtyRepos: 2, Passed: 38, Failed: 4},
@@ -188,6 +189,7 @@ func newMockRenderer(ds *mockadapter.DataSource) *renderer {
 			}
 			return (done * 100) / total
 		},
+		"timeAgo": timeAgo,
 	}
 	tmpl, err := template.New("").Funcs(funcMap).ParseFS(templateFS, "templates/*.html")
 	if err != nil {
@@ -217,6 +219,8 @@ func TestRender_Portfolios(t *testing.T) {
 		"segmented-btn--active",
 		"outlook-table",
 		"data-table--compact",
+		"Last Active",
+		"ago",
 		"recent-active",
 		"recent-card",
 	}
@@ -259,6 +263,8 @@ func TestRender_Portfolio(t *testing.T) {
 		"cell-passed",
 		"outlook-table",
 		"data-table--compact",
+		"Last Active",
+		"ago",
 		"recent-active",
 		"recent-card",
 	}
@@ -308,6 +314,8 @@ func TestRender_Workspace(t *testing.T) {
 		"card-elevated",
 		"outlook-table",
 		"data-table--compact",
+		"Last Active",
+		"ago",
 		"recent-active",
 		"recent-card",
 	}
@@ -358,6 +366,10 @@ func TestRender_Forge(t *testing.T) {
 		"Build Targets",
 		"Test Reports",
 		"Artifacts",
+		"outlook-table",
+		"data-table--compact",
+		"Last Run",
+		"ago",
 	}
 
 	for _, check := range checks {
@@ -634,4 +646,16 @@ func TestTopRecentRepos_Empty(t *testing.T) {
 	t.Parallel()
 	got := topRecentRepos(nil, 3)
 	assert.Nil(t, got)
+}
+
+func TestTimeAgo(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, "-", timeAgo(time.Time{}))
+	assert.Equal(t, "just now", timeAgo(time.Now()))
+	assert.Contains(t, timeAgo(time.Now().Add(-30*time.Minute)), "m ago")
+	assert.Contains(t, timeAgo(time.Now().Add(-5*time.Hour)), "h ago")
+	assert.Contains(t, timeAgo(time.Now().Add(-3*24*time.Hour)), "d ago")
+	assert.Contains(t, timeAgo(time.Now().Add(-60*24*time.Hour)), "mo ago")
+	assert.Contains(t, timeAgo(time.Now().Add(-400*24*time.Hour)), "y ago")
 }

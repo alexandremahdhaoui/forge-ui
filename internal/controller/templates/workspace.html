@@ -35,6 +35,7 @@
             <th class="label-medium">Branch</th>
             <th class="label-medium">Status</th>
             <th class="label-medium">Upstream</th>
+            <th class="label-medium">Last Active</th>
         </tr>
     </thead>
     <tbody>
@@ -44,6 +45,7 @@
             <td><span class="code-inline">{{.Branch}}</span></td>
             <td>{{if .IsDirty}}<span class="chip chip--warn">dirty</span>{{else}}<span class="chip chip--pass">clean</span>{{end}}</td>
             <td>{{if not .HasUpstream}}<span style="color: var(--md-sys-color-on-surface-variant);">-</span>{{else if and (eq .Ahead 0) (eq .Behind 0)}}<span class="chip chip--pass">synced</span>{{else}}{{if gt .Ahead 0}}<span class="chip chip--info">&#x2191;{{.Ahead}}</span>{{end}}{{if gt .Behind 0}}<span class="chip chip--neutral">&#x2193;{{.Behind}}</span>{{end}}{{end}}</td>
+            <td>{{timeAgo .LastCommitTime}}</td>
         </tr>
         {{end}}
     </tbody>

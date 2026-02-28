@@ -28,9 +28,8 @@
             <th class="label-medium">Portfolio</th>
             <th class="label-medium">Workspaces</th>
             <th class="label-medium">Repos</th>
-            <th class="label-medium">Dirty</th>
-            <th class="label-medium">Tests</th>
-            <th class="label-medium">Plans</th>
+            <th class="label-medium">Status</th>
+            <th class="label-medium">Last Active</th>
         </tr>
     </thead>
     <tbody>
@@ -40,8 +39,7 @@
             <td>{{.Stats.TotalWorkspaces}}</td>
             <td>{{.Stats.TotalRepos}}</td>
             <td>{{if gt .Stats.DirtyRepos 0}}<span class="chip chip--fail">{{.Stats.DirtyRepos}} dirty</span>{{else}}<span class="chip chip--pass">clean</span>{{end}}</td>
-            <td>{{if or (gt .Stats.Passed 0) (gt .Stats.Failed 0)}}<span class="chip chip--pass">{{.Stats.Passed}}p</span> <span class="chip chip--fail">{{.Stats.Failed}}f</span>{{else}}-{{end}}</td>
-            <td>{{if gt .Stats.Portfolio.TotalMetaPlans 0}}{{.Stats.Portfolio.ActiveMetaPlans}}/{{.Stats.Portfolio.TotalMetaPlans}}{{else}}-{{end}}</td>
+            <td>{{timeAgo .LastActivity}}</td>
         </tr>
         {{end}}
     </tbody>

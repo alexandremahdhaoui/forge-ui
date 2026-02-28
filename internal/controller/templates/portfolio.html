@@ -32,8 +32,8 @@
         <tr>
             <th class="label-medium">Workspace</th>
             <th class="label-medium">Repos</th>
-            <th class="label-medium">Progress</th>
-            <th class="label-medium">Plans</th>
+            <th class="label-medium">Status</th>
+            <th class="label-medium">Last Active</th>
         </tr>
     </thead>
     <tbody>
@@ -41,8 +41,8 @@
         <tr>
             <td><a href="#/portfolios/{{$.Name}}/workspaces/{{.Name}}">{{.Name}}</a></td>
             <td>{{.RepoCount}}</td>
-            <td>{{if .MetaPlans}}{{.Progress.PercentDone}}%{{else}}-{{end}}</td>
-            <td>{{if .MetaPlans}}{{len .MetaPlans}}{{else}}-{{end}}</td>
+            <td>{{if gt .DirtyRepoCount 0}}<span class="chip chip--fail">{{.DirtyRepoCount}} dirty</span>{{else}}<span class="chip chip--pass">clean</span>{{end}}</td>
+            <td>{{timeAgo .LastActivity}}</td>
         </tr>
         {{end}}
     </tbody>

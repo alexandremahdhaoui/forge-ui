@@ -9,9 +9,11 @@ type WorkspaceSummary struct {
 	Repos       []RepoOverview     `json:"repos"`       // lightweight repo summaries
 	AllStages   []string           `json:"allStages"`   // test stage names for heatmap columns
 	RepoForge   []RepoForgeStats   `json:"repoForge"`   // per-repo forge test results
-	Description string             `json:"description"`
-	MetaPlans   []MetaPlan         `json:"metaPlans"`
-	Progress    WorkspaceProgress  `json:"progress"`
+	Description    string             `json:"description"`
+	MetaPlans      []MetaPlan         `json:"metaPlans"`
+	Progress       WorkspaceProgress  `json:"progress"`
+	LastActivity   time.Time          `json:"-"`
+	DirtyRepoCount int               `json:"-"`
 }
 
 // --- Page 2: /workspaces/{name} ---
@@ -91,8 +93,9 @@ type ForgePageData struct {
 	DarkMode       bool              `json:"-"`
 	HomeURL        string            `json:"-"`
 	LightPalette   string            `json:"-"`
-	RepoPlans      []RepoPlan        `json:"repoPlans"`
-	SiblingRepos   []SideNavItem     `json:"siblingRepos"`
+	RepoPlans          []RepoPlan        `json:"repoPlans"`
+	SiblingRepos       []SideNavItem     `json:"siblingRepos"`
+	LatestStageReports []TestReport      `json:"-"`
 }
 
 type ForgeSpec struct {
@@ -183,8 +186,9 @@ type PortfolioSummary struct {
 	Path        string             `json:"path"`        // absolute path (baseDir for "default" portfolio)
 	IsDefault   bool               `json:"isDefault"`   // true for the catch-all portfolio
 	Workspaces  []WorkspaceSummary `json:"workspaces"`  // workspaces within this portfolio
-	Stats       WorkspacesStats    `json:"stats"`       // reuse existing type for aggregate stats
-	Description string             `json:"description"`
+	Stats        WorkspacesStats    `json:"stats"`       // reuse existing type for aggregate stats
+	Description  string             `json:"description"`
+	LastActivity time.Time          `json:"-"`
 }
 
 type PortfoliosPageData struct {
