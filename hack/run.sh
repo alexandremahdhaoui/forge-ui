@@ -36,3 +36,5 @@ echo "forge-ui running:"
 echo "  WASM frontend: http://localhost:8080"
 echo "  REST API:      http://localhost:8081"
 echo "  workspaces:    $WORKSPACES"
+
+xdg-open http://localhost:8080 2>/dev/null &

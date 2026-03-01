@@ -222,6 +222,7 @@ func TestRender_Portfolios(t *testing.T) {
 		"data-table--compact",
 		"Last Active",
 		"ago",
+		"card-row",
 		"recent-active",
 		"recent-card",
 		"unattended",
@@ -269,6 +270,7 @@ func TestRender_Portfolio(t *testing.T) {
 		"data-table--compact",
 		"Last Active",
 		"ago",
+		"card-row",
 		"recent-active",
 		"recent-card",
 		"unattended",
@@ -323,6 +325,7 @@ func TestRender_Workspace(t *testing.T) {
 		"data-table--compact",
 		"Last Active",
 		"ago",
+		"card-row",
 		"recent-active",
 		"recent-card",
 		"unattended",
@@ -675,7 +678,7 @@ func TestIsRepoUnattended(t *testing.T) {
 
 	now := time.Now()
 	old := now.Add(-10 * 24 * time.Hour) // 10 days ago
-	recent := now.Add(-2 * 24 * time.Hour) // 2 days ago
+	recent := now.Add(-1 * 24 * time.Hour) // 1 day ago
 
 	// Dirty + old = unattended
 	assert.True(t, isRepoUnattended(true, 0, old))

@@ -11,28 +11,58 @@
     <a href="#/portfolios/{{.Name}}?sort=time" class="segmented-btn{{if eq .SortMode "time"}} segmented-btn--active{{end}}">Recent</a>
 </div>
 
-{{if .TopRecentWorkspaces}}
-<h2 class="title-medium" style="margin: 16px 0 8px 0;">Recently Active</h2>
-<div class="recent-cards" id="recent-active">
-    {{range .TopRecentWorkspaces}}
-    <a href="#/portfolios/{{$.Name}}/workspaces/{{.Name}}" class="recent-card">
-        <span class="recent-card__name">{{.Name}}</span>
-        <span class="recent-card__detail">{{.RepoCount}} repos</span>
-        <span class="recent-card__detail">{{if .MetaPlans}}{{.Progress.PercentDone}}% progress{{else}}-{{end}}</span>
-    </a>
-    {{end}}
+<div class="stats-grid">
+    <div class="stat-card">
+        <span class="stat-value">{{.Stats.TotalWorkspaces}}</span>
+        <span class="stat-label">Workspaces</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value">{{.Stats.TotalRepos}}</span>
+        <span class="stat-label">Repositories</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value {{if gt .Stats.DirtyRepos 0}}stat-value--fail{{end}}">{{.Stats.DirtyRepos}}</span>
+        <span class="stat-label">Dirty Repos</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value {{if gt .Stats.Passed 0}}stat-value--pass{{end}}">{{.Stats.Passed}}</span>
+        <span class="stat-label">Tests Passed</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value {{if gt .Stats.Failed 0}}stat-value--fail{{end}}">{{.Stats.Failed}}</span>
+        <span class="stat-label">Tests Failed</span>
+    </div>
 </div>
-{{end}}
 
-{{if .Unattended}}
-<h2 class="title-medium" style="margin: 16px 0 8px 0;">Needs Attention</h2>
-<div class="recent-cards" id="unattended">
-    {{range .Unattended}}
-    <a href="#/portfolios/{{$.Name}}/workspaces/{{.Name}}" class="recent-card recent-card--warn">
-        <span class="recent-card__name">{{.Name}}</span>
-        <span class="recent-card__detail">{{.DirtyRepoCount}} dirty repos</span>
-        <span class="recent-card__detail">last active: {{timeAgo .LastActivity}}</span>
-    </a>
+{{if or .TopRecentWorkspaces .Unattended}}
+<div class="card-row">
+    {{if .TopRecentWorkspaces}}
+    <div>
+        <h2 class="title-medium" style="margin: 0 0 8px 0;">Recently Active</h2>
+        <div class="recent-cards" id="recent-active">
+            {{range .TopRecentWorkspaces}}
+            <a href="#/portfolios/{{$.Name}}/workspaces/{{.Name}}" class="recent-card">
+                <span class="recent-card__name">{{.Name}}</span>
+                <span class="recent-card__detail">{{.RepoCount}} repos</span>
+                <span class="recent-card__detail">{{if .MetaPlans}}{{.Progress.PercentDone}}% progress{{else}}-{{end}}</span>
+            </a>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+    {{if .Unattended}}
+    <div>
+        <h2 class="title-medium" style="margin: 0 0 8px 0;">Needs Attention</h2>
+        <div class="recent-cards" id="unattended">
+            {{range .Unattended}}
+            <a href="#/portfolios/{{$.Name}}/workspaces/{{.Name}}" class="recent-card recent-card--warn">
+                <span class="recent-card__name">{{.Name}}</span>
+                <span class="recent-card__detail">{{.DirtyRepoCount}} dirty repos</span>
+                <span class="recent-card__detail">last active: {{timeAgo .LastActivity}}</span>
+            </a>
+            {{end}}
+        </div>
+    </div>
     {{end}}
 </div>
 {{end}}
@@ -70,29 +100,6 @@
 </div>
 <p class="body-small" style="color: var(--md-sys-color-on-surface-variant); margin: 4px 0 16px 0;">{{.Stats.Portfolio.PercentDone}}% complete &middot; {{.Stats.Portfolio.TotalMetaPlans}} meta-plans &middot; {{.Stats.Portfolio.TasksDone}}/{{.Stats.Portfolio.TasksTotal}} tasks</p>
 {{end}}
-
-<div class="stats-grid">
-    <div class="stat-card">
-        <span class="stat-value">{{.Stats.TotalWorkspaces}}</span>
-        <span class="stat-label">Workspaces</span>
-    </div>
-    <div class="stat-card">
-        <span class="stat-value">{{.Stats.TotalRepos}}</span>
-        <span class="stat-label">Repositories</span>
-    </div>
-    <div class="stat-card">
-        <span class="stat-value {{if gt .Stats.DirtyRepos 0}}stat-value--fail{{end}}">{{.Stats.DirtyRepos}}</span>
-        <span class="stat-label">Dirty Repos</span>
-    </div>
-    <div class="stat-card">
-        <span class="stat-value {{if gt .Stats.Passed 0}}stat-value--pass{{end}}">{{.Stats.Passed}}</span>
-        <span class="stat-label">Tests Passed</span>
-    </div>
-    <div class="stat-card">
-        <span class="stat-value {{if gt .Stats.Failed 0}}stat-value--fail{{end}}">{{.Stats.Failed}}</span>
-        <span class="stat-label">Tests Failed</span>
-    </div>
-</div>
 
 {{if not .Workspaces}}
 <p class="empty-state body-large">No workspaces found.</p>

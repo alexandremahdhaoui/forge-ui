@@ -14,7 +14,7 @@ import (
 	"github.com/alexandremahdhaoui/forge-ui/internal/types"
 )
 
-const unattendedThreshold = 7 * 24 * time.Hour
+const unattendedThreshold = 48 * time.Hour
 
 //go:embed templates/*.html
 var templateFS embed.FS

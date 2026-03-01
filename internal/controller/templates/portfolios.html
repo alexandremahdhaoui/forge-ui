@@ -6,60 +6,6 @@
     <a href="#/portfolios?sort=time" class="segmented-btn{{if eq .SortMode "time"}} segmented-btn--active{{end}}">Recent</a>
 </div>
 
-{{if .TopRecentPortfolios}}
-<h2 class="title-medium" style="margin: 16px 0 8px 0;">Recently Active</h2>
-<div class="recent-cards" id="recent-active">
-    {{range .TopRecentPortfolios}}
-    <a href="#/portfolios/{{.Name}}" class="recent-card">
-        <span class="recent-card__name">{{.Name}}</span>
-        <span class="recent-card__detail">{{.Stats.TotalWorkspaces}} workspaces &middot; {{.Stats.TotalRepos}} repos</span>
-        <span class="recent-card__detail">{{if gt .Stats.DirtyRepos 0}}{{.Stats.DirtyRepos}} dirty{{else}}clean{{end}}</span>
-    </a>
-    {{end}}
-</div>
-{{end}}
-
-{{if .Unattended}}
-<h2 class="title-medium" style="margin: 16px 0 8px 0;">Needs Attention</h2>
-<div class="recent-cards" id="unattended">
-    {{range .Unattended}}
-    <a href="#/portfolios/{{.Name}}" class="recent-card recent-card--warn">
-        <span class="recent-card__name">{{.Name}}</span>
-        <span class="recent-card__detail">{{.Stats.TotalWorkspaces}} workspaces &middot; {{.Stats.DirtyRepos}} dirty</span>
-        <span class="recent-card__detail">last active: {{timeAgo .LastActivity}}</span>
-    </a>
-    {{end}}
-</div>
-{{end}}
-
-{{if .Portfolios}}
-<h2 class="title-medium" style="margin: 16px 0 8px 0;">Overview</h2>
-<div style="overflow-x: auto;">
-<table class="data-table data-table--compact" id="outlook-table">
-    <thead>
-        <tr>
-            <th class="label-medium">Portfolio</th>
-            <th class="label-medium">Workspaces</th>
-            <th class="label-medium">Repos</th>
-            <th class="label-medium">Status</th>
-            <th class="label-medium">Last Active</th>
-        </tr>
-    </thead>
-    <tbody>
-        {{range .Portfolios}}
-        <tr>
-            <td><a href="#/portfolios/{{.Name}}">{{.Name}}</a>{{if .IsDefault}} <span class="chip chip--neutral">catch-all</span>{{end}}</td>
-            <td>{{.Stats.TotalWorkspaces}}</td>
-            <td>{{.Stats.TotalRepos}}</td>
-            <td>{{if gt .Stats.DirtyRepos 0}}<span class="chip chip--fail">{{.Stats.DirtyRepos}} dirty</span>{{else}}<span class="chip chip--pass">clean</span>{{end}}</td>
-            <td>{{timeAgo .LastActivity}}</td>
-        </tr>
-        {{end}}
-    </tbody>
-</table>
-</div>
-{{end}}
-
 <div class="stats-grid">
     <div class="stat-card">
         <span class="stat-value">{{.Stats.TotalPortfolios}}</span>
@@ -92,6 +38,67 @@
     </div>
     {{end}}
 </div>
+
+{{if or .TopRecentPortfolios .Unattended}}
+<div class="card-row">
+    {{if .TopRecentPortfolios}}
+    <div>
+        <h2 class="title-medium" style="margin: 0 0 8px 0;">Recently Active</h2>
+        <div class="recent-cards" id="recent-active">
+            {{range .TopRecentPortfolios}}
+            <a href="#/portfolios/{{.Name}}" class="recent-card">
+                <span class="recent-card__name">{{.Name}}</span>
+                <span class="recent-card__detail">{{.Stats.TotalWorkspaces}} workspaces &middot; {{.Stats.TotalRepos}} repos</span>
+                <span class="recent-card__detail">{{if gt .Stats.DirtyRepos 0}}{{.Stats.DirtyRepos}} dirty{{else}}clean{{end}}</span>
+            </a>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+    {{if .Unattended}}
+    <div>
+        <h2 class="title-medium" style="margin: 0 0 8px 0;">Needs Attention</h2>
+        <div class="recent-cards" id="unattended">
+            {{range .Unattended}}
+            <a href="#/portfolios/{{.Name}}" class="recent-card recent-card--warn">
+                <span class="recent-card__name">{{.Name}}</span>
+                <span class="recent-card__detail">{{.Stats.TotalWorkspaces}} workspaces &middot; {{.Stats.DirtyRepos}} dirty</span>
+                <span class="recent-card__detail">last active: {{timeAgo .LastActivity}}</span>
+            </a>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+</div>
+{{end}}
+
+{{if .Portfolios}}
+<h2 class="title-medium" style="margin: 16px 0 8px 0;">Overview</h2>
+<div style="overflow-x: auto;">
+<table class="data-table data-table--compact" id="outlook-table">
+    <thead>
+        <tr>
+            <th class="label-medium">Portfolio</th>
+            <th class="label-medium">Workspaces</th>
+            <th class="label-medium">Repos</th>
+            <th class="label-medium">Status</th>
+            <th class="label-medium">Last Active</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Portfolios}}
+        <tr>
+            <td><a href="#/portfolios/{{.Name}}">{{.Name}}</a>{{if .IsDefault}} <span class="chip chip--neutral">catch-all</span>{{end}}</td>
+            <td>{{.Stats.TotalWorkspaces}}</td>
+            <td>{{.Stats.TotalRepos}}</td>
+            <td>{{if gt .Stats.DirtyRepos 0}}<span class="chip chip--fail">{{.Stats.DirtyRepos}} dirty</span>{{else}}<span class="chip chip--pass">clean</span>{{end}}</td>
+            <td>{{timeAgo .LastActivity}}</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+</div>
+{{end}}
 
 {{if not .Portfolios}}
 <p class="empty-state body-large">No portfolios found.</p>

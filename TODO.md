@@ -1,9 +1,11 @@
 # TODO
 
-- [ ] Add auto-sync capability for the repo/ws/portfolio info and add a sync button - The auto-sync should be enabled by default with like 1 minute period -> user can have a dropdown they can choose from to change the auto-sync period from like 30 seconds to 5 minutes - this is only front-end side auto-sync --- This can obviously only work with WASM
+- [ ] Add some sort of recap/recommendations for the pages: I want to see repos/workspaces/portfolios that have been left unattended -> i.e.: they have uncommited changes or unpushed commits but the repo/workspace/portfolios haven't been modified recently -> Shows work that have been left unattended
+- [ ] Improve /orchestrator to update in repo/workspace/portfolio what's currently being worked on -> like current context about the changes and what's currently being tackled and what problems we have if any etc -> like surfacing blockers etc and scope changes
 
 ## Done
 
+- [x] Add auto-sync capability for the repo/ws/portfolio info and add a sync button - The auto-sync should be enabled by default with like 1 minute period -> user can have a dropdown they can choose from to change the auto-sync period from like 30 seconds to 5 minutes - this is only front-end side auto-sync --- This can obviously only work with WASM
 - [x] Implement /portfolio as new root route for workspaces a portfolio is a collection of workspaces -> this allow creating hierarchy of workspaces for larger projects and/or helping grouping workspaces logically
 - [x] In /workspaces display most recently modified workspaces sorted from most recent modified date to least recent modified
 - [x] Refactor UI using <https://m3.material.io/> -> Use the frontend-design-material skill in /home/alexandremahdhaoui/go/src/github.com/alexandremahdhaoui/skills

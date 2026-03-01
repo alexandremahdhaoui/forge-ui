@@ -12,28 +12,60 @@
     <a href="#/portfolios/{{.PortfolioName}}/workspaces/{{.Name}}?sort=time" class="segmented-btn{{if eq .SortMode "time"}} segmented-btn--active{{end}}">Recent</a>
 </div>
 
-{{if .TopRecentRepos}}
-<h2 class="title-medium" style="margin: 16px 0 8px 0;">Recently Active</h2>
-<div class="recent-cards" id="recent-active">
-    {{range .TopRecentRepos}}
-    <a href="{{.RepoLink}}" class="recent-card">
-        <span class="recent-card__name">{{.Name}}</span>
-        <span class="recent-card__detail"><span class="code-inline" style="font-size: 12px;">{{.Branch}}</span></span>
-        <span class="recent-card__detail">{{if .IsDirty}}<span class="chip chip--warn" style="font-size: 11px;">dirty</span>{{else}}<span class="chip chip--pass" style="font-size: 11px;">clean</span>{{end}}</span>
-    </a>
-    {{end}}
+{{if .RepoForge}}
+<div class="stats-grid">
+    <div class="stat-card">
+        <span class="stat-value">{{.Stats.TotalRepos}}</span>
+        <span class="stat-label">Repositories</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value">{{.Stats.ForgeRepos}}</span>
+        <span class="stat-label">Forge Repos</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value">{{.Stats.TotalTests}}</span>
+        <span class="stat-label">Total Tests</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value {{if gt .Stats.Passed 0}}stat-value--pass{{end}}">{{.Stats.Passed}}</span>
+        <span class="stat-label">Passed</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value {{if gt .Stats.Failed 0}}stat-value--fail{{end}}">{{.Stats.Failed}}</span>
+        <span class="stat-label">Failed</span>
+    </div>
 </div>
 {{end}}
 
-{{if .Unattended}}
-<h2 class="title-medium" style="margin: 16px 0 8px 0;">Needs Attention</h2>
-<div class="recent-cards" id="unattended">
-    {{range .Unattended}}
-    <a href="{{.RepoLink}}" class="recent-card recent-card--warn">
-        <span class="recent-card__name">{{.Name}}</span>
-        <span class="recent-card__detail"><span class="code-inline" style="font-size: 12px;">{{.Branch}}</span>{{if .IsDirty}} &middot; dirty{{end}}{{if gt .Ahead 0}} &middot; {{.Ahead}} unpushed{{end}}</span>
-        <span class="recent-card__detail">last active: {{timeAgo .LastCommitTime}}</span>
-    </a>
+{{if or .TopRecentRepos .Unattended}}
+<div class="card-row">
+    {{if .TopRecentRepos}}
+    <div>
+        <h2 class="title-medium" style="margin: 0 0 8px 0;">Recently Active</h2>
+        <div class="recent-cards" id="recent-active">
+            {{range .TopRecentRepos}}
+            <a href="{{.RepoLink}}" class="recent-card">
+                <span class="recent-card__name">{{.Name}}</span>
+                <span class="recent-card__detail"><span class="code-inline" style="font-size: 12px;">{{.Branch}}</span></span>
+                <span class="recent-card__detail">{{if .IsDirty}}<span class="chip chip--warn" style="font-size: 11px;">dirty</span>{{else}}<span class="chip chip--pass" style="font-size: 11px;">clean</span>{{end}}</span>
+            </a>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+    {{if .Unattended}}
+    <div>
+        <h2 class="title-medium" style="margin: 0 0 8px 0;">Needs Attention</h2>
+        <div class="recent-cards" id="unattended">
+            {{range .Unattended}}
+            <a href="{{.RepoLink}}" class="recent-card recent-card--warn">
+                <span class="recent-card__name">{{.Name}}</span>
+                <span class="recent-card__detail"><span class="code-inline" style="font-size: 12px;">{{.Branch}}</span>{{if .IsDirty}} &middot; dirty{{end}}{{if gt .Ahead 0}} &middot; {{.Ahead}} unpushed{{end}}</span>
+                <span class="recent-card__detail">last active: {{timeAgo .LastCommitTime}}</span>
+            </a>
+            {{end}}
+        </div>
+    </div>
     {{end}}
 </div>
 {{end}}
@@ -132,29 +164,6 @@
 {{end}}
 
 {{if .RepoForge}}
-<div class="stats-grid">
-    <div class="stat-card">
-        <span class="stat-value">{{.Stats.TotalRepos}}</span>
-        <span class="stat-label">Repositories</span>
-    </div>
-    <div class="stat-card">
-        <span class="stat-value">{{.Stats.ForgeRepos}}</span>
-        <span class="stat-label">Forge Repos</span>
-    </div>
-    <div class="stat-card">
-        <span class="stat-value">{{.Stats.TotalTests}}</span>
-        <span class="stat-label">Total Tests</span>
-    </div>
-    <div class="stat-card">
-        <span class="stat-value {{if gt .Stats.Passed 0}}stat-value--pass{{end}}">{{.Stats.Passed}}</span>
-        <span class="stat-label">Passed</span>
-    </div>
-    <div class="stat-card">
-        <span class="stat-value {{if gt .Stats.Failed 0}}stat-value--fail{{end}}">{{.Stats.Failed}}</span>
-        <span class="stat-label">Failed</span>
-    </div>
-</div>
-
 <h2 class="title-large">Test Heatmap</h2>
 <div style="overflow-x: auto;">
 <table class="data-table heatmap-table">

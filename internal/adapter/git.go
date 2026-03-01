@@ -3,7 +3,9 @@
 package adapter
 
 import (
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -94,6 +96,27 @@ func (g *gitInfoImpl) RepoInfo(repoPath string) (types.RepoSummary, error) {
 	if err == nil {
 		if t, err := time.Parse(time.RFC3339, strings.TrimSpace(commitTimeOut)); err == nil {
 			result.LastCommitTime = t
+		}
+	}
+
+	// 7. If dirty, check file modification times so LastCommitTime reflects
+	// actual working directory activity, not just the last commit.
+	// git status --porcelain already respects .gitignore, so no risk of
+	// walking into node_modules or .git.
+	if result.IsDirty {
+		for _, sf := range result.StatusFiles {
+			p := sf.FilePath
+			// Renames show as "old -> new"; use the new path.
+			if idx := strings.Index(p, " -> "); idx >= 0 {
+				p = p[idx+4:]
+			}
+			info, err := os.Stat(filepath.Join(repoPath, p))
+			if err != nil {
+				continue // deleted file or unreadable
+			}
+			if info.ModTime().After(result.LastCommitTime) {
+				result.LastCommitTime = info.ModTime()
+			}
 		}
 	}
 
