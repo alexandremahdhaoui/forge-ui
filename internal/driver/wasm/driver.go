@@ -23,6 +23,7 @@ type Driver struct {
 	syncBtnCb      js.Func
 	syncSelectCb   js.Func
 	syncIntervalID js.Value
+	termToggleCb   js.Func
 }
 
 // New creates a Driver with the given PageRenderer.
@@ -87,6 +88,19 @@ func (d *Driver) Init() {
 	syncSelect.Call("addEventListener", "change", d.syncSelectCb)
 
 	d.startAutoSync(interval)
+
+	// Terminal toggle button dispatches a CustomEvent for terminal.mjs.
+	d.termToggleCb = js.FuncOf(func(this js.Value, args []js.Value) any {
+		detail := map[string]any{
+			"workspace": "default",
+		}
+		event := js.Global().Get("CustomEvent").New("toggle-terminal", map[string]any{
+			"detail": detail,
+		})
+		document().Call("dispatchEvent", event)
+		return nil
+	})
+	getElementById("terminal-toggle").Call("addEventListener", "click", d.termToggleCb)
 
 	// Hash-based router.
 	d.router = NewRouter(func(hash string) {

@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "forge-workspace.fullname" . }}
+  labels:
+    {{- include "forge-workspace.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "forge-workspace.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "forge-workspace.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "forge-workspace.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.persistence.enabled }}
+      initContainers:
+        - name: init-workspace
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          command: ["sh", "-c", "chown {{ .Values.config.username }}:{{ .Values.config.username }} /home/{{ .Values.config.username }}/workspace"]
+          volumeMounts:
+            - name: workspace
+              mountPath: /home/{{ .Values.config.username }}/workspace
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: WORKSPACE_NAME
+              value: {{ .Values.config.workspaceName | quote }}
+          ports:
+            - name: ssh
+              containerPort: 22
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: ssh
+          readinessProbe:
+            tcpSocket:
+              port: ssh
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: sshd-config
+              mountPath: /etc/ssh/sshd_config
+              subPath: sshd_config
+              readOnly: true
+            - name: authorized-keys
+              mountPath: /home/{{ .Values.config.username }}/.ssh/authorized_keys
+              subPath: authorized_keys
+              readOnly: true
+            {{- if .Values.persistence.enabled }}
+            - name: workspace
+              mountPath: /home/{{ .Values.config.username }}/workspace
+            {{- end }}
+      volumes:
+        - name: sshd-config
+          configMap:
+            name: {{ include "forge-workspace.fullname" . }}
+        - name: authorized-keys
+          configMap:
+            name: {{ include "forge-workspace.fullname" . }}
+            defaultMode: 0644
+        {{- if .Values.persistence.enabled }}
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: {{ include "forge-workspace.fullname" . }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,48 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/alexandremahdhaoui/forge-wss-proxy
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+config:
+  listenAddr: ":8080"
+  serveDir: "/web"
+  workspaceServicePattern: "forge-workspace-{name}:22"
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+podSecurityContext: {}
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  tls: []
+
+httpRoute:
+  enabled: false
+  parentRefs: []
+  hostnames: []
+  rules: []
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

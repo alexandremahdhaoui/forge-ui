@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="api-base-url" content="http://localhost:8081/api/v1">
+    <meta name="api-base-url" content="/api/v1">
     <title>forge-ui</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -484,6 +484,7 @@
             min-width: 0;
             max-width: none;
             padding: 24px;
+            padding-bottom: 64px; /* space for fixed terminal bar */
         }
 
         .card-filled {
@@ -882,7 +883,109 @@
             .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); }
             .top-app-bar { padding: 0 16px; }
         }
+        /* Terminal bar and panel — M3 bottom bar */
+        .terminal-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 16px;
+            background: var(--md-sys-color-surface-container-high);
+            border-top: 1px solid var(--md-sys-color-outline-variant);
+            z-index: 100;
+            transition: background var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard);
+        }
+        .terminal-bar[aria-expanded="true"] {
+            background: var(--md-sys-color-surface-container-highest);
+        }
+        .terminal-bar__icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        .terminal-bar__label {
+            font-family: var(--md-sys-typescale-plain-font);
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 20px;
+            letter-spacing: 0.1px;
+            color: var(--md-sys-color-on-surface-variant);
+            flex: 1;
+        }
+        .terminal-bar__toggle {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: transparent;
+            border: none;
+            border-radius: var(--md-sys-shape-corner-full);
+            color: var(--md-sys-color-on-surface-variant);
+            cursor: pointer;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .terminal-bar__toggle::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: var(--md-sys-color-on-surface-variant);
+            opacity: 0;
+            transition: opacity var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard);
+            pointer-events: none;
+        }
+        .terminal-bar__toggle:hover::before { opacity: 0.08; }
+        .terminal-bar__toggle:focus-visible::before { opacity: 0.12; }
+        .terminal-bar__toggle:active::before { opacity: 0.12; }
+        .terminal-bar__toggle:focus-visible {
+            outline: 2px solid var(--md-sys-color-primary);
+            outline-offset: 2px;
+        }
+        .terminal-bar__toggle svg {
+            width: 24px;
+            height: 24px;
+            transition: transform var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard);
+        }
+        .terminal-bar[aria-expanded="true"] .terminal-bar__toggle svg {
+            transform: rotate(180deg);
+        }
+        .terminal-panel {
+            position: fixed;
+            bottom: 48px;
+            left: 0;
+            right: 0;
+            height: 320px;
+            background: var(--md-sys-color-inverse-surface);
+            border-top: 1px solid var(--md-sys-color-outline-variant);
+            box-shadow: var(--md-sys-elevation-3);
+            z-index: 99;
+            overflow: hidden;
+            transform: translateY(100%);
+            opacity: 0;
+            transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-standard),
+                        opacity var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard);
+            pointer-events: none;
+        }
+        .terminal-panel--open {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #terminal-container {
+            width: 100%;
+            height: 100%;
+            padding: 4px 0 0 4px;
+        }
     </style>
+    <link href="terminal/xterm.css" rel="stylesheet">
 </head>
 <body>
     <header class="top-app-bar">
@@ -955,11 +1058,22 @@
             </div>
         </main>
     </div>
+    <div id="terminal-bar" class="terminal-bar" aria-expanded="false">
+        <svg class="terminal-bar__icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor"><path d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm0-80h640v-400H160v400Zm140-40-56-56 103-104-104-104 57-56 160 160-160 160Zm180 0v-80h240v80H480Z"/></svg>
+        <span class="terminal-bar__label">Terminal</span>
+        <button id="terminal-toggle" class="terminal-bar__toggle" aria-label="Toggle terminal">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor"><path d="M480-528 296-344l-56-56 240-240 240 240-56 56-184-184Z"/></svg>
+        </button>
+    </div>
+    <div id="terminal-panel" class="terminal-panel">
+        <div id="terminal-container"></div>
+    </div>
     <script src="wasm_exec.js"></script>
     <script>
         const go = new Go();
         WebAssembly.instantiateStreaming(fetch("forge-ui.wasm"), go.importObject)
             .then(result => go.run(result.instance));
     </script>
+    <script src="terminal/terminal.mjs" type="module"></script>
 </body>
 </html>

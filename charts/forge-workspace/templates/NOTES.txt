@@ -1,0 +1,7 @@
+forge-workspace has been deployed.
+
+Workspace: {{ .Release.Name }}
+SSH service: {{ include "forge-workspace.fullname" . }}:{{ .Values.service.port }}
+
+To connect via WSS proxy, ensure the forge-wss-proxy is deployed
+and browse to /ws/{{ trimPrefix "forge-workspace-" .Release.Name }}

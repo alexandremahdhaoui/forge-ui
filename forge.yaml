@@ -23,6 +23,48 @@ engines:
     builder:
       - engine: go://generic-builder
 
+  - alias: setup-e2e
+    type: testenv
+    testenv:
+      - engine: go://testenv-kind
+      - engine: go://testenv-lcr
+        spec:
+          enabled: true
+          namespace: testenv-lcr
+          imagePullSecretName: testenv-lcr-credentials
+          imagePullSecretNamespaces: [default]
+          images:
+            - name: local://forge-wss-proxy-image:latest
+            - name: local://forge-workspace-image:latest
+      - engine: go://testenv-helm-install
+        spec:
+          charts:
+            - name: forge-wss-proxy
+              sourceType: local
+              path: ./charts/forge-wss-proxy
+              values:
+                image:
+                  repository: "{{.Env.TESTENV_LCR_FQDN}}/forge-wss-proxy-image"
+                  tag: latest
+                  pullPolicy: IfNotPresent
+                imagePullSecrets:
+                  - name: testenv-lcr-credentials
+            - name: forge-workspace-test-ws
+              sourceType: local
+              path: ./charts/forge-workspace
+              values:
+                image:
+                  repository: "{{.Env.TESTENV_LCR_FQDN}}/forge-workspace-image"
+                  tag: latest
+                  pullPolicy: IfNotPresent
+                imagePullSecrets:
+                  - name: testenv-lcr-credentials
+                config:
+                  workspaceName: "test-ws"
+                ssh:
+                  authorizedKeys:
+                    - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFFbznCQzYI2RNWzWYp0H4RHVNRn4n9Z3ZlfGeIjKSIN test-user"
+
 build:
   - name: forge-frontend
     src: ./cmd/forge-frontend
@@ -40,6 +82,25 @@ build:
         GOOS: "js"
         GOARCH: "wasm"
 
+  - name: forge-terminal-wasm
+    src: ./cmd/forge-terminal-wasm
+    dest: ./build/web
+    engine: alias://wasm-build
+    spec:
+      command: "go"
+      args: ["build", "-o", "./build/web/terminal.wasm", "./cmd/forge-terminal-wasm"]
+      env:
+        GOOS: "js"
+        GOARCH: "wasm"
+
+  - name: forge-terminal-xterm
+    src: ./xterm
+    dest: ./build/web
+    engine: alias://web-assets
+    spec:
+      command: "bash"
+      args: ["-c", "cd xterm && npm install && npx rollup -c && cp node_modules/@xterm/xterm/css/xterm.css ../web/terminal/"]
+
   - name: forge-ui-web-assets
     src: ./web
     dest: ./build/web
@@ -47,6 +108,25 @@ build:
     spec:
       command: "cp"
       args: ["-r", "./web/.", "./build/web/"]
+
+  - name: forge-wss-proxy
+    src: ./cmd/forge-wss-proxy
+    dest: ./build/bin
+    engine: go://go-build
+
+  - name: forge-wss-proxy-image
+    src: ./containers/forge-wss-proxy/Containerfile
+    engine: go://container-build
+    spec:
+      dependsOn:
+        - engine: go://go-dependency-detector
+          spec:
+            filepath: ./cmd/forge-wss-proxy/main.go
+            funcName: main
+
+  - name: forge-workspace-image
+    src: ./containers/forge-workspace/Containerfile
+    engine: go://container-build
 
   - name: generate-mocks
     src: .
@@ -69,3 +149,9 @@ test:
 
   - name: unit
     runner: "go://go-test"
+
+  - name: e2e
+    runner: go://go-test
+    testenv: alias://setup-e2e
+    spec:
+      buildTags: [e2e]

@@ -23,7 +23,7 @@ func getAPIBaseURL() string {
 	doc := js.Global().Get("document")
 	meta := doc.Call("querySelector", `meta[name="api-base-url"]`)
 	if meta.IsNull() || meta.IsUndefined() {
-		return "http://localhost:8081/api/v1" // fallback default
+		return "/api/v1" // fallback default
 	}
 	return meta.Get("content").String()
 }

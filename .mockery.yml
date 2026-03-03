@@ -21,3 +21,17 @@ packages:
       pkgname: "mockcontroller"
       structname: '{{.InterfaceName}}'
       filename: "mock_{{.InterfaceName | snakecase}}.go"
+  github.com/alexandremahdhaoui/forge-ui/internal/terminal/adapter:
+    config:
+      all: true
+      dir: "internal/util/mocks/mockterminaladapter"
+      pkgname: "mockterminaladapter"
+      structname: '{{.InterfaceName}}'
+      filename: "mock_{{.InterfaceName | snakecase}}.go"
+  github.com/alexandremahdhaoui/forge-ui/internal/terminal/controller:
+    config:
+      all: true
+      dir: "internal/util/mocks/mockterminalcontroller"
+      pkgname: "mockterminalcontroller"
+      structname: '{{.InterfaceName}}'
+      filename: "mock_{{.InterfaceName | snakecase}}.go"

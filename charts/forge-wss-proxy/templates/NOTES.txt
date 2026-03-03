@@ -1,0 +1,7 @@
+forge-wss-proxy has been deployed.
+
+WebSocket endpoint: /ws/{workspace}
+
+To access:
+  kubectl port-forward svc/{{ include "forge-wss-proxy.fullname" . }} 8080:{{ .Values.service.port }}
+  # Open http://localhost:8080/terminal.html?workspace=YOUR_WORKSPACE&endpoint=ws://localhost:8080/ws/YOUR_WORKSPACE

@@ -1,0 +1,11 @@
+FROM docker.io/alpine:3.20.1
+RUN apk add --no-cache openssh-server tmux git ncurses
+RUN adduser -D -s /bin/sh forge \
+ && echo 'forge:LockedButUnlocked42' | chpasswd
+RUN mkdir -p /home/forge/.ssh && chown forge:forge /home/forge/.ssh && chmod 700 /home/forge/.ssh
+EXPOSE 22
+COPY containers/forge-workspace/get-authorized-keys.sh /usr/local/bin/get-authorized-keys
+RUN chmod 755 /usr/local/bin/get-authorized-keys
+COPY containers/forge-workspace/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+CMD ["/entrypoint.sh"]
