@@ -1,4 +1,18 @@
-//go:build !js || !wasm
+//go:build unit
+
+// Copyright 2024 Alexandre Mahdhaoui
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package controller
 
@@ -14,10 +28,10 @@ import (
 func TestRefresher_DefaultConfig(t *testing.T) {
 	t.Parallel()
 
-	c := new(mockadapter.Cache)
-	gi := new(mockadapter.GitInfo)
-	pd := new(mockadapter.PortfolioDiscovery)
-	ws := new(mockadapter.WorkspaceDiscovery)
+	c := new(mockadapter.MockCache)
+	gi := new(mockadapter.MockGitInfo)
+	pd := new(mockadapter.MockPortfolioDiscovery)
+	ws := new(mockadapter.MockWorkspaceDiscovery)
 
 	r := NewRefresher(c, gi, pd, ws, RefresherConfig{BaseDir: "/nonexistent"})
 	if got, want := r.cfg.Interval, 1*time.Minute; got != want {
@@ -31,10 +45,10 @@ func TestRefresher_DefaultConfig(t *testing.T) {
 func TestRefresher_CustomConfig(t *testing.T) {
 	t.Parallel()
 
-	c := new(mockadapter.Cache)
-	gi := new(mockadapter.GitInfo)
-	pd := new(mockadapter.PortfolioDiscovery)
-	ws := new(mockadapter.WorkspaceDiscovery)
+	c := new(mockadapter.MockCache)
+	gi := new(mockadapter.MockGitInfo)
+	pd := new(mockadapter.MockPortfolioDiscovery)
+	ws := new(mockadapter.MockWorkspaceDiscovery)
 
 	r := NewRefresher(c, gi, pd, ws, RefresherConfig{
 		BaseDir:    "/tmp",
@@ -52,10 +66,10 @@ func TestRefresher_CustomConfig(t *testing.T) {
 func TestRefresher_StartAndStop(t *testing.T) {
 	t.Parallel()
 
-	c := new(mockadapter.Cache)
-	gi := new(mockadapter.GitInfo)
-	pd := new(mockadapter.PortfolioDiscovery)
-	ws := new(mockadapter.WorkspaceDiscovery)
+	c := new(mockadapter.MockCache)
+	gi := new(mockadapter.MockGitInfo)
+	pd := new(mockadapter.MockPortfolioDiscovery)
+	ws := new(mockadapter.MockWorkspaceDiscovery)
 
 	// Empty portfolio list — no workspaces to refresh.
 	pd.On("List", "/base").Return([]types.PortfolioSummary{}, nil)
@@ -94,10 +108,10 @@ func TestRefresher_StartAndStop(t *testing.T) {
 func TestRefresher_PopulatesCache(t *testing.T) {
 	t.Parallel()
 
-	c := new(mockadapter.Cache)
-	gi := new(mockadapter.GitInfo)
-	pd := new(mockadapter.PortfolioDiscovery)
-	ws := new(mockadapter.WorkspaceDiscovery)
+	c := new(mockadapter.MockCache)
+	gi := new(mockadapter.MockGitInfo)
+	pd := new(mockadapter.MockPortfolioDiscovery)
+	ws := new(mockadapter.MockWorkspaceDiscovery)
 
 	commitTime := time.Date(2025, 6, 1, 12, 0, 0, 0, time.UTC)
 
@@ -176,10 +190,10 @@ func TestRefresher_PopulatesCache(t *testing.T) {
 func TestRefresher_PortfolioListError(t *testing.T) {
 	t.Parallel()
 
-	c := new(mockadapter.Cache)
-	gi := new(mockadapter.GitInfo)
-	pd := new(mockadapter.PortfolioDiscovery)
-	ws := new(mockadapter.WorkspaceDiscovery)
+	c := new(mockadapter.MockCache)
+	gi := new(mockadapter.MockGitInfo)
+	pd := new(mockadapter.MockPortfolioDiscovery)
+	ws := new(mockadapter.MockWorkspaceDiscovery)
 
 	pd.On("List", "/base").Return(nil, errRefresherTest)
 
@@ -200,10 +214,10 @@ func TestRefresher_PortfolioListError(t *testing.T) {
 func TestRefresher_WorkspaceGetError(t *testing.T) {
 	t.Parallel()
 
-	c := new(mockadapter.Cache)
-	gi := new(mockadapter.GitInfo)
-	pd := new(mockadapter.PortfolioDiscovery)
-	ws := new(mockadapter.WorkspaceDiscovery)
+	c := new(mockadapter.MockCache)
+	gi := new(mockadapter.MockGitInfo)
+	pd := new(mockadapter.MockPortfolioDiscovery)
+	ws := new(mockadapter.MockWorkspaceDiscovery)
 
 	pd.On("List", "/base").Return([]types.PortfolioSummary{
 		{
@@ -235,10 +249,10 @@ func TestRefresher_WorkspaceGetError(t *testing.T) {
 func TestRefresher_RepoInfoError(t *testing.T) {
 	t.Parallel()
 
-	c := new(mockadapter.Cache)
-	gi := new(mockadapter.GitInfo)
-	pd := new(mockadapter.PortfolioDiscovery)
-	ws := new(mockadapter.WorkspaceDiscovery)
+	c := new(mockadapter.MockCache)
+	gi := new(mockadapter.MockGitInfo)
+	pd := new(mockadapter.MockPortfolioDiscovery)
+	ws := new(mockadapter.MockWorkspaceDiscovery)
 
 	pd.On("List", "/base").Return([]types.PortfolioSummary{
 		{
@@ -283,10 +297,10 @@ func TestRefresher_RepoInfoError(t *testing.T) {
 func TestRefresher_NamedPortfolio(t *testing.T) {
 	t.Parallel()
 
-	c := new(mockadapter.Cache)
-	gi := new(mockadapter.GitInfo)
-	pd := new(mockadapter.PortfolioDiscovery)
-	ws := new(mockadapter.WorkspaceDiscovery)
+	c := new(mockadapter.MockCache)
+	gi := new(mockadapter.MockGitInfo)
+	pd := new(mockadapter.MockPortfolioDiscovery)
+	ws := new(mockadapter.MockWorkspaceDiscovery)
 
 	pd.On("List", "/base").Return([]types.PortfolioSummary{
 		{

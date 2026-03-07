@@ -90,11 +90,12 @@ Signed-off-by: Your Name <your@email.com>
 | `forge test-run lint` | Run golangci-lint |
 | `forge test-run unit` | Run Go unit tests |
 | `forge test-run e2e` | Run end-to-end tests (requires Kind cluster) |
-| `forge build` | Build all 10 targets |
+| `forge build` | Build all 11 targets |
 | `forge build forge-frontend` | Build REST API server binary |
 | `forge build forge-ui-wasm` | Build WASM dashboard binary |
 | `forge build forge-terminal-wasm` | Build WASM terminal binary |
 | `forge build forge-wss-proxy` | Build WebSocket-to-SSH proxy binary |
+| `forge build forge-ui-tui` | Build TUI dashboard binary (bubbletea) |
 | `forge build generate-mocks` | Regenerate test mocks |
 | `forge build generate-rest-api` | Regenerate OpenAPI REST handler |
 
@@ -108,6 +109,7 @@ forge-ui/
   cmd/
     forge-frontend/          REST API server entry point
     forge-ui-wasm/           WASM dashboard browser entry point
+    forge-ui-tui/            TUI dashboard entry point (bubbletea)
     forge-terminal-wasm/     WASM terminal emulator entry point
     forge-wss-proxy/         WebSocket-to-SSH proxy entry point
   internal/

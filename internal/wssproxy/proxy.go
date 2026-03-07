@@ -1,6 +1,21 @@
+// Copyright 2024 Alexandre Mahdhaoui
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package wssproxy
 
 import (
+	"encoding/json"
 	"io"
 	"log/slog"
 	"net"
@@ -8,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alexandremahdhaoui/forge-ui/internal/terminal/types"
 	"github.com/gorilla/websocket"
 )
 
@@ -177,6 +193,35 @@ func NewServer(cfg Config, serveDir string, listenAddr string) *http.Server {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
+		// GET /ws/{workspace}/info returns per-pod hostname metadata.
+		if strings.HasSuffix(path, "/info") {
+			if r.Method != http.MethodGet {
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			workspace := strings.TrimSuffix(path, "/info")
+			if workspace == "" {
+				http.Error(w, "missing workspace name", http.StatusBadRequest)
+				return
+			}
+			backendAddr := strings.Replace(cfg.WorkspaceSvcPattern, "{name}", workspace, 1)
+			tcpConn, err := net.DialTimeout("tcp", backendAddr, 10*time.Second)
+			if err != nil {
+				slog.Error("info: tcp dial failed", "backend", backendAddr, "error", err)
+				http.Error(w, "workspace unavailable", http.StatusBadGateway)
+				return
+			}
+			podIP := tcpConn.RemoteAddr().(*net.TCPAddr).IP.String()
+			_ = tcpConn.Close()
+
+			sanitized := strings.NewReplacer(".", "-", ":", "-").Replace(podIP)
+			info := types.WorkspaceInfo{Hostname: workspace + "-" + sanitized}
+
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(info)
+			return
+		}
+
 		wsHandler.ServeHTTP(w, r)
 	})
 

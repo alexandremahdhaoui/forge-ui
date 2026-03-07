@@ -1,3 +1,18 @@
+// Copyright 2024 Alexandre Mahdhaoui
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
 //go:build go1.22
 
 // Package rest provides primitives to interact with the openapi HTTP API.
@@ -50,8 +65,23 @@ type ArtifactDependency = types.ArtifactDependency
 // BuildSpec defines model for BuildSpec.
 type BuildSpec = types.BuildSpec
 
+// CompoRepo defines model for CompoRepo.
+type CompoRepo = types.CompoRepo
+
+// CompoState defines model for CompoState.
+type CompoState = types.CompoState
+
 // Coverage defines model for Coverage.
 type Coverage = types.Coverage
+
+// CreateCompoInput defines model for CreateCompoInput.
+type CreateCompoInput = types.CreateCompoInput
+
+// CreateManagedWorkspaceRequest defines model for CreateManagedWorkspaceRequest.
+type CreateManagedWorkspaceRequest = types.CreateManagedWorkspaceRequest
+
+// CreateRepoInput defines model for CreateRepoInput.
+type CreateRepoInput = types.CreateRepoInput
 
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
@@ -69,6 +99,24 @@ type ForgeStats = types.ForgeStats
 
 // LogEntry defines model for LogEntry.
 type LogEntry = types.LogEntry
+
+// ManagedCompoDetail defines model for ManagedCompoDetail.
+type ManagedCompoDetail = types.ManagedCompoDetail
+
+// ManagedCondition defines model for ManagedCondition.
+type ManagedCondition = types.ManagedCondition
+
+// ManagedRepoDetail defines model for ManagedRepoDetail.
+type ManagedRepoDetail = types.ManagedRepoDetail
+
+// ManagedStorageDetail defines model for ManagedStorageDetail.
+type ManagedStorageDetail = types.ManagedStorageDetail
+
+// ManagedWorkspaceDetail defines model for ManagedWorkspaceDetail.
+type ManagedWorkspaceDetail = types.ManagedWorkspaceDetail
+
+// ManagedWorkspaceSummary defines model for ManagedWorkspaceSummary.
+type ManagedWorkspaceSummary = types.ManagedWorkspaceSummary
 
 // MetaCheckpoint defines model for MetaCheckpoint.
 type MetaCheckpoint = types.MetaCheckpoint
@@ -145,6 +193,36 @@ type WorkspaceSummary = types.WorkspaceSummary
 // WorkspacesStats defines model for WorkspacesStats.
 type WorkspacesStats = types.WorkspacesStats
 
+// ListManagedWorkspacesParams defines parameters for ListManagedWorkspaces.
+type ListManagedWorkspacesParams struct {
+	Namespace *string `form:"namespace,omitempty" json:"namespace,omitempty"`
+}
+
+// CreateManagedWorkspaceParams defines parameters for CreateManagedWorkspace.
+type CreateManagedWorkspaceParams struct {
+	Namespace *string `form:"namespace,omitempty" json:"namespace,omitempty"`
+}
+
+// DeleteManagedWorkspaceParams defines parameters for DeleteManagedWorkspace.
+type DeleteManagedWorkspaceParams struct {
+	Namespace *string `form:"namespace,omitempty" json:"namespace,omitempty"`
+}
+
+// GetManagedWorkspaceParams defines parameters for GetManagedWorkspace.
+type GetManagedWorkspaceParams struct {
+	Namespace *string `form:"namespace,omitempty" json:"namespace,omitempty"`
+}
+
+// ResumeManagedWorkspaceParams defines parameters for ResumeManagedWorkspace.
+type ResumeManagedWorkspaceParams struct {
+	Namespace *string `form:"namespace,omitempty" json:"namespace,omitempty"`
+}
+
+// SuspendManagedWorkspaceParams defines parameters for SuspendManagedWorkspace.
+type SuspendManagedWorkspaceParams struct {
+	Namespace *string `form:"namespace,omitempty" json:"namespace,omitempty"`
+}
+
 // ListPortfoliosParams defines parameters for ListPortfolios.
 type ListPortfoliosParams struct {
 	Sort *ListPortfoliosParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
@@ -169,8 +247,29 @@ type GetWorkspaceParams struct {
 // GetWorkspaceParamsSort defines parameters for GetWorkspace.
 type GetWorkspaceParamsSort string
 
+// CreateManagedWorkspaceJSONRequestBody defines body for CreateManagedWorkspace for application/json ContentType.
+type CreateManagedWorkspaceJSONRequestBody = CreateManagedWorkspaceRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// List managed workspaces from forge-workspace API
+	// (GET /api/v1/managed-workspaces)
+	ListManagedWorkspaces(w http.ResponseWriter, r *http.Request, params ListManagedWorkspacesParams)
+	// Create a managed workspace
+	// (POST /api/v1/managed-workspaces)
+	CreateManagedWorkspace(w http.ResponseWriter, r *http.Request, params CreateManagedWorkspaceParams)
+	// Delete a managed workspace
+	// (DELETE /api/v1/managed-workspaces/{name})
+	DeleteManagedWorkspace(w http.ResponseWriter, r *http.Request, name string, params DeleteManagedWorkspaceParams)
+	// Get a managed workspace
+	// (GET /api/v1/managed-workspaces/{name})
+	GetManagedWorkspace(w http.ResponseWriter, r *http.Request, name string, params GetManagedWorkspaceParams)
+	// Resume a managed workspace
+	// (PUT /api/v1/managed-workspaces/{name}/resume)
+	ResumeManagedWorkspace(w http.ResponseWriter, r *http.Request, name string, params ResumeManagedWorkspaceParams)
+	// Suspend a managed workspace
+	// (PUT /api/v1/managed-workspaces/{name}/suspend)
+	SuspendManagedWorkspace(w http.ResponseWriter, r *http.Request, name string, params SuspendManagedWorkspaceParams)
 	// List all portfolios
 	// (GET /api/v1/portfolios)
 	ListPortfolios(w http.ResponseWriter, r *http.Request, params ListPortfoliosParams)
@@ -180,6 +279,9 @@ type ServerInterface interface {
 	// Get a single workspace within a portfolio
 	// (GET /api/v1/portfolios/{portfolio}/workspaces/{workspace})
 	GetWorkspace(w http.ResponseWriter, r *http.Request, portfolio string, workspace string, params GetWorkspaceParams)
+	// Get CU composition state for a workspace
+	// (GET /api/v1/portfolios/{portfolio}/workspaces/{workspace}/cu)
+	GetWorkspaceCU(w http.ResponseWriter, r *http.Request, portfolio string, workspace string)
 	// Get forge data for a single repo
 	// (GET /api/v1/portfolios/{portfolio}/workspaces/{workspace}/repos/{repo})
 	GetRepo(w http.ResponseWriter, r *http.Request, portfolio string, workspace string, repo string)
@@ -193,6 +295,210 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// ListManagedWorkspaces operation middleware
+func (siw *ServerInterfaceWrapper) ListManagedWorkspaces(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListManagedWorkspacesParams
+
+	// ------------- Optional query parameter "namespace" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "namespace", r.URL.Query(), &params.Namespace)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListManagedWorkspaces(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// CreateManagedWorkspace operation middleware
+func (siw *ServerInterfaceWrapper) CreateManagedWorkspace(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreateManagedWorkspaceParams
+
+	// ------------- Optional query parameter "namespace" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "namespace", r.URL.Query(), &params.Namespace)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateManagedWorkspace(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// DeleteManagedWorkspace operation middleware
+func (siw *ServerInterfaceWrapper) DeleteManagedWorkspace(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "name" -------------
+	var name string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "name", r.PathValue("name"), &name, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteManagedWorkspaceParams
+
+	// ------------- Optional query parameter "namespace" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "namespace", r.URL.Query(), &params.Namespace)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteManagedWorkspace(w, r, name, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetManagedWorkspace operation middleware
+func (siw *ServerInterfaceWrapper) GetManagedWorkspace(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "name" -------------
+	var name string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "name", r.PathValue("name"), &name, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetManagedWorkspaceParams
+
+	// ------------- Optional query parameter "namespace" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "namespace", r.URL.Query(), &params.Namespace)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetManagedWorkspace(w, r, name, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// ResumeManagedWorkspace operation middleware
+func (siw *ServerInterfaceWrapper) ResumeManagedWorkspace(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "name" -------------
+	var name string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "name", r.PathValue("name"), &name, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ResumeManagedWorkspaceParams
+
+	// ------------- Optional query parameter "namespace" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "namespace", r.URL.Query(), &params.Namespace)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ResumeManagedWorkspace(w, r, name, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// SuspendManagedWorkspace operation middleware
+func (siw *ServerInterfaceWrapper) SuspendManagedWorkspace(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "name" -------------
+	var name string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "name", r.PathValue("name"), &name, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SuspendManagedWorkspaceParams
+
+	// ------------- Optional query parameter "namespace" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "namespace", r.URL.Query(), &params.Namespace)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SuspendManagedWorkspace(w, r, name, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
 
 // ListPortfolios operation middleware
 func (siw *ServerInterfaceWrapper) ListPortfolios(w http.ResponseWriter, r *http.Request) {
@@ -296,6 +602,41 @@ func (siw *ServerInterfaceWrapper) GetWorkspace(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetWorkspace(w, r, portfolio, workspace, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetWorkspaceCU operation middleware
+func (siw *ServerInterfaceWrapper) GetWorkspaceCU(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "portfolio" -------------
+	var portfolio string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "portfolio", r.PathValue("portfolio"), &portfolio, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "portfolio", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "workspace" -------------
+	var workspace string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace", r.PathValue("workspace"), &workspace, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetWorkspaceCU(w, r, portfolio, workspace)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -463,12 +804,224 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	m.HandleFunc("GET "+options.BaseURL+"/api/v1/managed-workspaces", wrapper.ListManagedWorkspaces)
+	m.HandleFunc("POST "+options.BaseURL+"/api/v1/managed-workspaces", wrapper.CreateManagedWorkspace)
+	m.HandleFunc("DELETE "+options.BaseURL+"/api/v1/managed-workspaces/{name}", wrapper.DeleteManagedWorkspace)
+	m.HandleFunc("GET "+options.BaseURL+"/api/v1/managed-workspaces/{name}", wrapper.GetManagedWorkspace)
+	m.HandleFunc("PUT "+options.BaseURL+"/api/v1/managed-workspaces/{name}/resume", wrapper.ResumeManagedWorkspace)
+	m.HandleFunc("PUT "+options.BaseURL+"/api/v1/managed-workspaces/{name}/suspend", wrapper.SuspendManagedWorkspace)
 	m.HandleFunc("GET "+options.BaseURL+"/api/v1/portfolios", wrapper.ListPortfolios)
 	m.HandleFunc("GET "+options.BaseURL+"/api/v1/portfolios/{name}", wrapper.GetPortfolio)
 	m.HandleFunc("GET "+options.BaseURL+"/api/v1/portfolios/{portfolio}/workspaces/{workspace}", wrapper.GetWorkspace)
+	m.HandleFunc("GET "+options.BaseURL+"/api/v1/portfolios/{portfolio}/workspaces/{workspace}/cu", wrapper.GetWorkspaceCU)
 	m.HandleFunc("GET "+options.BaseURL+"/api/v1/portfolios/{portfolio}/workspaces/{workspace}/repos/{repo}", wrapper.GetRepo)
 
 	return m
+}
+
+type ListManagedWorkspacesRequestObject struct {
+	Params ListManagedWorkspacesParams
+}
+
+type ListManagedWorkspacesResponseObject interface {
+	VisitListManagedWorkspacesResponse(w http.ResponseWriter) error
+}
+
+type ListManagedWorkspaces200JSONResponse []ManagedWorkspaceSummary
+
+func (response ListManagedWorkspaces200JSONResponse) VisitListManagedWorkspacesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListManagedWorkspaces500JSONResponse ErrorResponse
+
+func (response ListManagedWorkspaces500JSONResponse) VisitListManagedWorkspacesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateManagedWorkspaceRequestObject struct {
+	Params CreateManagedWorkspaceParams
+	Body   *CreateManagedWorkspaceJSONRequestBody
+}
+
+type CreateManagedWorkspaceResponseObject interface {
+	VisitCreateManagedWorkspaceResponse(w http.ResponseWriter) error
+}
+
+type CreateManagedWorkspace201JSONResponse ManagedWorkspaceDetail
+
+func (response CreateManagedWorkspace201JSONResponse) VisitCreateManagedWorkspaceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateManagedWorkspace400JSONResponse ErrorResponse
+
+func (response CreateManagedWorkspace400JSONResponse) VisitCreateManagedWorkspaceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateManagedWorkspace500JSONResponse ErrorResponse
+
+func (response CreateManagedWorkspace500JSONResponse) VisitCreateManagedWorkspaceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteManagedWorkspaceRequestObject struct {
+	Name   string `json:"name"`
+	Params DeleteManagedWorkspaceParams
+}
+
+type DeleteManagedWorkspaceResponseObject interface {
+	VisitDeleteManagedWorkspaceResponse(w http.ResponseWriter) error
+}
+
+type DeleteManagedWorkspace204Response struct {
+}
+
+func (response DeleteManagedWorkspace204Response) VisitDeleteManagedWorkspaceResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteManagedWorkspace404JSONResponse ErrorResponse
+
+func (response DeleteManagedWorkspace404JSONResponse) VisitDeleteManagedWorkspaceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteManagedWorkspace500JSONResponse ErrorResponse
+
+func (response DeleteManagedWorkspace500JSONResponse) VisitDeleteManagedWorkspaceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetManagedWorkspaceRequestObject struct {
+	Name   string `json:"name"`
+	Params GetManagedWorkspaceParams
+}
+
+type GetManagedWorkspaceResponseObject interface {
+	VisitGetManagedWorkspaceResponse(w http.ResponseWriter) error
+}
+
+type GetManagedWorkspace200JSONResponse ManagedWorkspaceDetail
+
+func (response GetManagedWorkspace200JSONResponse) VisitGetManagedWorkspaceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetManagedWorkspace404JSONResponse ErrorResponse
+
+func (response GetManagedWorkspace404JSONResponse) VisitGetManagedWorkspaceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetManagedWorkspace500JSONResponse ErrorResponse
+
+func (response GetManagedWorkspace500JSONResponse) VisitGetManagedWorkspaceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResumeManagedWorkspaceRequestObject struct {
+	Name   string `json:"name"`
+	Params ResumeManagedWorkspaceParams
+}
+
+type ResumeManagedWorkspaceResponseObject interface {
+	VisitResumeManagedWorkspaceResponse(w http.ResponseWriter) error
+}
+
+type ResumeManagedWorkspace200JSONResponse ManagedWorkspaceDetail
+
+func (response ResumeManagedWorkspace200JSONResponse) VisitResumeManagedWorkspaceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResumeManagedWorkspace404JSONResponse ErrorResponse
+
+func (response ResumeManagedWorkspace404JSONResponse) VisitResumeManagedWorkspaceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResumeManagedWorkspace500JSONResponse ErrorResponse
+
+func (response ResumeManagedWorkspace500JSONResponse) VisitResumeManagedWorkspaceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SuspendManagedWorkspaceRequestObject struct {
+	Name   string `json:"name"`
+	Params SuspendManagedWorkspaceParams
+}
+
+type SuspendManagedWorkspaceResponseObject interface {
+	VisitSuspendManagedWorkspaceResponse(w http.ResponseWriter) error
+}
+
+type SuspendManagedWorkspace200JSONResponse ManagedWorkspaceDetail
+
+func (response SuspendManagedWorkspace200JSONResponse) VisitSuspendManagedWorkspaceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SuspendManagedWorkspace404JSONResponse ErrorResponse
+
+func (response SuspendManagedWorkspace404JSONResponse) VisitSuspendManagedWorkspaceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SuspendManagedWorkspace500JSONResponse ErrorResponse
+
+func (response SuspendManagedWorkspace500JSONResponse) VisitSuspendManagedWorkspaceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 type ListPortfoliosRequestObject struct {
@@ -597,6 +1150,33 @@ func (response GetWorkspace500JSONResponse) VisitGetWorkspaceResponse(w http.Res
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetWorkspaceCURequestObject struct {
+	Portfolio string `json:"portfolio"`
+	Workspace string `json:"workspace"`
+}
+
+type GetWorkspaceCUResponseObject interface {
+	VisitGetWorkspaceCUResponse(w http.ResponseWriter) error
+}
+
+type GetWorkspaceCU200JSONResponse CompoState
+
+func (response GetWorkspaceCU200JSONResponse) VisitGetWorkspaceCUResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetWorkspaceCU500JSONResponse ErrorResponse
+
+func (response GetWorkspaceCU500JSONResponse) VisitGetWorkspaceCUResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetRepoRequestObject struct {
 	Portfolio string `json:"portfolio"`
 	Workspace string `json:"workspace"`
@@ -645,6 +1225,24 @@ func (response GetRepo500JSONResponse) VisitGetRepoResponse(w http.ResponseWrite
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// List managed workspaces from forge-workspace API
+	// (GET /api/v1/managed-workspaces)
+	ListManagedWorkspaces(ctx context.Context, request ListManagedWorkspacesRequestObject) (ListManagedWorkspacesResponseObject, error)
+	// Create a managed workspace
+	// (POST /api/v1/managed-workspaces)
+	CreateManagedWorkspace(ctx context.Context, request CreateManagedWorkspaceRequestObject) (CreateManagedWorkspaceResponseObject, error)
+	// Delete a managed workspace
+	// (DELETE /api/v1/managed-workspaces/{name})
+	DeleteManagedWorkspace(ctx context.Context, request DeleteManagedWorkspaceRequestObject) (DeleteManagedWorkspaceResponseObject, error)
+	// Get a managed workspace
+	// (GET /api/v1/managed-workspaces/{name})
+	GetManagedWorkspace(ctx context.Context, request GetManagedWorkspaceRequestObject) (GetManagedWorkspaceResponseObject, error)
+	// Resume a managed workspace
+	// (PUT /api/v1/managed-workspaces/{name}/resume)
+	ResumeManagedWorkspace(ctx context.Context, request ResumeManagedWorkspaceRequestObject) (ResumeManagedWorkspaceResponseObject, error)
+	// Suspend a managed workspace
+	// (PUT /api/v1/managed-workspaces/{name}/suspend)
+	SuspendManagedWorkspace(ctx context.Context, request SuspendManagedWorkspaceRequestObject) (SuspendManagedWorkspaceResponseObject, error)
 	// List all portfolios
 	// (GET /api/v1/portfolios)
 	ListPortfolios(ctx context.Context, request ListPortfoliosRequestObject) (ListPortfoliosResponseObject, error)
@@ -654,6 +1252,9 @@ type StrictServerInterface interface {
 	// Get a single workspace within a portfolio
 	// (GET /api/v1/portfolios/{portfolio}/workspaces/{workspace})
 	GetWorkspace(ctx context.Context, request GetWorkspaceRequestObject) (GetWorkspaceResponseObject, error)
+	// Get CU composition state for a workspace
+	// (GET /api/v1/portfolios/{portfolio}/workspaces/{workspace}/cu)
+	GetWorkspaceCU(ctx context.Context, request GetWorkspaceCURequestObject) (GetWorkspaceCUResponseObject, error)
 	// Get forge data for a single repo
 	// (GET /api/v1/portfolios/{portfolio}/workspaces/{workspace}/repos/{repo})
 	GetRepo(ctx context.Context, request GetRepoRequestObject) (GetRepoResponseObject, error)
@@ -686,6 +1287,173 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// ListManagedWorkspaces operation middleware
+func (sh *strictHandler) ListManagedWorkspaces(w http.ResponseWriter, r *http.Request, params ListManagedWorkspacesParams) {
+	var request ListManagedWorkspacesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListManagedWorkspaces(ctx, request.(ListManagedWorkspacesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListManagedWorkspaces")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListManagedWorkspacesResponseObject); ok {
+		if err := validResponse.VisitListManagedWorkspacesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateManagedWorkspace operation middleware
+func (sh *strictHandler) CreateManagedWorkspace(w http.ResponseWriter, r *http.Request, params CreateManagedWorkspaceParams) {
+	var request CreateManagedWorkspaceRequestObject
+
+	request.Params = params
+
+	var body CreateManagedWorkspaceJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateManagedWorkspace(ctx, request.(CreateManagedWorkspaceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateManagedWorkspace")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateManagedWorkspaceResponseObject); ok {
+		if err := validResponse.VisitCreateManagedWorkspaceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteManagedWorkspace operation middleware
+func (sh *strictHandler) DeleteManagedWorkspace(w http.ResponseWriter, r *http.Request, name string, params DeleteManagedWorkspaceParams) {
+	var request DeleteManagedWorkspaceRequestObject
+
+	request.Name = name
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteManagedWorkspace(ctx, request.(DeleteManagedWorkspaceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteManagedWorkspace")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteManagedWorkspaceResponseObject); ok {
+		if err := validResponse.VisitDeleteManagedWorkspaceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetManagedWorkspace operation middleware
+func (sh *strictHandler) GetManagedWorkspace(w http.ResponseWriter, r *http.Request, name string, params GetManagedWorkspaceParams) {
+	var request GetManagedWorkspaceRequestObject
+
+	request.Name = name
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetManagedWorkspace(ctx, request.(GetManagedWorkspaceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetManagedWorkspace")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetManagedWorkspaceResponseObject); ok {
+		if err := validResponse.VisitGetManagedWorkspaceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ResumeManagedWorkspace operation middleware
+func (sh *strictHandler) ResumeManagedWorkspace(w http.ResponseWriter, r *http.Request, name string, params ResumeManagedWorkspaceParams) {
+	var request ResumeManagedWorkspaceRequestObject
+
+	request.Name = name
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ResumeManagedWorkspace(ctx, request.(ResumeManagedWorkspaceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ResumeManagedWorkspace")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ResumeManagedWorkspaceResponseObject); ok {
+		if err := validResponse.VisitResumeManagedWorkspaceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SuspendManagedWorkspace operation middleware
+func (sh *strictHandler) SuspendManagedWorkspace(w http.ResponseWriter, r *http.Request, name string, params SuspendManagedWorkspaceParams) {
+	var request SuspendManagedWorkspaceRequestObject
+
+	request.Name = name
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SuspendManagedWorkspace(ctx, request.(SuspendManagedWorkspaceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SuspendManagedWorkspace")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SuspendManagedWorkspaceResponseObject); ok {
+		if err := validResponse.VisitSuspendManagedWorkspaceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // ListPortfolios operation middleware
@@ -769,6 +1537,33 @@ func (sh *strictHandler) GetWorkspace(w http.ResponseWriter, r *http.Request, po
 	}
 }
 
+// GetWorkspaceCU operation middleware
+func (sh *strictHandler) GetWorkspaceCU(w http.ResponseWriter, r *http.Request, portfolio string, workspace string) {
+	var request GetWorkspaceCURequestObject
+
+	request.Portfolio = portfolio
+	request.Workspace = workspace
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetWorkspaceCU(ctx, request.(GetWorkspaceCURequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetWorkspaceCU")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetWorkspaceCUResponseObject); ok {
+		if err := validResponse.VisitGetWorkspaceCUResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetRepo operation middleware
 func (sh *strictHandler) GetRepo(w http.ResponseWriter, r *http.Request, portfolio string, workspace string, repo string) {
 	var request GetRepoRequestObject
@@ -800,39 +1595,49 @@ func (sh *strictHandler) GetRepo(w http.ResponseWriter, r *http.Request, portfol
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

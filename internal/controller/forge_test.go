@@ -1,4 +1,18 @@
-//go:build !js || !wasm
+//go:build unit
+
+// Copyright 2024 Alexandre Mahdhaoui
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package controller
 
@@ -13,8 +27,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func stubRepoPlanLoaderForForge() *mockadapter.RepoPlanLoader {
-	rp := new(mockadapter.RepoPlanLoader)
+func stubRepoPlanLoaderForForge() *mockadapter.MockRepoPlanLoader {
+	rp := new(mockadapter.MockRepoPlanLoader)
 	rp.On("LoadAll", mock.Anything).Return(nil, errors.New("none")).Maybe()
 	return rp
 }
@@ -22,7 +36,7 @@ func stubRepoPlanLoaderForForge() *mockadapter.RepoPlanLoader {
 func TestGetForge_Success(t *testing.T) {
 	t.Parallel()
 
-	fl := new(mockadapter.ForgeLoader)
+	fl := new(mockadapter.MockForgeLoader)
 
 	fl.On("Load", "/base/myportfolio/ws1/repo-a").Return(types.ForgePageData{
 		Spec: types.ForgeSpec{
@@ -47,7 +61,7 @@ func TestGetForge_Success(t *testing.T) {
 func TestGetForge_WithTestReports(t *testing.T) {
 	t.Parallel()
 
-	fl := new(mockadapter.ForgeLoader)
+	fl := new(mockadapter.MockForgeLoader)
 
 	fl.On("Load", "/base/p1/ws1/repo-a").Return(types.ForgePageData{
 		TestReports: []types.TestReport{
@@ -82,7 +96,7 @@ func TestGetForge_WithTestReports(t *testing.T) {
 func TestGetForge_WithCoverage(t *testing.T) {
 	t.Parallel()
 
-	fl := new(mockadapter.ForgeLoader)
+	fl := new(mockadapter.MockForgeLoader)
 
 	fl.On("Load", "/base/p1/ws1/repo-a").Return(types.ForgePageData{
 		TestReports: []types.TestReport{
@@ -115,7 +129,7 @@ func TestGetForge_WithCoverage(t *testing.T) {
 func TestGetForge_LoadError(t *testing.T) {
 	t.Parallel()
 
-	fl := new(mockadapter.ForgeLoader)
+	fl := new(mockadapter.MockForgeLoader)
 
 	fl.On("Load", "/base/p1/ws1/repo-a").Return(types.ForgePageData{}, errors.New("no forge.yaml"))
 
@@ -130,7 +144,7 @@ func TestGetForge_LoadError(t *testing.T) {
 func TestGetForge_DefaultPortfolio(t *testing.T) {
 	t.Parallel()
 
-	fl := new(mockadapter.ForgeLoader)
+	fl := new(mockadapter.MockForgeLoader)
 
 	// When portfolio is "default", path should be baseDir/workspace/repo (no portfolio dir)
 	fl.On("Load", "/base/ws1/repo-a").Return(types.ForgePageData{

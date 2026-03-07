@@ -18,6 +18,15 @@ engines:
           args: ["-rf", "./internal/util/mocks"]
       - engine: go://go-gen-mocks
 
+  - alias: go-gen-openapi-with-license
+    type: builder
+    builder:
+      - engine: go://go-gen-openapi
+      - engine: go://generic-builder
+        spec:
+          command: bash
+          args: ["./hack/add-license-headers.sh"]
+
   - alias: web-assets
     type: builder
     builder:
@@ -132,10 +141,15 @@ build:
     src: .
     engine: alias://generate-mocks
 
+  - name: forge-ui-tui
+    src: ./cmd/forge-ui-tui
+    dest: ./build/bin
+    engine: go://go-build
+
   - name: generate-rest-api
     src: ./api/forge-ui.v1.yaml
     dest: ./internal/driver/rest
-    engine: go://go-gen-openapi
+    engine: alias://go-gen-openapi-with-license
     spec:
       sourceFile: ./api/forge-ui.v1.yaml
       destinationDir: ./internal/driver
@@ -144,6 +158,12 @@ build:
         packageName: rest
 
 test:
+  - name: lint-tags
+    runner: "go://go-lint-tags"
+
+  - name: lint-licenses
+    runner: "go://go-lint-licenses"
+
   - name: lint
     runner: "go://go-lint"
 

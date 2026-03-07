@@ -1,3 +1,17 @@
+// Copyright 2024 Alexandre Mahdhaoui
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package types
 
 import "time"
@@ -361,4 +375,104 @@ type SideNavItem struct {
 	Link     string `json:"link"`
 	IsActive bool   `json:"isActive"`
 	Badge    string `json:"badge,omitempty"`
+}
+
+// --- Managed workspace types (workspace CRUD via forge-workspace API) ---
+
+// ManagedWorkspaceSummary is a workspace summary from the forge-workspace API.
+type ManagedWorkspaceSummary struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Phase     string `json:"phase"`
+	Suspended bool   `json:"suspended"`
+	Image     string `json:"image"`
+}
+
+// ManagedWorkspaceDetail is the full workspace detail from the forge-workspace API.
+type ManagedWorkspaceDetail struct {
+	Name       string               `json:"name"`
+	Namespace  string               `json:"namespace"`
+	Image      string               `json:"image"`
+	Repos      []ManagedRepoDetail  `json:"repos"`
+	Storage    ManagedStorageDetail `json:"storage"`
+	Compo      *ManagedCompoDetail  `json:"compo,omitempty"`
+	Suspended  bool                 `json:"suspended"`
+	Phase      string               `json:"phase"`
+	Conditions []ManagedCondition   `json:"conditions,omitempty"`
+	Labels     map[string]string    `json:"labels,omitempty"`
+}
+
+// ManagedRepoDetail is a sanitized repo from the forge-workspace API.
+type ManagedRepoDetail struct {
+	URL           string `json:"url"`
+	Branch        string `json:"branch"`
+	Path          string `json:"path"`
+	Provider      string `json:"provider"`
+	HasCredential bool   `json:"hasCredential"`
+}
+
+// ManagedStorageDetail describes workspace storage.
+type ManagedStorageDetail struct {
+	StorageClassName string `json:"storageClassName"`
+	Size             string `json:"size"`
+}
+
+// ManagedCompoDetail is a sanitized composition repo reference.
+type ManagedCompoDetail struct {
+	URL           string `json:"url"`
+	Branch        string `json:"branch"`
+	Provider      string `json:"provider"`
+	HasCredential bool   `json:"hasCredential"`
+}
+
+// ManagedCondition is a simplified K8s condition.
+type ManagedCondition struct {
+	Type    string `json:"type"`
+	Status  string `json:"status"`
+	Reason  string `json:"reason"`
+	Message string `json:"message"`
+}
+
+// CreateManagedWorkspaceRequest is the request body for creating a workspace.
+type CreateManagedWorkspaceRequest struct {
+	Name         string            `json:"name"`
+	Image        string            `json:"image,omitempty"`
+	Repos        []CreateRepoInput `json:"repos"`
+	StorageClass string            `json:"storageClass"`
+	StorageSize  string            `json:"storageSize"`
+	InitScript   string            `json:"initScript,omitempty"`
+	Compo        *CreateCompoInput `json:"compo,omitempty"`
+	Labels       map[string]string `json:"labels,omitempty"`
+}
+
+// CreateRepoInput is a repo entry in a workspace creation request.
+type CreateRepoInput struct {
+	URL      string `json:"url"`
+	Branch   string `json:"branch,omitempty"`
+	Path     string `json:"path,omitempty"`
+	Provider string `json:"provider,omitempty"`
+}
+
+// CreateCompoInput is a composition repo entry in a workspace creation request.
+type CreateCompoInput struct {
+	URL      string `json:"url"`
+	Branch   string `json:"branch,omitempty"`
+	Provider string `json:"provider,omitempty"`
+}
+
+// --- CU visualization types ---
+
+// CompoState represents the current state of a CU composition.
+type CompoState struct {
+	Name          string      `json:"name"`
+	Repos         []CompoRepo `json:"repos"`
+	CurrentBranch string      `json:"currentBranch"`
+	Branches      []string    `json:"branches"`
+}
+
+// CompoRepo represents a single repository in a composition.
+type CompoRepo struct {
+	Name         string   `json:"name"`
+	URL          string   `json:"url"`
+	ManagedFiles []string `json:"managedFiles"`
 }

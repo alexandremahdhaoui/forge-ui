@@ -1,3 +1,19 @@
+//go:build unit
+
+// Copyright 2024 Alexandre Mahdhaoui
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package controller
 
 import (
@@ -182,7 +198,7 @@ func testForgePageData() types.ForgePageData {
 
 // --- Rendering tests using mock DataSource ---
 
-func newMockRenderer(ds *mockadapter.DataSource) *renderer {
+func newMockRenderer(ds *mockadapter.MockDataSource) *renderer {
 	funcMap := template.FuncMap{
 		"percent": func(done, total int) int {
 			if total == 0 {
@@ -200,7 +216,7 @@ func newMockRenderer(ds *mockadapter.DataSource) *renderer {
 }
 
 func TestRender_Portfolios(t *testing.T) {
-	ds := mockadapter.NewDataSource(t)
+	ds := mockadapter.NewMockDataSource(t)
 	ds.On("ListPortfolios", "time").Return(testPortfoliosPageData("time"), nil)
 	r := newMockRenderer(ds)
 
@@ -252,7 +268,7 @@ func TestRender_Portfolios(t *testing.T) {
 }
 
 func TestRender_Portfolio(t *testing.T) {
-	ds := mockadapter.NewDataSource(t)
+	ds := mockadapter.NewMockDataSource(t)
 	ds.On("GetPortfolio", "infrastructure", "name").Return(testPortfolioPageData("name"), nil)
 	r := newMockRenderer(ds)
 
@@ -301,7 +317,7 @@ func TestRender_Portfolio(t *testing.T) {
 }
 
 func TestRender_Workspace(t *testing.T) {
-	ds := mockadapter.NewDataSource(t)
+	ds := mockadapter.NewMockDataSource(t)
 	ds.On("GetWorkspace", "infrastructure", "platform", "time").Return(testWorkspacePageData("time"), nil)
 	r := newMockRenderer(ds)
 
@@ -356,7 +372,7 @@ func TestRender_Workspace(t *testing.T) {
 }
 
 func TestRender_Forge(t *testing.T) {
-	ds := mockadapter.NewDataSource(t)
+	ds := mockadapter.NewMockDataSource(t)
 	ds.On("GetForge", "infrastructure", "platform", "forge").Return(testForgePageData(), nil)
 	r := newMockRenderer(ds)
 
@@ -409,7 +425,7 @@ func TestRender_Forge(t *testing.T) {
 }
 
 func TestRender_UnknownPortfolio_FallsBackToPortfolios(t *testing.T) {
-	ds := mockadapter.NewDataSource(t)
+	ds := mockadapter.NewMockDataSource(t)
 	// GetPortfolio returns empty Name -> triggers fallback to ListPortfolios.
 	ds.On("GetPortfolio", "nonexistent", "time").Return(types.PortfolioPageData{}, nil)
 	ds.On("ListPortfolios", "time").Return(testPortfoliosPageData("time"), nil)
@@ -426,7 +442,7 @@ func TestRender_UnknownPortfolio_FallsBackToPortfolios(t *testing.T) {
 }
 
 func TestRender_DefaultRoute(t *testing.T) {
-	ds := mockadapter.NewDataSource(t)
+	ds := mockadapter.NewMockDataSource(t)
 	ds.On("ListPortfolios", "time").Return(testPortfoliosPageData("time"), nil)
 	r := newMockRenderer(ds)
 
@@ -441,7 +457,7 @@ func TestRender_DefaultRoute(t *testing.T) {
 }
 
 func TestRender_SortButtons(t *testing.T) {
-	ds := mockadapter.NewDataSource(t)
+	ds := mockadapter.NewMockDataSource(t)
 	ds.On("ListPortfolios", "time").Return(testPortfoliosPageData("time"), nil)
 	r := newMockRenderer(ds)
 
@@ -456,7 +472,7 @@ func TestRender_SortButtons(t *testing.T) {
 }
 
 func TestRender_HashRoute(t *testing.T) {
-	ds := mockadapter.NewDataSource(t)
+	ds := mockadapter.NewMockDataSource(t)
 	ds.On("GetPortfolio", "infrastructure", "time").Return(testPortfolioPageData("time"), nil)
 	r := newMockRenderer(ds)
 
@@ -510,7 +526,7 @@ func TestParseInput_HashPrefix(t *testing.T) {
 func TestRender_ListPortfoliosError(t *testing.T) {
 	t.Parallel()
 
-	ds := mockadapter.NewDataSource(t)
+	ds := mockadapter.NewMockDataSource(t)
 	ds.On("ListPortfolios", "time").Return(types.PortfoliosPageData{}, errors.New("list error"))
 
 	r := newMockRenderer(ds)
@@ -523,7 +539,7 @@ func TestRender_ListPortfoliosError(t *testing.T) {
 func TestRender_GetWorkspaceError(t *testing.T) {
 	t.Parallel()
 
-	ds := mockadapter.NewDataSource(t)
+	ds := mockadapter.NewMockDataSource(t)
 	ds.On("GetWorkspace", "infra", "platform", "time").Return(types.WorkspacePageData{}, errors.New("ws error"))
 
 	r := newMockRenderer(ds)
@@ -536,7 +552,7 @@ func TestRender_GetWorkspaceError(t *testing.T) {
 func TestRender_GetForgeError(t *testing.T) {
 	t.Parallel()
 
-	ds := mockadapter.NewDataSource(t)
+	ds := mockadapter.NewMockDataSource(t)
 	ds.On("GetForge", "infra", "platform", "my-repo").Return(types.ForgePageData{}, errors.New("forge error"))
 
 	r := newMockRenderer(ds)
@@ -549,7 +565,7 @@ func TestRender_GetForgeError(t *testing.T) {
 func TestRender_GetForgeEmptyFallsBackToWorkspace(t *testing.T) {
 	t.Parallel()
 
-	ds := mockadapter.NewDataSource(t)
+	ds := mockadapter.NewMockDataSource(t)
 	// GetForge returns empty RepoName, which triggers fallback to workspace view.
 	ds.On("GetForge", "infra", "platform", "empty-repo").Return(types.ForgePageData{}, nil)
 	// Workspace fallback succeeds.
@@ -567,7 +583,7 @@ func TestRender_GetForgeEmptyFallsBackToWorkspace(t *testing.T) {
 func TestRender_GetWorkspaceEmptyFallsBackToPortfolio(t *testing.T) {
 	t.Parallel()
 
-	ds := mockadapter.NewDataSource(t)
+	ds := mockadapter.NewMockDataSource(t)
 	// GetWorkspace returns empty Name, which triggers fallback to portfolio view.
 	ds.On("GetWorkspace", "infra", "missing-ws", "time").Return(types.WorkspacePageData{}, nil)
 	// Portfolio fallback succeeds.
@@ -588,7 +604,7 @@ func TestRenderTemplate_ExecutionError(t *testing.T) {
 	// Create a template that will fail on execution by referencing a missing template.
 	tmpl := template.Must(template.New("broken").Parse(`{{template "nonexistent" .}}`))
 
-	ds := mockadapter.NewDataSource(t)
+	ds := mockadapter.NewMockDataSource(t)
 	r := &renderer{ds: ds, templates: tmpl}
 
 	_, err := r.renderTemplate("broken", nil)
@@ -600,7 +616,7 @@ func TestRenderTemplate_ExecutionError(t *testing.T) {
 func TestRender_GetPortfolioError(t *testing.T) {
 	t.Parallel()
 
-	ds := mockadapter.NewDataSource(t)
+	ds := mockadapter.NewMockDataSource(t)
 	ds.On("GetPortfolio", "bad-portfolio", "time").Return(types.PortfolioPageData{}, errors.New("portfolio error"))
 
 	r := newMockRenderer(ds)

@@ -1,4 +1,18 @@
-//go:build !js || !wasm
+//go:build unit
+
+// Copyright 2024 Alexandre Mahdhaoui
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package controller
 
@@ -14,10 +28,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func stubOrchestrationMocksForPortfolio() (*mockadapter.WsConfigLoader, *mockadapter.MetaPlanLoader, *mockadapter.PortfolioConfigLoader) {
-	wc := new(mockadapter.WsConfigLoader)
-	mp := new(mockadapter.MetaPlanLoader)
-	pc := new(mockadapter.PortfolioConfigLoader)
+func stubOrchestrationMocksForPortfolio() (*mockadapter.MockWsConfigLoader, *mockadapter.MockMetaPlanLoader, *mockadapter.MockPortfolioConfigLoader) {
+	wc := new(mockadapter.MockWsConfigLoader)
+	mp := new(mockadapter.MockMetaPlanLoader)
+	pc := new(mockadapter.MockPortfolioConfigLoader)
 	pc.On("Load", mock.Anything).Return(types.PortfolioConfig{}, errors.New("none")).Maybe()
 	wc.On("Load", mock.Anything).Return(types.WsConfig{}, errors.New("none")).Maybe()
 	mp.On("LoadAll", mock.Anything).Return(nil, errors.New("none")).Maybe()
@@ -27,9 +41,9 @@ func stubOrchestrationMocksForPortfolio() (*mockadapter.WsConfigLoader, *mockada
 func TestListPortfolios_SortByTime(t *testing.T) {
 	t.Parallel()
 
-	pd := new(mockadapter.PortfolioDiscovery)
-	c := new(mockadapter.Cache)
-	fl := new(mockadapter.ForgeLoader)
+	pd := new(mockadapter.MockPortfolioDiscovery)
+	c := new(mockadapter.MockCache)
+	fl := new(mockadapter.MockForgeLoader)
 
 	now := time.Now()
 	portfolios := []types.PortfolioSummary{
@@ -89,9 +103,9 @@ func TestListPortfolios_SortByTime(t *testing.T) {
 func TestListPortfolios_SortByName(t *testing.T) {
 	t.Parallel()
 
-	pd := new(mockadapter.PortfolioDiscovery)
-	c := new(mockadapter.Cache)
-	fl := new(mockadapter.ForgeLoader)
+	pd := new(mockadapter.MockPortfolioDiscovery)
+	c := new(mockadapter.MockCache)
+	fl := new(mockadapter.MockForgeLoader)
 
 	portfolios := []types.PortfolioSummary{
 		{
@@ -136,9 +150,9 @@ func TestListPortfolios_SortByName(t *testing.T) {
 func TestListPortfolios_ErrorFromDiscovery(t *testing.T) {
 	t.Parallel()
 
-	pd := new(mockadapter.PortfolioDiscovery)
-	c := new(mockadapter.Cache)
-	fl := new(mockadapter.ForgeLoader)
+	pd := new(mockadapter.MockPortfolioDiscovery)
+	c := new(mockadapter.MockCache)
+	fl := new(mockadapter.MockForgeLoader)
 
 	pd.On("List", "/base").Return(nil, errors.New("disk error"))
 
@@ -154,9 +168,9 @@ func TestListPortfolios_ErrorFromDiscovery(t *testing.T) {
 func TestGetPortfolio_Success(t *testing.T) {
 	t.Parallel()
 
-	pd := new(mockadapter.PortfolioDiscovery)
-	c := new(mockadapter.Cache)
-	fl := new(mockadapter.ForgeLoader)
+	pd := new(mockadapter.MockPortfolioDiscovery)
+	c := new(mockadapter.MockCache)
+	fl := new(mockadapter.MockForgeLoader)
 
 	data := types.PortfolioPageData{
 		Name: "myportfolio",
@@ -192,9 +206,9 @@ func TestGetPortfolio_Success(t *testing.T) {
 func TestGetPortfolio_NotFound(t *testing.T) {
 	t.Parallel()
 
-	pd := new(mockadapter.PortfolioDiscovery)
-	c := new(mockadapter.Cache)
-	fl := new(mockadapter.ForgeLoader)
+	pd := new(mockadapter.MockPortfolioDiscovery)
+	c := new(mockadapter.MockCache)
+	fl := new(mockadapter.MockForgeLoader)
 
 	pd.On("Get", "/base", "missing").Return(types.PortfolioPageData{}, errors.New("not found"))
 
@@ -209,9 +223,9 @@ func TestGetPortfolio_NotFound(t *testing.T) {
 func TestGetPortfolio_WithCacheEnrichment(t *testing.T) {
 	t.Parallel()
 
-	pd := new(mockadapter.PortfolioDiscovery)
-	c := new(mockadapter.Cache)
-	fl := new(mockadapter.ForgeLoader)
+	pd := new(mockadapter.MockPortfolioDiscovery)
+	c := new(mockadapter.MockCache)
+	fl := new(mockadapter.MockForgeLoader)
 
 	commitTime := time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC)
 
@@ -259,9 +273,9 @@ func TestGetPortfolio_WithCacheEnrichment(t *testing.T) {
 func TestGetPortfolio_WithForgeHeatmap(t *testing.T) {
 	t.Parallel()
 
-	pd := new(mockadapter.PortfolioDiscovery)
-	c := new(mockadapter.Cache)
-	fl := new(mockadapter.ForgeLoader)
+	pd := new(mockadapter.MockPortfolioDiscovery)
+	c := new(mockadapter.MockCache)
+	fl := new(mockadapter.MockForgeLoader)
 
 	data := types.PortfolioPageData{
 		Name: "p1",

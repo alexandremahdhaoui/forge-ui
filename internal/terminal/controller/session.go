@@ -1,10 +1,23 @@
+// Copyright 2024 Alexandre Mahdhaoui
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package controller
 
 import (
 	"fmt"
 	"io"
 	"net"
-	"net/url"
 	"sync"
 
 	"golang.org/x/crypto/ssh"
@@ -16,21 +29,23 @@ import (
 
 // sessionController implements SessionController using injected adapters.
 type sessionController struct {
-	sshClient adapter.SSHClient
-	keyStore  adapter.KeyStore
-	registrar adapter.KeyRegistrar
+	sshClient  adapter.SSHClient
+	keyStore   adapter.KeyStore
+	registrar  adapter.KeyRegistrar
+	infoClient adapter.WorkspaceInfoClient
 
 	mu      sync.Mutex
 	session adapter.SSHSession
 }
 
-// New creates a SessionController with the given SSH client, key store, and
-// key registrar adapters.
-func New(sshClient adapter.SSHClient, keyStore adapter.KeyStore, registrar adapter.KeyRegistrar) SessionController {
+// New creates a SessionController with the given SSH client, key store, key
+// registrar, and workspace info client adapters.
+func New(sshClient adapter.SSHClient, keyStore adapter.KeyStore, registrar adapter.KeyRegistrar, infoClient adapter.WorkspaceInfoClient) SessionController {
 	return &sessionController{
-		sshClient: sshClient,
-		keyStore:  keyStore,
-		registrar: registrar,
+		sshClient:  sshClient,
+		keyStore:   keyStore,
+		registrar:  registrar,
+		infoClient: infoClient,
 	}
 }
 
@@ -67,10 +82,11 @@ func (s *sessionController) Start(cfg types.TerminalConfig, termIO adapter.Termi
 	}
 
 	// 5. Build SSHSessionConfig.
-	hostname, err := extractHostname(ep.URL)
+	info, err := s.infoClient.GetInfo(cfg.Workspace)
 	if err != nil {
-		return fmt.Errorf("failed to extract hostname from endpoint URL: %w", err)
+		return fmt.Errorf("failed to get workspace info: %w", err)
 	}
+	hostname := info.Hostname
 
 	sshCfg := types.SSHSessionConfig{
 		Endpoint: ep.URL,
@@ -166,19 +182,6 @@ func selectEndpoint(endpoints []types.TerminalEndpoint) (types.TerminalEndpoint,
 		}
 	}
 	return endpoints[0], nil
-}
-
-// extractHostname parses the given URL and returns its hostname (without port).
-func extractHostname(rawURL string) (string, error) {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return "", err
-	}
-	h := u.Hostname()
-	if h == "" {
-		return "", fmt.Errorf("no hostname in URL %q", rawURL)
-	}
-	return h, nil
 }
 
 // buildHostKeyCallback implements TOFU (trust on first use): accept and store

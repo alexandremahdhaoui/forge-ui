@@ -1,10 +1,28 @@
+//go:build unit
+
+// Copyright 2024 Alexandre Mahdhaoui
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package controller
 
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"net"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -19,24 +37,39 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// extractHostname parses the given URL and returns its hostname (without port).
+func extractHostname(rawURL string) (string, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", err
+	}
+	h := u.Hostname()
+	if h == "" {
+		return "", fmt.Errorf("no hostname in URL %q", rawURL)
+	}
+	return h, nil
+}
+
 func TestNew(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
 
-	ctrl := New(sshClient, keyStore, registrar)
+	ctrl := New(sshClient, keyStore, registrar, infoClient)
 	require.NotNil(t, ctrl)
 }
 
 func TestStart_NoEndpoints(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
-	termIO := mockterminaladapter.NewTerminalIO(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
+	termIO := mockterminaladapter.NewMockTerminalIO(t)
 
-	ctrl := New(sshClient, keyStore, registrar)
+	ctrl := New(sshClient, keyStore, registrar, infoClient)
 	err := ctrl.Start(types.TerminalConfig{
 		Workspace: "test-ws",
 		Endpoints: nil,
@@ -47,11 +80,12 @@ func TestStart_NoEndpoints(t *testing.T) {
 
 func TestStart_AutoGeneratesKeyWhenMissing(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
-	termIO := mockterminaladapter.NewTerminalIO(t)
-	session := mockterminaladapter.NewSSHSession(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
+	termIO := mockterminaladapter.NewMockTerminalIO(t)
+	session := mockterminaladapter.NewMockSSHSession(t)
 
 	// GetKey fails -> triggers auto-generation.
 	keyStore.On("GetKey", "default").Return(types.SSHKey{}, errors.New("key not found"))
@@ -65,6 +99,7 @@ func TestStart_AutoGeneratesKeyWhenMissing(t *testing.T) {
 	registrar.On("RegisterKey", "test-ws", mock.MatchedBy(func(pk string) bool {
 		return strings.HasPrefix(pk, "ssh-ed25519 ")
 	})).Return(nil)
+	infoClient.On("GetInfo", "test-ws").Return(types.WorkspaceInfo{Hostname: "test-ws-10-0-1-5"}, nil)
 	keyStore.On("ListHosts").Return([]types.KnownHost{}, nil)
 	keyStore.On("SaveHost", mock.AnythingOfType("types.KnownHost")).Return(nil).Maybe()
 
@@ -87,7 +122,7 @@ func TestStart_AutoGeneratesKeyWhenMissing(t *testing.T) {
 	sshClient.On("Connect", mock.AnythingOfType("types.SSHSessionConfig"), mock.Anything, mock.Anything).
 		Return(session, nil)
 
-	ctrl := New(sshClient, keyStore, registrar)
+	ctrl := New(sshClient, keyStore, registrar, infoClient)
 	err := ctrl.Start(types.TerminalConfig{
 		Workspace: "test-ws",
 		Endpoints: []types.TerminalEndpoint{
@@ -102,11 +137,12 @@ func TestStart_AutoGeneratesKeyWhenMissing(t *testing.T) {
 
 func TestStart_RegistersExistingKey(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
-	termIO := mockterminaladapter.NewTerminalIO(t)
-	session := mockterminaladapter.NewSSHSession(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
+	termIO := mockterminaladapter.NewMockTerminalIO(t)
+	session := mockterminaladapter.NewMockSSHSession(t)
 
 	keyStore.On("GetKey", "default").Return(types.SSHKey{
 		Name:       "default",
@@ -116,6 +152,7 @@ func TestStart_RegistersExistingKey(t *testing.T) {
 	// RegisterKey is called with the existing public key.
 	registrar.On("RegisterKey", "test-ws", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBn6GTRlLW3EG34EvSDbaJWXIfNCYrlySXROA7Mkz2Zp").
 		Return(nil)
+	infoClient.On("GetInfo", "test-ws").Return(types.WorkspaceInfo{Hostname: "test-ws-10-0-1-5"}, nil)
 	keyStore.On("ListHosts").Return([]types.KnownHost{}, nil)
 	keyStore.On("SaveHost", mock.AnythingOfType("types.KnownHost")).Return(nil).Maybe()
 
@@ -138,7 +175,7 @@ func TestStart_RegistersExistingKey(t *testing.T) {
 	sshClient.On("Connect", mock.AnythingOfType("types.SSHSessionConfig"), mock.Anything, mock.Anything).
 		Return(session, nil)
 
-	ctrl := New(sshClient, keyStore, registrar)
+	ctrl := New(sshClient, keyStore, registrar, infoClient)
 	err := ctrl.Start(types.TerminalConfig{
 		Workspace: "test-ws",
 		Endpoints: []types.TerminalEndpoint{
@@ -154,10 +191,11 @@ func TestStart_RegistersExistingKey(t *testing.T) {
 
 func TestStart_RegisterKeyError(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
-	termIO := mockterminaladapter.NewTerminalIO(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
+	termIO := mockterminaladapter.NewMockTerminalIO(t)
 
 	keyStore.On("GetKey", "default").Return(types.SSHKey{
 		Name:       "default",
@@ -167,7 +205,7 @@ func TestStart_RegisterKeyError(t *testing.T) {
 	registrar.On("RegisterKey", "test-ws", "ssh-ed25519 AAAA...").
 		Return(errors.New("connection refused"))
 
-	ctrl := New(sshClient, keyStore, registrar)
+	ctrl := New(sshClient, keyStore, registrar, infoClient)
 	err := ctrl.Start(types.TerminalConfig{
 		Workspace: "test-ws",
 		Endpoints: []types.TerminalEndpoint{
@@ -181,17 +219,18 @@ func TestStart_RegisterKeyError(t *testing.T) {
 
 func TestStart_SaveKeyErrorAfterGeneration(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
-	termIO := mockterminaladapter.NewTerminalIO(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
+	termIO := mockterminaladapter.NewMockTerminalIO(t)
 
 	// GetKey fails -> triggers auto-generation.
 	keyStore.On("GetKey", "default").Return(types.SSHKey{}, errors.New("key not found"))
 	// SaveKey fails.
 	keyStore.On("SaveKey", mock.Anything).Return(errors.New("storage full"))
 
-	ctrl := New(sshClient, keyStore, registrar)
+	ctrl := New(sshClient, keyStore, registrar, infoClient)
 	err := ctrl.Start(types.TerminalConfig{
 		Workspace: "test-ws",
 		Endpoints: []types.TerminalEndpoint{
@@ -205,10 +244,11 @@ func TestStart_SaveKeyErrorAfterGeneration(t *testing.T) {
 
 func TestStart_ParsePrivateKeyError(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
-	termIO := mockterminaladapter.NewTerminalIO(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
+	termIO := mockterminaladapter.NewMockTerminalIO(t)
 
 	keyStore.On("GetKey", "default").Return(types.SSHKey{
 		Name:       "default",
@@ -216,7 +256,7 @@ func TestStart_ParsePrivateKeyError(t *testing.T) {
 	}, nil)
 	registrar.On("RegisterKey", "test-ws", "").Return(nil)
 
-	ctrl := New(sshClient, keyStore, registrar)
+	ctrl := New(sshClient, keyStore, registrar, infoClient)
 	err := ctrl.Start(types.TerminalConfig{
 		Workspace: "test-ws",
 		Endpoints: []types.TerminalEndpoint{
@@ -227,18 +267,47 @@ func TestStart_ParsePrivateKeyError(t *testing.T) {
 	assert.ErrorContains(t, err, "failed to parse SSH private key")
 }
 
-func TestStart_ConnectError(t *testing.T) {
+func TestStart_GetInfoError(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
-	termIO := mockterminaladapter.NewTerminalIO(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
+	termIO := mockterminaladapter.NewMockTerminalIO(t)
 
 	keyStore.On("GetKey", "default").Return(types.SSHKey{
 		Name:       "default",
 		PrivateKey: testEd25519PrivateKeyPEM,
 	}, nil)
 	registrar.On("RegisterKey", "test-ws", mock.Anything).Return(nil)
+	infoClient.On("GetInfo", "test-ws").Return(types.WorkspaceInfo{}, errors.New("info endpoint unreachable"))
+
+	ctrl := New(sshClient, keyStore, registrar, infoClient)
+	err := ctrl.Start(types.TerminalConfig{
+		Workspace: "test-ws",
+		Endpoints: []types.TerminalEndpoint{
+			{Name: "default", URL: "wss://proxy.example.com/ws/test-ws", Default: true},
+		},
+	}, termIO)
+
+	assert.ErrorContains(t, err, "failed to get workspace info")
+	assert.ErrorContains(t, err, "info endpoint unreachable")
+}
+
+func TestStart_ConnectError(t *testing.T) {
+	t.Parallel()
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
+	termIO := mockterminaladapter.NewMockTerminalIO(t)
+
+	keyStore.On("GetKey", "default").Return(types.SSHKey{
+		Name:       "default",
+		PrivateKey: testEd25519PrivateKeyPEM,
+	}, nil)
+	registrar.On("RegisterKey", "test-ws", mock.Anything).Return(nil)
+	infoClient.On("GetInfo", "test-ws").Return(types.WorkspaceInfo{Hostname: "test-ws-10-0-1-5"}, nil)
 	keyStore.On("ListHosts").Return([]types.KnownHost{}, nil)
 
 	termIO.On("Cols").Return(80)
@@ -247,7 +316,7 @@ func TestStart_ConnectError(t *testing.T) {
 	sshClient.On("Connect", mock.AnythingOfType("types.SSHSessionConfig"), mock.Anything, mock.Anything).
 		Return(nil, errors.New("connection refused"))
 
-	ctrl := New(sshClient, keyStore, registrar)
+	ctrl := New(sshClient, keyStore, registrar, infoClient)
 	err := ctrl.Start(types.TerminalConfig{
 		Workspace: "test-ws",
 		Endpoints: []types.TerminalEndpoint{
@@ -260,17 +329,19 @@ func TestStart_ConnectError(t *testing.T) {
 
 func TestStart_SuccessfulSession(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
-	termIO := mockterminaladapter.NewTerminalIO(t)
-	session := mockterminaladapter.NewSSHSession(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
+	termIO := mockterminaladapter.NewMockTerminalIO(t)
+	session := mockterminaladapter.NewMockSSHSession(t)
 
 	keyStore.On("GetKey", "default").Return(types.SSHKey{
 		Name:       "default",
 		PrivateKey: testEd25519PrivateKeyPEM,
 	}, nil)
 	registrar.On("RegisterKey", "test-ws", mock.Anything).Return(nil)
+	infoClient.On("GetInfo", "test-ws").Return(types.WorkspaceInfo{Hostname: "test-ws-10-0-1-5"}, nil)
 	keyStore.On("ListHosts").Return([]types.KnownHost{}, nil)
 	keyStore.On("SaveHost", mock.AnythingOfType("types.KnownHost")).Return(nil).Maybe()
 
@@ -300,14 +371,14 @@ func TestStart_SuccessfulSession(t *testing.T) {
 			cfg := args.Get(0).(types.SSHSessionConfig)
 			assert.Equal(t, "wss://proxy.example.com/ws/test-ws", cfg.Endpoint)
 			assert.Equal(t, "forge", cfg.Username)
-			assert.Equal(t, "proxy.example.com", cfg.Hostname)
+			assert.Equal(t, "test-ws-10-0-1-5", cfg.Hostname)
 			assert.Equal(t, "tmux new-session -A -s forge-test-ws", cfg.Command)
 			assert.Equal(t, 80, cfg.Cols)
 			assert.Equal(t, 24, cfg.Rows)
 		}).
 		Return(session, nil)
 
-	ctrl := New(sshClient, keyStore, registrar)
+	ctrl := New(sshClient, keyStore, registrar, infoClient)
 	err := ctrl.Start(types.TerminalConfig{
 		Workspace: "test-ws",
 		Endpoints: []types.TerminalEndpoint{
@@ -321,17 +392,19 @@ func TestStart_SuccessfulSession(t *testing.T) {
 
 func TestStart_SelectsDefaultEndpoint(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
-	termIO := mockterminaladapter.NewTerminalIO(t)
-	session := mockterminaladapter.NewSSHSession(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
+	termIO := mockterminaladapter.NewMockTerminalIO(t)
+	session := mockterminaladapter.NewMockSSHSession(t)
 
 	keyStore.On("GetKey", "default").Return(types.SSHKey{
 		Name:       "default",
 		PrivateKey: testEd25519PrivateKeyPEM,
 	}, nil)
 	registrar.On("RegisterKey", "test-ws", mock.Anything).Return(nil)
+	infoClient.On("GetInfo", "test-ws").Return(types.WorkspaceInfo{Hostname: "test-ws-10-0-1-5"}, nil)
 	keyStore.On("ListHosts").Return([]types.KnownHost{}, nil)
 	keyStore.On("SaveHost", mock.AnythingOfType("types.KnownHost")).Return(nil).Maybe()
 
@@ -356,11 +429,11 @@ func TestStart_SelectsDefaultEndpoint(t *testing.T) {
 			cfg := args.Get(0).(types.SSHSessionConfig)
 			// Should use the second endpoint (the one with Default=true).
 			assert.Equal(t, "wss://secondary.example.com/ws/test-ws", cfg.Endpoint)
-			assert.Equal(t, "secondary.example.com", cfg.Hostname)
+			assert.Equal(t, "test-ws-10-0-1-5", cfg.Hostname)
 		}).
 		Return(session, nil)
 
-	ctrl := New(sshClient, keyStore, registrar)
+	ctrl := New(sshClient, keyStore, registrar, infoClient)
 	err := ctrl.Start(types.TerminalConfig{
 		Workspace: "test-ws",
 		Endpoints: []types.TerminalEndpoint{
@@ -374,17 +447,19 @@ func TestStart_SelectsDefaultEndpoint(t *testing.T) {
 
 func TestStart_FallsBackToFirstEndpoint(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
-	termIO := mockterminaladapter.NewTerminalIO(t)
-	session := mockterminaladapter.NewSSHSession(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
+	termIO := mockterminaladapter.NewMockTerminalIO(t)
+	session := mockterminaladapter.NewMockSSHSession(t)
 
 	keyStore.On("GetKey", "default").Return(types.SSHKey{
 		Name:       "default",
 		PrivateKey: testEd25519PrivateKeyPEM,
 	}, nil)
 	registrar.On("RegisterKey", "test-ws", mock.Anything).Return(nil)
+	infoClient.On("GetInfo", "test-ws").Return(types.WorkspaceInfo{Hostname: "test-ws-10-0-1-5"}, nil)
 	keyStore.On("ListHosts").Return([]types.KnownHost{}, nil)
 	keyStore.On("SaveHost", mock.AnythingOfType("types.KnownHost")).Return(nil).Maybe()
 
@@ -412,7 +487,7 @@ func TestStart_FallsBackToFirstEndpoint(t *testing.T) {
 		}).
 		Return(session, nil)
 
-	ctrl := New(sshClient, keyStore, registrar)
+	ctrl := New(sshClient, keyStore, registrar, infoClient)
 	err := ctrl.Start(types.TerminalConfig{
 		Workspace: "test-ws",
 		Endpoints: []types.TerminalEndpoint{
@@ -426,11 +501,12 @@ func TestStart_FallsBackToFirstEndpoint(t *testing.T) {
 
 func TestStop_NoActiveSession(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
 
-	ctrl := New(sshClient, keyStore, registrar)
+	ctrl := New(sshClient, keyStore, registrar, infoClient)
 	err := ctrl.Stop()
 
 	assert.NoError(t, err)
@@ -438,13 +514,14 @@ func TestStop_NoActiveSession(t *testing.T) {
 
 func TestStop_ClosesActiveSession(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
 
-	ctrl := New(sshClient, keyStore, registrar).(*sessionController)
+	ctrl := New(sshClient, keyStore, registrar, infoClient).(*sessionController)
 
-	session := mockterminaladapter.NewSSHSession(t)
+	session := mockterminaladapter.NewMockSSHSession(t)
 	session.On("Close").Return(nil)
 
 	ctrl.mu.Lock()
@@ -517,22 +594,24 @@ func TestExtractHostname(t *testing.T) {
 
 func TestStart_ListHostsError(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
-	termIO := mockterminaladapter.NewTerminalIO(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
+	termIO := mockterminaladapter.NewMockTerminalIO(t)
 
 	keyStore.On("GetKey", "default").Return(types.SSHKey{
 		Name:       "default",
 		PrivateKey: testEd25519PrivateKeyPEM,
 	}, nil)
 	registrar.On("RegisterKey", "test-ws", mock.Anything).Return(nil)
+	infoClient.On("GetInfo", "test-ws").Return(types.WorkspaceInfo{Hostname: "test-ws-10-0-1-5"}, nil)
 	keyStore.On("ListHosts").Return(nil, errors.New("storage failure"))
 
 	termIO.On("Cols").Return(80)
 	termIO.On("Rows").Return(24)
 
-	ctrl := New(sshClient, keyStore, registrar)
+	ctrl := New(sshClient, keyStore, registrar, infoClient)
 	err := ctrl.Start(types.TerminalConfig{
 		Workspace: "test-ws",
 		Endpoints: []types.TerminalEndpoint{
@@ -545,17 +624,19 @@ func TestStart_ListHostsError(t *testing.T) {
 
 func TestStart_ConcurrentBidirectionalIO(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
-	termIO := mockterminaladapter.NewTerminalIO(t)
-	session := mockterminaladapter.NewSSHSession(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
+	termIO := mockterminaladapter.NewMockTerminalIO(t)
+	session := mockterminaladapter.NewMockSSHSession(t)
 
 	keyStore.On("GetKey", "default").Return(types.SSHKey{
 		Name:       "default",
 		PrivateKey: testEd25519PrivateKeyPEM,
 	}, nil)
 	registrar.On("RegisterKey", "test-ws", mock.Anything).Return(nil)
+	infoClient.On("GetInfo", "test-ws").Return(types.WorkspaceInfo{Hostname: "test-ws-10-0-1-5"}, nil)
 	keyStore.On("ListHosts").Return([]types.KnownHost{}, nil)
 	keyStore.On("SaveHost", mock.AnythingOfType("types.KnownHost")).Return(nil).Maybe()
 
@@ -625,7 +706,7 @@ func TestStart_ConcurrentBidirectionalIO(t *testing.T) {
 		_, _ = io.Copy(&stdinReceived, stdinReader)
 	}()
 
-	ctrl := New(sshClient, keyStore, registrar)
+	ctrl := New(sshClient, keyStore, registrar, infoClient)
 
 	done := make(chan error, 1)
 	go func() {
@@ -657,17 +738,19 @@ func TestStart_ConcurrentBidirectionalIO(t *testing.T) {
 
 func TestStart_ReadErrorPropagates(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
-	termIO := mockterminaladapter.NewTerminalIO(t)
-	session := mockterminaladapter.NewSSHSession(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
+	termIO := mockterminaladapter.NewMockTerminalIO(t)
+	session := mockterminaladapter.NewMockSSHSession(t)
 
 	keyStore.On("GetKey", "default").Return(types.SSHKey{
 		Name:       "default",
 		PrivateKey: testEd25519PrivateKeyPEM,
 	}, nil)
 	registrar.On("RegisterKey", "test-ws", mock.Anything).Return(nil)
+	infoClient.On("GetInfo", "test-ws").Return(types.WorkspaceInfo{Hostname: "test-ws-10-0-1-5"}, nil)
 	keyStore.On("ListHosts").Return([]types.KnownHost{}, nil)
 	keyStore.On("SaveHost", mock.AnythingOfType("types.KnownHost")).Return(nil).Maybe()
 
@@ -701,7 +784,7 @@ func TestStart_ReadErrorPropagates(t *testing.T) {
 	sshClient.On("Connect", mock.AnythingOfType("types.SSHSessionConfig"), mock.Anything, mock.Anything).
 		Return(session, nil)
 
-	ctrl := New(sshClient, keyStore, registrar)
+	ctrl := New(sshClient, keyStore, registrar, infoClient)
 
 	done := make(chan error, 1)
 	go func() {
@@ -723,17 +806,19 @@ func TestStart_ReadErrorPropagates(t *testing.T) {
 
 func TestStart_RegistersResizeCallback(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
-	termIO := mockterminaladapter.NewTerminalIO(t)
-	session := mockterminaladapter.NewSSHSession(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
+	termIO := mockterminaladapter.NewMockTerminalIO(t)
+	session := mockterminaladapter.NewMockSSHSession(t)
 
 	keyStore.On("GetKey", "default").Return(types.SSHKey{
 		Name:       "default",
 		PrivateKey: testEd25519PrivateKeyPEM,
 	}, nil)
 	registrar.On("RegisterKey", "test-ws", mock.Anything).Return(nil)
+	infoClient.On("GetInfo", "test-ws").Return(types.WorkspaceInfo{Hostname: "test-ws-10-0-1-5"}, nil)
 	keyStore.On("ListHosts").Return([]types.KnownHost{}, nil)
 	keyStore.On("SaveHost", mock.AnythingOfType("types.KnownHost")).Return(nil).Maybe()
 
@@ -762,7 +847,7 @@ func TestStart_RegistersResizeCallback(t *testing.T) {
 	sshClient.On("Connect", mock.AnythingOfType("types.SSHSessionConfig"), mock.Anything, mock.Anything).
 		Return(session, nil)
 
-	ctrl := New(sshClient, keyStore, registrar)
+	ctrl := New(sshClient, keyStore, registrar, infoClient)
 	err := ctrl.Start(types.TerminalConfig{
 		Workspace: "test-ws",
 		Endpoints: []types.TerminalEndpoint{
@@ -781,15 +866,16 @@ func TestStart_RegistersResizeCallback(t *testing.T) {
 
 func TestBuildHostKeyCallback_TOFUAcceptsNewHost(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
 
 	// No existing known hosts -- TOFU should accept and save.
 	keyStore.On("ListHosts").Return([]types.KnownHost{}, nil)
 	keyStore.On("SaveHost", mock.AnythingOfType("types.KnownHost")).Return(nil).Once()
 
-	ctrl := New(sshClient, keyStore, registrar).(*sessionController)
+	ctrl := New(sshClient, keyStore, registrar, infoClient).(*sessionController)
 	cb, err := ctrl.buildHostKeyCallback()
 	require.NoError(t, err)
 
@@ -808,9 +894,10 @@ func TestBuildHostKeyCallback_TOFUAcceptsNewHost(t *testing.T) {
 
 func TestBuildHostKeyCallback_KnownHostMatches(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
 
 	// Parse the test key to get its fingerprint.
 	signer, err := ssh.ParsePrivateKey(testEd25519PrivateKeyPEM)
@@ -822,7 +909,7 @@ func TestBuildHostKeyCallback_KnownHostMatches(t *testing.T) {
 		{Name: "known-host.example.com", Key: fp},
 	}, nil)
 
-	ctrl := New(sshClient, keyStore, registrar).(*sessionController)
+	ctrl := New(sshClient, keyStore, registrar, infoClient).(*sessionController)
 	cb, err := ctrl.buildHostKeyCallback()
 	require.NoError(t, err)
 
@@ -832,16 +919,17 @@ func TestBuildHostKeyCallback_KnownHostMatches(t *testing.T) {
 
 func TestBuildHostKeyCallback_KnownHostChanged(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
 
 	// Known host has a different fingerprint than what we will present.
 	keyStore.On("ListHosts").Return([]types.KnownHost{
 		{Name: "changed-host.example.com", Key: "SHA256:old-fingerprint-that-wont-match"},
 	}, nil)
 
-	ctrl := New(sshClient, keyStore, registrar).(*sessionController)
+	ctrl := New(sshClient, keyStore, registrar, infoClient).(*sessionController)
 	cb, err := ctrl.buildHostKeyCallback()
 	require.NoError(t, err)
 
@@ -856,14 +944,15 @@ func TestBuildHostKeyCallback_KnownHostChanged(t *testing.T) {
 
 func TestBuildHostKeyCallback_SaveHostError(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
 
 	keyStore.On("ListHosts").Return([]types.KnownHost{}, nil)
 	keyStore.On("SaveHost", mock.AnythingOfType("types.KnownHost")).Return(errors.New("storage write failed"))
 
-	ctrl := New(sshClient, keyStore, registrar).(*sessionController)
+	ctrl := New(sshClient, keyStore, registrar, infoClient).(*sessionController)
 	cb, err := ctrl.buildHostKeyCallback()
 	require.NoError(t, err)
 
@@ -877,17 +966,19 @@ func TestBuildHostKeyCallback_SaveHostError(t *testing.T) {
 
 func TestStart_SessionEndedError(t *testing.T) {
 	t.Parallel()
-	sshClient := mockterminaladapter.NewSSHClient(t)
-	keyStore := mockterminaladapter.NewKeyStore(t)
-	registrar := mockterminaladapter.NewKeyRegistrar(t)
-	termIO := mockterminaladapter.NewTerminalIO(t)
-	session := mockterminaladapter.NewSSHSession(t)
+	sshClient := mockterminaladapter.NewMockSSHClient(t)
+	keyStore := mockterminaladapter.NewMockKeyStore(t)
+	registrar := mockterminaladapter.NewMockKeyRegistrar(t)
+	infoClient := mockterminaladapter.NewMockWorkspaceInfoClient(t)
+	termIO := mockterminaladapter.NewMockTerminalIO(t)
+	session := mockterminaladapter.NewMockSSHSession(t)
 
 	keyStore.On("GetKey", "default").Return(types.SSHKey{
 		Name:       "default",
 		PrivateKey: testEd25519PrivateKeyPEM,
 	}, nil)
 	registrar.On("RegisterKey", "test-ws", mock.Anything).Return(nil)
+	infoClient.On("GetInfo", "test-ws").Return(types.WorkspaceInfo{Hostname: "test-ws-10-0-1-5"}, nil)
 	keyStore.On("ListHosts").Return([]types.KnownHost{}, nil)
 	keyStore.On("SaveHost", mock.AnythingOfType("types.KnownHost")).Return(nil).Maybe()
 
@@ -914,7 +1005,7 @@ func TestStart_SessionEndedError(t *testing.T) {
 	sshClient.On("Connect", mock.AnythingOfType("types.SSHSessionConfig"), mock.Anything, mock.Anything).
 		Return(session, nil)
 
-	ctrl := New(sshClient, keyStore, registrar)
+	ctrl := New(sshClient, keyStore, registrar, infoClient)
 
 	done := make(chan error, 1)
 	go func() {

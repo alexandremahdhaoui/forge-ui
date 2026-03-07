@@ -174,6 +174,235 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/v1/managed-workspaces:
+    get:
+      operationId: listManagedWorkspaces
+      summary: List managed workspaces from forge-workspace API
+      parameters:
+        - name: namespace
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "default"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ManagedWorkspaceSummary'
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      operationId: createManagedWorkspace
+      summary: Create a managed workspace
+      parameters:
+        - name: namespace
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "default"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateManagedWorkspaceRequest'
+      responses:
+        "201":
+          description: Workspace created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagedWorkspaceDetail'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/managed-workspaces/{name}:
+    get:
+      operationId: getManagedWorkspace
+      summary: Get a managed workspace
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: namespace
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "default"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagedWorkspaceDetail'
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      operationId: deleteManagedWorkspace
+      summary: Delete a managed workspace
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: namespace
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "default"
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/managed-workspaces/{name}/suspend:
+    put:
+      operationId: suspendManagedWorkspace
+      summary: Suspend a managed workspace
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: namespace
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "default"
+      responses:
+        "200":
+          description: Workspace suspended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagedWorkspaceDetail'
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/managed-workspaces/{name}/resume:
+    put:
+      operationId: resumeManagedWorkspace
+      summary: Resume a managed workspace
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: namespace
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "default"
+      responses:
+        "200":
+          description: Workspace resumed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagedWorkspaceDetail'
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/portfolios/{portfolio}/workspaces/{workspace}/cu:
+    get:
+      operationId: getWorkspaceCU
+      summary: Get CU composition state for a workspace
+      parameters:
+        - name: portfolio
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: workspace
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompoState'
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     # ---------------------------------------------------------------
@@ -890,3 +1119,206 @@ components:
           type: boolean
         badge:
           type: string
+
+    # ---------------------------------------------------------------
+    # Managed workspace schemas (workspace CRUD)
+    # ---------------------------------------------------------------
+    ManagedWorkspaceSummary:
+      x-go-type: types.ManagedWorkspaceSummary
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        phase:
+          type: string
+        suspended:
+          type: boolean
+        image:
+          type: string
+
+    ManagedWorkspaceDetail:
+      x-go-type: types.ManagedWorkspaceDetail
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        image:
+          type: string
+        repos:
+          type: array
+          items:
+            $ref: '#/components/schemas/ManagedRepoDetail'
+        storage:
+          $ref: '#/components/schemas/ManagedStorageDetail'
+        compo:
+          $ref: '#/components/schemas/ManagedCompoDetail'
+        suspended:
+          type: boolean
+        phase:
+          type: string
+        conditions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ManagedCondition'
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+
+    ManagedRepoDetail:
+      x-go-type: types.ManagedRepoDetail
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        url:
+          type: string
+        branch:
+          type: string
+        path:
+          type: string
+        provider:
+          type: string
+        hasCredential:
+          type: boolean
+
+    ManagedStorageDetail:
+      x-go-type: types.ManagedStorageDetail
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        storageClassName:
+          type: string
+        size:
+          type: string
+
+    ManagedCompoDetail:
+      x-go-type: types.ManagedCompoDetail
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        url:
+          type: string
+        branch:
+          type: string
+        provider:
+          type: string
+        hasCredential:
+          type: boolean
+
+    ManagedCondition:
+      x-go-type: types.ManagedCondition
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        type:
+          type: string
+        status:
+          type: string
+        reason:
+          type: string
+        message:
+          type: string
+
+    CreateManagedWorkspaceRequest:
+      x-go-type: types.CreateManagedWorkspaceRequest
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        image:
+          type: string
+        repos:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateRepoInput'
+        storageClass:
+          type: string
+        storageSize:
+          type: string
+        initScript:
+          type: string
+        compo:
+          $ref: '#/components/schemas/CreateCompoInput'
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+
+    CreateRepoInput:
+      x-go-type: types.CreateRepoInput
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        url:
+          type: string
+        branch:
+          type: string
+        path:
+          type: string
+        provider:
+          type: string
+
+    CreateCompoInput:
+      x-go-type: types.CreateCompoInput
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        url:
+          type: string
+        branch:
+          type: string
+        provider:
+          type: string
+
+    # ---------------------------------------------------------------
+    # CU visualization schemas
+    # ---------------------------------------------------------------
+    CompoState:
+      x-go-type: types.CompoState
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        repos:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompoRepo'
+        currentBranch:
+          type: string
+        branches:
+          type: array
+          items:
+            type: string
+
+    CompoRepo:
+      x-go-type: types.CompoRepo
+      x-go-type-import:
+        path: github.com/alexandremahdhaoui/forge-ui/internal/types
+      type: object
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+        managedFiles:
+          type: array
+          items:
+            type: string

@@ -1,3 +1,19 @@
+//go:build unit
+
+// Copyright 2024 Alexandre Mahdhaoui
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package wssproxy
 
 import (
@@ -455,4 +471,60 @@ func TestKeyRegistration_MultipleKeys(t *testing.T) {
 	assert.Equal(t, 2, len(lines))
 	assert.Contains(t, lines, key1)
 	assert.Contains(t, lines, key2)
+}
+
+func TestWorkspaceInfo_Success(t *testing.T) {
+	t.Parallel()
+
+	echoAddr, echoCleanup := startEchoServer(t)
+	defer echoCleanup()
+
+	_, port, err := net.SplitHostPort(echoAddr)
+	require.NoError(t, err)
+
+	srv := NewServer(Config{
+		WorkspaceSvcPattern: "127.0.0.1:" + port,
+	}, t.TempDir(), "127.0.0.1:0")
+	server := httptest.NewServer(srv.Handler)
+	defer server.Close()
+
+	resp, err := http.Get(server.URL + "/ws/test/info")
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Contains(t, string(body), `"hostname":"test-127-0-0-1"`)
+}
+
+func TestWorkspaceInfo_BackendUnreachable(t *testing.T) {
+	t.Parallel()
+
+	srv := NewServer(Config{
+		WorkspaceSvcPattern: "127.0.0.1:1",
+	}, t.TempDir(), "127.0.0.1:0")
+	server := httptest.NewServer(srv.Handler)
+	defer server.Close()
+
+	resp, err := http.Get(server.URL + "/ws/test/info")
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusBadGateway, resp.StatusCode)
+}
+
+func TestWorkspaceInfo_MethodNotAllowed(t *testing.T) {
+	t.Parallel()
+
+	server := newTestServer(t)
+	defer server.Close()
+
+	resp, err := http.Post(server.URL+"/ws/test/info", "text/plain", strings.NewReader("data"))
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 }

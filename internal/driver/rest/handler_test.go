@@ -1,3 +1,19 @@
+//go:build unit
+
+// Copyright 2024 Alexandre Mahdhaoui
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package rest
 
 import (
@@ -16,11 +32,11 @@ import (
 // newTestHandler creates an APIHandler wired to mock services and returns
 // an http.Handler using the generated strict handler + mux.
 func newTestHandler(
-	ps *mockcontroller.PortfolioService,
-	ws *mockcontroller.WorkspaceService,
-	fs *mockcontroller.ForgeService,
+	ps *mockcontroller.MockPortfolioService,
+	ws *mockcontroller.MockWorkspaceService,
+	fs *mockcontroller.MockForgeService,
 ) (*APIHandler, http.Handler) {
-	h := NewAPIHandler("/base", ps, ws, fs)
+	h := NewAPIHandler("/base", ps, ws, fs, nil, nil)
 	strict := NewStrictHandler(h, nil)
 	mux := http.NewServeMux()
 	return h, HandlerFromMux(strict, mux)
@@ -31,7 +47,7 @@ func newTestHandler(
 func TestListPortfolios_Success(t *testing.T) {
 	t.Parallel()
 
-	ps := new(mockcontroller.PortfolioService)
+	ps := new(mockcontroller.MockPortfolioService)
 	_, handler := newTestHandler(ps, nil, nil)
 
 	ps.On("ListPortfolios", "/base", "time").Return(types.PortfoliosPageData{
@@ -59,7 +75,7 @@ func TestListPortfolios_Success(t *testing.T) {
 func TestListPortfolios_SortParam(t *testing.T) {
 	t.Parallel()
 
-	ps := new(mockcontroller.PortfolioService)
+	ps := new(mockcontroller.MockPortfolioService)
 	_, handler := newTestHandler(ps, nil, nil)
 
 	ps.On("ListPortfolios", "/base", "name").Return(types.PortfoliosPageData{
@@ -84,7 +100,7 @@ func TestListPortfolios_SortParam(t *testing.T) {
 func TestListPortfolios_DefaultSort(t *testing.T) {
 	t.Parallel()
 
-	ps := new(mockcontroller.PortfolioService)
+	ps := new(mockcontroller.MockPortfolioService)
 	_, handler := newTestHandler(ps, nil, nil)
 
 	// No sort param should default to "time".
@@ -102,7 +118,7 @@ func TestListPortfolios_DefaultSort(t *testing.T) {
 func TestListPortfolios_Error(t *testing.T) {
 	t.Parallel()
 
-	ps := new(mockcontroller.PortfolioService)
+	ps := new(mockcontroller.MockPortfolioService)
 	_, handler := newTestHandler(ps, nil, nil)
 
 	ps.On("ListPortfolios", "/base", "time").Return(types.PortfoliosPageData{}, errors.New("disk error"))
@@ -125,7 +141,7 @@ func TestListPortfolios_Error(t *testing.T) {
 func TestListPortfolios_ExcludesDarkModeFields(t *testing.T) {
 	t.Parallel()
 
-	ps := new(mockcontroller.PortfolioService)
+	ps := new(mockcontroller.MockPortfolioService)
 	_, handler := newTestHandler(ps, nil, nil)
 
 	ps.On("ListPortfolios", "/base", "time").Return(types.PortfoliosPageData{
@@ -154,7 +170,7 @@ func TestListPortfolios_ExcludesDarkModeFields(t *testing.T) {
 func TestGetPortfolio_Success(t *testing.T) {
 	t.Parallel()
 
-	ps := new(mockcontroller.PortfolioService)
+	ps := new(mockcontroller.MockPortfolioService)
 	_, handler := newTestHandler(ps, nil, nil)
 
 	ps.On("GetPortfolio", "/base", "myp", "time").Return(types.PortfolioPageData{
@@ -180,7 +196,7 @@ func TestGetPortfolio_Success(t *testing.T) {
 func TestGetPortfolio_SortParam(t *testing.T) {
 	t.Parallel()
 
-	ps := new(mockcontroller.PortfolioService)
+	ps := new(mockcontroller.MockPortfolioService)
 	_, handler := newTestHandler(ps, nil, nil)
 
 	ps.On("GetPortfolio", "/base", "myp", "name").Return(types.PortfolioPageData{
@@ -206,7 +222,7 @@ func TestGetPortfolio_SortParam(t *testing.T) {
 func TestGetPortfolio_NotFound(t *testing.T) {
 	t.Parallel()
 
-	ps := new(mockcontroller.PortfolioService)
+	ps := new(mockcontroller.MockPortfolioService)
 	_, handler := newTestHandler(ps, nil, nil)
 
 	// Service returns data with empty Name -- signals not found.
@@ -230,7 +246,7 @@ func TestGetPortfolio_NotFound(t *testing.T) {
 func TestGetPortfolio_Error(t *testing.T) {
 	t.Parallel()
 
-	ps := new(mockcontroller.PortfolioService)
+	ps := new(mockcontroller.MockPortfolioService)
 	_, handler := newTestHandler(ps, nil, nil)
 
 	ps.On("GetPortfolio", "/base", "bad", "time").Return(types.PortfolioPageData{}, errors.New("read error"))
@@ -253,7 +269,7 @@ func TestGetPortfolio_Error(t *testing.T) {
 func TestGetPortfolio_ExcludesDarkModeFields(t *testing.T) {
 	t.Parallel()
 
-	ps := new(mockcontroller.PortfolioService)
+	ps := new(mockcontroller.MockPortfolioService)
 	_, handler := newTestHandler(ps, nil, nil)
 
 	ps.On("GetPortfolio", "/base", "myp", "time").Return(types.PortfolioPageData{
@@ -282,7 +298,7 @@ func TestGetPortfolio_ExcludesDarkModeFields(t *testing.T) {
 func TestGetWorkspace_Success(t *testing.T) {
 	t.Parallel()
 
-	wsSvc := new(mockcontroller.WorkspaceService)
+	wsSvc := new(mockcontroller.MockWorkspaceService)
 	_, handler := newTestHandler(nil, wsSvc, nil)
 
 	wsSvc.On("GetWorkspace", "/base", "p1", "ws1", "time").Return(types.WorkspacePageData{
@@ -308,7 +324,7 @@ func TestGetWorkspace_Success(t *testing.T) {
 func TestGetWorkspace_SortParam(t *testing.T) {
 	t.Parallel()
 
-	wsSvc := new(mockcontroller.WorkspaceService)
+	wsSvc := new(mockcontroller.MockWorkspaceService)
 	_, handler := newTestHandler(nil, wsSvc, nil)
 
 	wsSvc.On("GetWorkspace", "/base", "p1", "ws1", "name").Return(types.WorkspacePageData{
@@ -334,7 +350,7 @@ func TestGetWorkspace_SortParam(t *testing.T) {
 func TestGetWorkspace_NotFound(t *testing.T) {
 	t.Parallel()
 
-	wsSvc := new(mockcontroller.WorkspaceService)
+	wsSvc := new(mockcontroller.MockWorkspaceService)
 	_, handler := newTestHandler(nil, wsSvc, nil)
 
 	wsSvc.On("GetWorkspace", "/base", "p1", "missing", "time").Return(types.WorkspacePageData{}, nil)
@@ -357,7 +373,7 @@ func TestGetWorkspace_NotFound(t *testing.T) {
 func TestGetWorkspace_Error(t *testing.T) {
 	t.Parallel()
 
-	wsSvc := new(mockcontroller.WorkspaceService)
+	wsSvc := new(mockcontroller.MockWorkspaceService)
 	_, handler := newTestHandler(nil, wsSvc, nil)
 
 	wsSvc.On("GetWorkspace", "/base", "p1", "ws1", "time").Return(types.WorkspacePageData{}, errors.New("io error"))
@@ -380,7 +396,7 @@ func TestGetWorkspace_Error(t *testing.T) {
 func TestGetWorkspace_ExcludesDarkModeFields(t *testing.T) {
 	t.Parallel()
 
-	wsSvc := new(mockcontroller.WorkspaceService)
+	wsSvc := new(mockcontroller.MockWorkspaceService)
 	_, handler := newTestHandler(nil, wsSvc, nil)
 
 	wsSvc.On("GetWorkspace", "/base", "p1", "ws1", "time").Return(types.WorkspacePageData{
@@ -409,8 +425,8 @@ func TestGetWorkspace_ExcludesDarkModeFields(t *testing.T) {
 func TestGetRepo_Success(t *testing.T) {
 	t.Parallel()
 
-	wsSvc := new(mockcontroller.WorkspaceService)
-	fsSvc := new(mockcontroller.ForgeService)
+	wsSvc := new(mockcontroller.MockWorkspaceService)
+	fsSvc := new(mockcontroller.MockForgeService)
 	_, handler := newTestHandler(nil, wsSvc, fsSvc)
 
 	fsSvc.On("GetForge", "/base", "p1", "ws1", "repo-a").Return(types.ForgePageData{
@@ -442,7 +458,7 @@ func TestGetRepo_Success(t *testing.T) {
 func TestGetRepo_NotFound(t *testing.T) {
 	t.Parallel()
 
-	fsSvc := new(mockcontroller.ForgeService)
+	fsSvc := new(mockcontroller.MockForgeService)
 	_, handler := newTestHandler(nil, nil, fsSvc)
 
 	fsSvc.On("GetForge", "/base", "p1", "ws1", "missing").Return(types.ForgePageData{}, nil)
@@ -465,7 +481,7 @@ func TestGetRepo_NotFound(t *testing.T) {
 func TestGetRepo_Error(t *testing.T) {
 	t.Parallel()
 
-	fsSvc := new(mockcontroller.ForgeService)
+	fsSvc := new(mockcontroller.MockForgeService)
 	_, handler := newTestHandler(nil, nil, fsSvc)
 
 	fsSvc.On("GetForge", "/base", "p1", "ws1", "bad-repo").Return(types.ForgePageData{}, errors.New("no forge.yaml"))
@@ -488,8 +504,8 @@ func TestGetRepo_Error(t *testing.T) {
 func TestGetRepo_ExcludesDarkModeFields(t *testing.T) {
 	t.Parallel()
 
-	wsSvc := new(mockcontroller.WorkspaceService)
-	fsSvc := new(mockcontroller.ForgeService)
+	wsSvc := new(mockcontroller.MockWorkspaceService)
+	fsSvc := new(mockcontroller.MockForgeService)
 	_, handler := newTestHandler(nil, wsSvc, fsSvc)
 
 	fsSvc.On("GetForge", "/base", "p1", "ws1", "repo-a").Return(types.ForgePageData{
@@ -518,8 +534,8 @@ func TestGetRepo_ExcludesDarkModeFields(t *testing.T) {
 func TestGetRepo_PopulatesSiblingRepos(t *testing.T) {
 	t.Parallel()
 
-	wsSvc := new(mockcontroller.WorkspaceService)
-	fsSvc := new(mockcontroller.ForgeService)
+	wsSvc := new(mockcontroller.MockWorkspaceService)
+	fsSvc := new(mockcontroller.MockForgeService)
 	_, handler := newTestHandler(nil, wsSvc, fsSvc)
 
 	fsSvc.On("GetForge", "/base", "p1", "ws1", "repo-b").Return(types.ForgePageData{
@@ -568,8 +584,8 @@ func TestGetRepo_PopulatesSiblingRepos(t *testing.T) {
 func TestGetRepo_WorkspaceServiceError_SkipsSiblingRepos(t *testing.T) {
 	t.Parallel()
 
-	wsSvc := new(mockcontroller.WorkspaceService)
-	fsSvc := new(mockcontroller.ForgeService)
+	wsSvc := new(mockcontroller.MockWorkspaceService)
+	fsSvc := new(mockcontroller.MockForgeService)
 	_, handler := newTestHandler(nil, wsSvc, fsSvc)
 
 	fsSvc.On("GetForge", "/base", "p1", "ws1", "repo-a").Return(types.ForgePageData{

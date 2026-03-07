@@ -1,4 +1,18 @@
-//go:build !js || !wasm
+//go:build unit
+
+// Copyright 2024 Alexandre Mahdhaoui
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package controller
 
@@ -14,10 +28,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func stubOrchestrationMocksForWorkspace() (*mockadapter.WsConfigLoader, *mockadapter.MetaPlanLoader, *mockadapter.RepoPlanLoader) {
-	wc := new(mockadapter.WsConfigLoader)
-	mp := new(mockadapter.MetaPlanLoader)
-	rp := new(mockadapter.RepoPlanLoader)
+func stubOrchestrationMocksForWorkspace() (*mockadapter.MockWsConfigLoader, *mockadapter.MockMetaPlanLoader, *mockadapter.MockRepoPlanLoader) {
+	wc := new(mockadapter.MockWsConfigLoader)
+	mp := new(mockadapter.MockMetaPlanLoader)
+	rp := new(mockadapter.MockRepoPlanLoader)
 	wc.On("Load", mock.Anything).Return(types.WsConfig{}, errors.New("none")).Maybe()
 	mp.On("LoadAll", mock.Anything).Return(nil, errors.New("none")).Maybe()
 	rp.On("LoadSummary", mock.Anything, mock.Anything).Return(types.RepoPlanSummary{}, errors.New("none")).Maybe()
@@ -28,9 +42,9 @@ func stubOrchestrationMocksForWorkspace() (*mockadapter.WsConfigLoader, *mockada
 func TestGetWorkspace_Success(t *testing.T) {
 	t.Parallel()
 
-	ws := new(mockadapter.WorkspaceDiscovery)
-	c := new(mockadapter.Cache)
-	fl := new(mockadapter.ForgeLoader)
+	ws := new(mockadapter.MockWorkspaceDiscovery)
+	c := new(mockadapter.MockCache)
+	fl := new(mockadapter.MockForgeLoader)
 
 	wsData := types.WorkspacePageData{
 		Name: "ws1",
@@ -62,9 +76,9 @@ func TestGetWorkspace_Success(t *testing.T) {
 func TestGetWorkspace_WithCachedGitData(t *testing.T) {
 	t.Parallel()
 
-	wsMock := new(mockadapter.WorkspaceDiscovery)
-	c := new(mockadapter.Cache)
-	fl := new(mockadapter.ForgeLoader)
+	wsMock := new(mockadapter.MockWorkspaceDiscovery)
+	c := new(mockadapter.MockCache)
+	fl := new(mockadapter.MockForgeLoader)
 
 	commitTime := time.Date(2025, 7, 1, 8, 0, 0, 0, time.UTC)
 
@@ -110,9 +124,9 @@ func TestGetWorkspace_WithCachedGitData(t *testing.T) {
 func TestGetWorkspace_WithForgeHeatmap(t *testing.T) {
 	t.Parallel()
 
-	wsMock := new(mockadapter.WorkspaceDiscovery)
-	c := new(mockadapter.Cache)
-	fl := new(mockadapter.ForgeLoader)
+	wsMock := new(mockadapter.MockWorkspaceDiscovery)
+	c := new(mockadapter.MockCache)
+	fl := new(mockadapter.MockForgeLoader)
 
 	wsData := types.WorkspacePageData{
 		Name: "ws1",
@@ -153,9 +167,9 @@ func TestGetWorkspace_WithForgeHeatmap(t *testing.T) {
 func TestGetWorkspace_SortByTime(t *testing.T) {
 	t.Parallel()
 
-	wsMock := new(mockadapter.WorkspaceDiscovery)
-	c := new(mockadapter.Cache)
-	fl := new(mockadapter.ForgeLoader)
+	wsMock := new(mockadapter.MockWorkspaceDiscovery)
+	c := new(mockadapter.MockCache)
+	fl := new(mockadapter.MockForgeLoader)
 
 	now := time.Now()
 
@@ -192,9 +206,9 @@ func TestGetWorkspace_SortByTime(t *testing.T) {
 func TestGetWorkspace_SortByName(t *testing.T) {
 	t.Parallel()
 
-	wsMock := new(mockadapter.WorkspaceDiscovery)
-	c := new(mockadapter.Cache)
-	fl := new(mockadapter.ForgeLoader)
+	wsMock := new(mockadapter.MockWorkspaceDiscovery)
+	c := new(mockadapter.MockCache)
+	fl := new(mockadapter.MockForgeLoader)
 
 	wsData := types.WorkspacePageData{
 		Name: "ws1",
@@ -221,9 +235,9 @@ func TestGetWorkspace_SortByName(t *testing.T) {
 func TestGetWorkspace_NotFound(t *testing.T) {
 	t.Parallel()
 
-	wsMock := new(mockadapter.WorkspaceDiscovery)
-	c := new(mockadapter.Cache)
-	fl := new(mockadapter.ForgeLoader)
+	wsMock := new(mockadapter.MockWorkspaceDiscovery)
+	c := new(mockadapter.MockCache)
+	fl := new(mockadapter.MockForgeLoader)
 
 	wsMock.On("Get", "/base", "nonexistent").Return(types.WorkspacePageData{}, errors.New("workspace not found"))
 
@@ -238,9 +252,9 @@ func TestGetWorkspace_NotFound(t *testing.T) {
 func TestGetWorkspace_NamedPortfolioPath(t *testing.T) {
 	t.Parallel()
 
-	wsMock := new(mockadapter.WorkspaceDiscovery)
-	c := new(mockadapter.Cache)
-	fl := new(mockadapter.ForgeLoader)
+	wsMock := new(mockadapter.MockWorkspaceDiscovery)
+	c := new(mockadapter.MockCache)
+	fl := new(mockadapter.MockForgeLoader)
 
 	wsData := types.WorkspacePageData{
 		Name:  "ws1",

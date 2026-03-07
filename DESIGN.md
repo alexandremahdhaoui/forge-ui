@@ -1,6 +1,6 @@
 # forge-ui Design
 
-forge-ui uses hexagonal architecture with three drivers (REST API, WASM dashboard, WASM terminal) to deliver a Go workspace dashboard with browser-based terminal access to Kubernetes workspace containers.
+forge-ui uses hexagonal architecture with four drivers (REST API, WASM dashboard, WASM terminal, TUI) to deliver a Go workspace dashboard with browser-based and terminal-based access to Kubernetes workspace containers.
 
 ## Problem Statement
 
@@ -197,21 +197,21 @@ All layers depend inward on types. No layer imports from a layer above it.
 ### Build Targets
 
 ```
-GOOS=linux GOARCH=amd64             GOOS=js GOARCH=wasm
-     |           |                       |            |
-     v           v                       v            v
-+-----------+ +-------------+  +------------+ +----------------+
-| cmd/      | | cmd/        |  | cmd/       | | cmd/           |
-| forge-    | | forge-wss-  |  | forge-ui-  | | forge-terminal-|
-| frontend/ | | proxy/      |  | wasm/      | | wasm/          |
-|           | |             |  |            | |                |
-| REST API  | | WebSocket   |  | Dashboard  | | Terminal       |
-| server    | | to SSH      |  | WASM       | | WASM           |
-| :8081     | | proxy :8080 |  | client     | | emulator       |
-+-----------+ +-------------+  +------------+ +----------------+
+GOOS=linux GOARCH=amd64                          GOOS=js GOARCH=wasm
+     |           |           |                       |            |
+     v           v           v                       v            v
++-----------+ +-------------+ +------------+  +------------+ +----------------+
+| cmd/      | | cmd/        | | cmd/       |  | cmd/       | | cmd/           |
+| forge-    | | forge-wss-  | | forge-ui-  |  | forge-ui-  | | forge-terminal-|
+| frontend/ | | proxy/      | | tui/       |  | wasm/      | | wasm/          |
+|           | |             | |            |  |            | |                |
+| REST API  | | WebSocket   | | TUI        |  | Dashboard  | | Terminal       |
+| server    | | to SSH      | | dashboard  |  | WASM       | | WASM           |
+| :8081     | | proxy :8080 | | (bubbletea)|  | client     | | emulator       |
++-----------+ +-------------+ +------------+  +------------+ +----------------+
 ```
 
-forge.yaml defines 10 build targets:
+forge.yaml defines 11 build targets:
 
 | Target | Output | Engine |
 |--------|--------|--------|
@@ -220,6 +220,7 @@ forge.yaml defines 10 build targets:
 | `forge-terminal-wasm` | `build/web/terminal.wasm` | `alias://wasm-build` (GOOS=js GOARCH=wasm) |
 | `forge-terminal-xterm` | `build/web/` | `alias://web-assets` (npm + rollup) |
 | `forge-ui-web-assets` | `build/web/` | `alias://web-assets` (cp web/ to build/) |
+| `forge-ui-tui` | `build/bin/forge-ui-tui` | `go://go-build` |
 | `forge-wss-proxy` | `build/bin/forge-wss-proxy` | `go://go-build` |
 | `forge-wss-proxy-image` | container image | `go://container-build` |
 | `forge-workspace-image` | container image | `go://container-build` |
@@ -510,18 +511,18 @@ The full stack deploys to a Kubernetes cluster. 4 containers run as separate dep
 ### Driver Comparison
 
 ```
-Aspect            REST API Driver             WASM Dashboard Driver       WASM Terminal Driver
-------            ---------------             ---------------------       --------------------
-Entry point       cmd/forge-frontend/         cmd/forge-ui-wasm/          cmd/forge-terminal-wasm/
-Build tag         GOOS=linux                  GOOS=js GOARCH=wasm         GOOS=js GOARCH=wasm
-Routing           net/http + oapi-codegen     hashchange event listener   JS global (forgeTerminal)
-URL format        /api/v1/portfolios/infra    #/portfolios/infra          N/A (programmatic)
-Data source       Live filesystem + git       Static demo data            WebSocket + SSH
-Cache             In-memory (sync.RWMutex)    None (static)               IndexedDB (SSH keys)
-Background        Refresher (N workers)       None                        Persistent WebSocket
-Templates         None (JSON responses)       Embedded (go:embed)         None
-Rendering         JSON (application/json)     Client-side (innerHTML)     xterm.js
-Output            JSON response               HTML fragment               Terminal I/O stream
+Aspect            REST API Driver             WASM Dashboard Driver       WASM Terminal Driver        TUI Driver
+------            ---------------             ---------------------       --------------------        ----------
+Entry point       cmd/forge-frontend/         cmd/forge-ui-wasm/          cmd/forge-terminal-wasm/    cmd/forge-ui-tui/
+Build tag         GOOS=linux                  GOOS=js GOARCH=wasm         GOOS=js GOARCH=wasm         GOOS=linux
+Routing           net/http + oapi-codegen     hashchange event listener   JS global (forgeTerminal)   bubbletea key/mouse
+URL format        /api/v1/portfolios/infra    #/portfolios/infra          N/A (programmatic)          N/A (interactive)
+Data source       Live filesystem + git       Static demo data            WebSocket + SSH             REST API client
+Cache             In-memory (sync.RWMutex)    None (static)               IndexedDB (SSH keys)        None (fetches on nav)
+Background        Refresher (N workers)       None                        Persistent WebSocket        None
+Templates         None (JSON responses)       Embedded (go:embed)         None                        None (bubbletea views)
+Rendering         JSON (application/json)     Client-side (innerHTML)     xterm.js                    bubbletea (terminal)
+Output            JSON response               HTML fragment               Terminal I/O stream         Terminal UI
 ```
 
 ## Technical Design
@@ -917,7 +918,7 @@ Total: 5 interfaces, 22 methods across 7 non-test terminal adapter files.
 - **Unit tests:** Controller and adapter packages use generated mocks. Run via `forge test-run unit`.
 - **Lint:** golangci-lint via `forge test-run lint`.
 - **e2e tests:** Deploy to Kind cluster (testenv-kind + testenv-lcr + testenv-helm-install). Validate terminal connectivity and REST API responses. Run via `forge test-run e2e`.
-- **Full validation:** `forge test-all` builds all 10 targets, then runs lint + unit + e2e stages.
+- **Full validation:** `forge test-all` builds all 11 targets, then runs lint + unit + e2e stages.
 
 ## FAQ
 

@@ -1,37 +1,47 @@
-all: false
-formatter: goimports
-include-auto-generated: false
-log-level: info
+# Copyright 2024 Alexandre Mahdhaoui
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+filename: "zz_generated.{{ .InterfaceName }}.go"
 template: testify
-force-file-write: true
-require-template-schema-exists: true
-template-schema: '{{.Template}}.schema.json'
+template-data:
+  unroll-variadic: true
+
 packages:
+  # internal/adapter
   github.com/alexandremahdhaoui/forge-ui/internal/adapter:
     config:
       all: true
-      dir: "internal/util/mocks/mockadapter"
-      pkgname: "mockadapter"
-      structname: '{{.InterfaceName}}'
-      filename: "mock_{{.InterfaceName | snakecase}}.go"
+      dir: internal/util/mocks/mockadapter
+      pkgname: mockadapter
+
+  # internal/controller
   github.com/alexandremahdhaoui/forge-ui/internal/controller:
     config:
       all: true
-      dir: "internal/util/mocks/mockcontroller"
-      pkgname: "mockcontroller"
-      structname: '{{.InterfaceName}}'
-      filename: "mock_{{.InterfaceName | snakecase}}.go"
+      dir: internal/util/mocks/mockcontroller
+      pkgname: mockcontroller
+
+  # internal/terminal/adapter
   github.com/alexandremahdhaoui/forge-ui/internal/terminal/adapter:
     config:
       all: true
-      dir: "internal/util/mocks/mockterminaladapter"
-      pkgname: "mockterminaladapter"
-      structname: '{{.InterfaceName}}'
-      filename: "mock_{{.InterfaceName | snakecase}}.go"
+      dir: internal/util/mocks/mockterminaladapter
+      pkgname: mockterminaladapter
+
+  # internal/terminal/controller
   github.com/alexandremahdhaoui/forge-ui/internal/terminal/controller:
     config:
       all: true
-      dir: "internal/util/mocks/mockterminalcontroller"
-      pkgname: "mockterminalcontroller"
-      structname: '{{.InterfaceName}}'
-      filename: "mock_{{.InterfaceName | snakecase}}.go"
+      dir: internal/util/mocks/mockterminalcontroller
+      pkgname: mockterminalcontroller

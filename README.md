@@ -80,11 +80,13 @@ hack/run.sh
   +---------------------------+
 ```
 
-forge-ui uses hexagonal architecture with 4 binaries. The WASM dashboard fetches
+forge-ui uses hexagonal architecture with 5 binaries. The WASM dashboard fetches
 data from the forge-frontend REST API. Controllers hold business logic: portfolio
 listing, workspace aggregation, and forge detail retrieval. The WASM terminal
 connects via WebSocket through forge-wss-proxy to SSH sessions in forge-workspace
-containers. See [DESIGN.md](DESIGN.md) for full details.
+containers. A TUI binary (forge-ui-tui) built with bubbletea provides a terminal
+dashboard for users who prefer a native terminal interface over the browser. See
+[DESIGN.md](DESIGN.md) for full details.
 
 ## Table of Contents
 
@@ -129,11 +131,12 @@ Set the `WORKSPACES` environment variable to override the default base directory
 ## How do I build and test?
 
 ```sh
-forge build                      # Build all 10 targets
+forge build                      # Build all 11 targets
 forge build forge-frontend       # Build REST API server binary
 forge build forge-ui-wasm        # Build WASM dashboard binary
 forge build forge-terminal-wasm  # Build WASM terminal binary
 forge build forge-wss-proxy      # Build WebSocket-to-SSH proxy binary
+forge build forge-ui-tui         # Build TUI dashboard binary (bubbletea)
 forge test-all                   # Build + lint + unit + e2e tests
 forge test-run unit              # Unit tests only
 forge test-run lint              # Lint only
@@ -162,6 +165,10 @@ forge-ui renders 4 page types plus an embedded terminal:
    in-browser (ed25519) and registered with the key provisioning service.
    Connects via WebSocket through forge-wss-proxy to a tmux session in the
    forge-workspace container.
+6. **TUI** -- Native terminal dashboard (forge-ui-tui) built with bubbletea.
+   Renders the same portfolio, workspace, and forge data as the browser
+   dashboard, but in a terminal UI. Fetches data from the forge-frontend REST
+   API.
 
 The UI uses Material Design 3 styles with 4 light palettes and 1 dark palette
 (Catppuccin Mocha). Theme selection persists via localStorage.

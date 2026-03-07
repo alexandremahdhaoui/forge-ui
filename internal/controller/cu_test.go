@@ -1,0 +1,109 @@
+//go:build unit
+
+// Copyright 2024 Alexandre Mahdhaoui
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package controller
+
+import (
+	"errors"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/alexandremahdhaoui/forge-ui/internal/types"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+type mockCUAdapter struct {
+	loadFn func(cuRepoPath string) (types.CompoState, error)
+}
+
+func (m *mockCUAdapter) LoadCompo(cuRepoPath string) (types.CompoState, error) {
+	return m.loadFn(cuRepoPath)
+}
+
+func TestGetCompoState_Found(t *testing.T) {
+	t.Parallel()
+
+	wsPath := t.TempDir()
+	err := os.MkdirAll(filepath.Join(wsPath, ".cu-repo"), 0o755)
+	require.NoError(t, err)
+
+	expected := types.CompoState{
+		Name:          "my-compo",
+		CurrentBranch: "main",
+		Branches:      []string{"main", "dev"},
+		Repos: []types.CompoRepo{
+			{Name: "repo-a", URL: "https://example.com/repo-a", ManagedFiles: []string{"go.mod"}},
+		},
+	}
+
+	adapter := &mockCUAdapter{
+		loadFn: func(cuRepoPath string) (types.CompoState, error) {
+			assert.Equal(t, filepath.Join(wsPath, ".cu-repo"), cuRepoPath)
+			return expected, nil
+		},
+	}
+
+	svc := NewCUService(adapter)
+	result, err := svc.GetCompoState(wsPath)
+
+	require.NoError(t, err)
+	assert.Equal(t, expected, result)
+}
+
+func TestGetCompoState_NotFound(t *testing.T) {
+	t.Parallel()
+
+	wsPath := t.TempDir()
+	// No .cu-repo directory created.
+
+	adapterCalled := false
+	adapter := &mockCUAdapter{
+		loadFn: func(cuRepoPath string) (types.CompoState, error) {
+			adapterCalled = true
+			return types.CompoState{}, nil
+		},
+	}
+
+	svc := NewCUService(adapter)
+	result, err := svc.GetCompoState(wsPath)
+
+	require.NoError(t, err)
+	assert.Equal(t, types.CompoState{}, result)
+	assert.False(t, adapterCalled, "adapter should not be called when .cu-repo does not exist")
+}
+
+func TestGetCompoState_AdapterError(t *testing.T) {
+	t.Parallel()
+
+	wsPath := t.TempDir()
+	err := os.MkdirAll(filepath.Join(wsPath, ".cu-repo"), 0o755)
+	require.NoError(t, err)
+
+	expectedErr := errors.New("failed to load compo")
+	adapter := &mockCUAdapter{
+		loadFn: func(cuRepoPath string) (types.CompoState, error) {
+			return types.CompoState{}, expectedErr
+		},
+	}
+
+	svc := NewCUService(adapter)
+	_, err = svc.GetCompoState(wsPath)
+
+	require.Error(t, err)
+	assert.Equal(t, expectedErr, err)
+}
