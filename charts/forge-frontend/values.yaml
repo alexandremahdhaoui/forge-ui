@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/alexandremahdhaoui/forge-wss-proxy
+  repository: ghcr.io/alexandremahdhaoui/forge-frontend
   pullPolicy: IfNotPresent
   tag: ""
 
@@ -9,10 +9,9 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
-config:
-  listenAddr: ":8080"
-  serveDir: "/web"
-  workspaceServicePattern: "forge-workspace-{name}:22"
+env:
+  FORGE_WORKSPACE_API_URL: "http://localhost:8080"
+  WORKSPACES: "/workspaces"
 
 serviceAccount:
   create: true
@@ -27,7 +26,14 @@ securityContext: {}
 
 service:
   type: ClusterIP
-  port: 8080
+  port: 8081
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  tls: []
 
 httpRoute:
   enabled: false

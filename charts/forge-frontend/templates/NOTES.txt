@@ -1,0 +1,7 @@
+forge-frontend has been deployed.
+
+REST API: /api/v1/portfolios
+
+To access:
+  kubectl port-forward svc/{{ include "forge-frontend.fullname" . }} 8081:{{ .Values.service.port }}
+  # Open http://localhost:8081/api/v1/portfolios
